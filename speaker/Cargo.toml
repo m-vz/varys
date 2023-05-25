@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Milan van Zanten <milan@milan.wtf>"]
 description = "A simple wrapper for tts."
+license = "MIT"
 publish = false
 
 [dependencies]
