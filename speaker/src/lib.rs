@@ -51,11 +51,17 @@ impl Speaker {
     ///
     /// ```
     /// use speaker::{Error, Speaker};
+    /// let mut speaker = Speaker::new().unwrap();
     /// #[cfg(target_os = "macos")]
-    /// assert_eq!(Speaker::new().set_voice("Jamie"), Ok(()));
+    /// assert!(speaker.set_voice("Jamie").is_ok());
     /// #[cfg(target_os = "macos")]
-    /// assert_eq!(Speaker::new().set_voice("com.apple.voice.premium.en-GB.Malcolm"), Ok(()));
-    /// assert_eq!(Speaker::new().set_voice("Invalid Name"), Err(Error::VoiceNotAvailable("Invalid Name".to_string())));
+    /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Malcolm").is_ok());
+    /// let invalid = speaker.set_voice("Invalid Name");
+    /// if let Err(Error::VoiceNotAvailable(text)) = invalid {
+    ///     assert_eq!(text, "Invalid Name");
+    /// } else {
+    ///     panic!("Must return `Error::VoiceNotAvailable`");
+    /// }
     /// ```
     pub fn set_voice(&mut self, id_or_name: &str) -> Result<(), Error> {
         let voice = self
@@ -80,7 +86,7 @@ impl Speaker {
     ///
     /// ```
     /// use speaker::Speaker;
-    /// assert_eq!(Speaker::new().set_volume(0.8_f32), Ok(()));
+    /// assert!(Speaker::new().unwrap().set_volume(0.8_f32).is_ok());
     /// ```
     pub fn set_volume(&mut self, volume: f32) -> Result<(), Error> {
         let min = self.tts.min_volume();
@@ -96,7 +102,7 @@ impl Speaker {
     ///
     /// ```
     /// use speaker::Speaker;
-    /// assert_eq!(Speaker::new().reset_volume(), Ok(()));
+    /// assert!(Speaker::new().unwrap().reset_volume().is_ok());
     /// ```
     pub fn reset_volume(&mut self) -> Result<(), Error> {
         self.tts.set_volume(self.tts.normal_volume())?;
@@ -112,7 +118,7 @@ impl Speaker {
     ///
     /// ```
     /// use speaker::Speaker;
-    /// assert_eq!(Speaker::new().set_rate(0.8_f32), Ok(()));
+    /// assert!(Speaker::new().unwrap().set_rate(0.8_f32).is_ok());
     /// ```
     pub fn set_rate(&mut self, rate: f32) -> Result<(), Error> {
         let min = self.tts.min_rate();
@@ -128,7 +134,7 @@ impl Speaker {
     ///
     /// ```
     /// use speaker::Speaker;
-    /// assert_eq!(Speaker::new().reset_rate(), Ok(()));
+    /// assert!(Speaker::new().unwrap().reset_rate().is_ok());
     /// ```
     pub fn reset_rate(&mut self) -> Result<(), Error> {
         self.tts.set_rate(self.tts.normal_rate())?;
@@ -146,7 +152,7 @@ impl Speaker {
     ///
     /// ```
     /// use speaker::Speaker;
-    /// assert_eq!(Speaker::new().say("Hello world.".to_string(), false), Ok(()));
+    /// assert!(Speaker::new().unwrap().say("Hello world.".to_string(), false).is_ok());
     /// ```
     pub fn say(&mut self, text: String, interrupt: bool) -> Result<(), Error> {
         debug!("Saying \"{}\"", text);
