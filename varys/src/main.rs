@@ -1,5 +1,4 @@
 use speaker::Speaker;
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,12 +13,9 @@ fn main() -> Result<(), Error> {
     let mut speaker = Speaker::new()?;
 
     speaker.set_voice("Isha")?;
-    speaker.say("YabbaDabbaDoooo".to_string(), false)?;
-    for x in 1..=3 {
-        speaker.say(x.to_string(), false)?;
-    }
-
-    speaker::start_run_loop();
+    speaker.say("Tongue breaker".to_string(), false)?;
+    speaker.set_voice("com.apple.voice.premium.en-GB.Malcolm")?;
+    speaker.say("Fishermen's friends.".to_string(), false)?;
 
     Ok(())
 }

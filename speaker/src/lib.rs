@@ -1,9 +1,13 @@
 #[cfg(target_os = "macos")]
-use cocoa_foundation::{base::id, foundation::NSRunLoop};
+use cocoa_foundation::{
+    base::id,
+    foundation::{NSDefaultRunLoopMode, NSRunLoop},
+};
 use lerp::Lerp;
-use log::info;
+use log::debug;
 #[cfg(target_os = "macos")]
-use objc::{msg_send, sel, sel_impl};
+use objc::{class, msg_send, sel, sel_impl};
+use std::sync::mpsc::{channel, TryRecvError};
 use thiserror::Error;
 use tts::{Features, Tts, Voice};
 
@@ -36,40 +40,35 @@ impl Speaker {
             available_voices,
         };
 
-        speaker.tts.on_utterance_begin(Some(Box::new(|id| {
-            info!("Started saying utterance {:?}", id);
-        })))?;
-        speaker.tts.on_utterance_end(Some(Box::new(|id| {
-            info!("Finished saying utterance {:?}", id);
-        })))?;
-        speaker.tts.on_utterance_stop(Some(Box::new(|id| {
-            info!("Stopped saying utterance {:?}", id);
-        })))?;
-
         Ok(speaker)
     }
 
     /// Set the voice that should be spoken with.
     ///
-    /// Returns an error if a voice with the given name is not available on the current platform.
+    /// Returns an error if a voice with the given id or name is not available on the current platform.
     ///
     /// # Examples
     ///
     /// ```
     /// use speaker::{Error, Speaker};
     /// #[cfg(target_os = "macos")]
-    /// assert_eq!(Speaker::new().set_voice("Isha"), Ok(()));
+    /// assert_eq!(Speaker::new().set_voice("Jamie"), Ok(()));
+    /// #[cfg(target_os = "macos")]
+    /// assert_eq!(Speaker::new().set_voice("com.apple.voice.premium.en-GB.Malcolm"), Ok(()));
     /// assert_eq!(Speaker::new().set_voice("Invalid Name"), Err(Error::VoiceNotAvailable("Invalid Name".to_string())));
     /// ```
-    pub fn set_voice(&mut self, name: &str) -> Result<(), Error> {
-        let voice = self.available_voices.iter().find(|v| v.name() == name);
+    pub fn set_voice(&mut self, id_or_name: &str) -> Result<(), Error> {
+        let voice = self
+            .available_voices
+            .iter()
+            .find(|v| v.id() == id_or_name || v.name() == id_or_name);
 
         if let Some(voice) = voice {
             self.tts.set_voice(voice)?;
 
             Ok(())
         } else {
-            Err(Error::VoiceNotAvailable(name.to_string()))
+            Err(Error::VoiceNotAvailable(id_or_name.to_string()))
         }
     }
 
@@ -141,6 +140,8 @@ impl Speaker {
     ///
     /// Interrupts any previous speaking if `interrupt` is set.
     ///
+    /// This blocks the current thread until speaking has finished.
+    ///
     /// # Examples
     ///
     /// ```
@@ -148,20 +149,27 @@ impl Speaker {
     /// assert_eq!(Speaker::new().say("Hello world.".to_string(), false), Ok(()));
     /// ```
     pub fn say(&mut self, text: String, interrupt: bool) -> Result<(), Error> {
+        debug!("Saying \"{}\"", text);
+
+        let (sender, receiver) = channel();
+        self.tts.on_utterance_end(Some(Box::new(move |_| {
+            let _ = sender.send(());
+        })))?;
+
         self.tts.speak(text, interrupt)?;
 
-        Ok(())
-    }
-}
+        #[cfg(target_os = "macos")]
+        {
+            unsafe {
+                let run_loop: id = NSRunLoop::currentRunLoop();
+                let date: id = msg_send![class!(NSDate), distantFuture];
+                while receiver.try_recv() == Err(TryRecvError::Empty) {
+                    let _: () = msg_send![run_loop, runMode:NSDefaultRunLoopMode beforeDate:date];
+                }
+            }
+        }
 
-/// On macOS, a run loop is required because speaking is non-blocking.
-///
-/// Call this to prevent the program from exiting before anything has been said.
-pub fn start_run_loop() {
-    #[cfg(target_os = "macos")]
-    unsafe {
-        let run_loop: id = NSRunLoop::currentRunLoop();
-        let _: () = msg_send![run_loop, run];
+        Ok(())
     }
 }
 
