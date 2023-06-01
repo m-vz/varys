@@ -50,7 +50,7 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use speaker::{Error, Speaker};
+    /// # use varys::speak::{Error, Speaker};
     /// let mut speaker = Speaker::new().unwrap();
     /// # #[cfg(target_os = "macos")]
     /// assert!(speaker.set_voice("Jamie").is_ok());
@@ -85,8 +85,8 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use speaker::Speaker;
-    /// let speaker = Speaker::new().unwrap();
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// speaker.set_volume(0.8_f32).unwrap();
     /// ```
     pub fn set_volume(&mut self, volume: f32) -> Result<(), Error> {
@@ -102,8 +102,8 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use speaker::Speaker;
-    /// let speaker = Speaker::new().unwrap();
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// speaker.reset_volume().unwrap();
     /// ```
     pub fn reset_volume(&mut self) -> Result<(), Error> {
@@ -119,8 +119,8 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use speaker::Speaker;
-    /// let speaker = Speaker::new().unwrap();
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// speaker.set_rate(0.8_f32).unwrap();
     /// ```
     pub fn set_rate(&mut self, rate: f32) -> Result<(), Error> {
@@ -136,8 +136,8 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use speaker::Speaker;
-    /// let speaker = Speaker::new().unwrap();
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// speaker.reset_rate().unwrap();
     /// ```
     pub fn reset_rate(&mut self) -> Result<(), Error> {
@@ -155,8 +155,8 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use speaker::Speaker;
-    /// let speaker = Speaker::new().unwrap();
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// speaker.say("Hello world.".to_string(), false).unwrap();
     /// ```
     pub fn say(&mut self, text: String, interrupt: bool) -> Result<(), Error> {

@@ -945,20 +945,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
-name = "speaker"
-version = "0.1.0"
-dependencies = [
- "cocoa-foundation",
- "core-foundation",
- "lerp",
- "libc",
- "log",
- "objc",
- "thiserror",
- "tts",
-]
-
-[[package]]
 name = "speech-dispatcher"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1086,12 +1072,17 @@ checksum = "b15811caf2415fb889178633e7724bad2509101cde276048e013b9def5e51fa0"
 name = "varys"
 version = "0.2.0"
 dependencies = [
+ "cocoa-foundation",
+ "core-foundation",
  "cpal",
  "hound",
+ "lerp",
+ "libc",
  "log",
+ "objc",
  "pretty_env_logger",
- "speaker",
  "thiserror",
+ "tts",
  "whisper-rs",
 ]
 

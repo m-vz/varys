@@ -1,15 +1,15 @@
 use log::info;
-use speaker::Speaker;
 use std::string::ToString;
 use thiserror::Error;
 use varys::listen::Listener;
 use varys::recognise::Recogniser;
-use varys::{listen, recognise};
+use varys::speak::Speaker;
+use varys::{listen, recognise, speak};
 
 #[derive(Error, Debug)]
 enum Error {
     #[error(transparent)]
-    Speaker(#[from] speaker::Error),
+    Speaker(#[from] speak::Error),
     #[error(transparent)]
     Listener(#[from] listen::Error),
     #[error(transparent)]
