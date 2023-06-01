@@ -2,7 +2,7 @@ use log::info;
 use std::string::ToString;
 use thiserror::Error;
 use varys::listen::Listener;
-use varys::recognise::Recogniser;
+use varys::recognise::{Model, Recogniser};
 use varys::speak::Speaker;
 use varys::{listen, recognise, speak};
 
@@ -18,7 +18,6 @@ enum Error {
     Recogniser(#[from] recognise::Error),
 }
 
-const MODEL_PATH: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
 const RECORDING_PATH: &str = "data/recordings/recorded.wav";
 const VOICE: &str = "Jamie";
 
@@ -33,7 +32,7 @@ fn main() -> Result<(), Error> {
         .save_to_file(RECORDING_PATH.to_string())?;
 
     info!("Recognising...");
-    let recogniser = Recogniser::with_model(MODEL_PATH)?;
+    let recogniser = Recogniser::with_model(Model::Large)?;
     let text = recogniser.recognise(&mut audio)?;
 
     info!("Speaking...");

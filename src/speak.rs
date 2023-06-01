@@ -157,7 +157,7 @@ impl Speaker {
     /// ```
     /// # use varys::speak::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
-    /// speaker.say("Hello world.".to_string(), false).unwrap();
+    /// speaker.say(String::new(), false).unwrap();
     /// ```
     pub fn say(&mut self, text: String, interrupt: bool) -> Result<(), Error> {
         debug!("Saying \"{}\"", text);
