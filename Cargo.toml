@@ -1,6 +1,28 @@
-[workspace]
+[package]
+name = "varys"
+version = "0.2.1"
+edition = "2021"
+authors = ["Milan van Zanten <milan@milan.wtf>"]
+description = "Spying on smart speakers."
+license = "MIT"
+publish = false
 
-members = [
-    "varys",
-    "speaker",
-]
+[dependencies]
+log = "0.4.18"
+pretty_env_logger = "0.5.0"
+thiserror = "1.0.40"
+# listen
+cpal = "0.15.2"
+hound = "3.5.0"
+# recognise
+whisper-rs = "0.8.0"
+# speak
+tts = "0.25.3"
+lerp = "0.4.0"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+# speak
+cocoa-foundation = "0.1.1"
+core-foundation = "0.9.3"
+libc = "0.2.144"
+objc = "0.2.7"
