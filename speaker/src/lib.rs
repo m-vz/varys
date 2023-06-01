@@ -50,11 +50,11 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// use speaker::{Error, Speaker};
+    /// # use speaker::{Error, Speaker};
     /// let mut speaker = Speaker::new().unwrap();
-    /// #[cfg(target_os = "macos")]
+    /// # #[cfg(target_os = "macos")]
     /// assert!(speaker.set_voice("Jamie").is_ok());
-    /// #[cfg(target_os = "macos")]
+    /// # #[cfg(target_os = "macos")]
     /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Malcolm").is_ok());
     /// let invalid = speaker.set_voice("Invalid Name");
     /// if let Err(Error::VoiceNotAvailable(text)) = invalid {
@@ -85,8 +85,9 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// use speaker::Speaker;
-    /// assert!(Speaker::new().unwrap().set_volume(0.8_f32).is_ok());
+    /// # use speaker::Speaker;
+    /// let speaker = Speaker::new().unwrap();
+    /// speaker.set_volume(0.8_f32).unwrap();
     /// ```
     pub fn set_volume(&mut self, volume: f32) -> Result<(), Error> {
         let min = self.tts.min_volume();
@@ -101,8 +102,9 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// use speaker::Speaker;
-    /// assert!(Speaker::new().unwrap().reset_volume().is_ok());
+    /// # use speaker::Speaker;
+    /// let speaker = Speaker::new().unwrap();
+    /// speaker.reset_volume().unwrap();
     /// ```
     pub fn reset_volume(&mut self) -> Result<(), Error> {
         self.tts.set_volume(self.tts.normal_volume())?;
@@ -117,8 +119,9 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// use speaker::Speaker;
-    /// assert!(Speaker::new().unwrap().set_rate(0.8_f32).is_ok());
+    /// # use speaker::Speaker;
+    /// let speaker = Speaker::new().unwrap();
+    /// speaker.set_rate(0.8_f32).unwrap();
     /// ```
     pub fn set_rate(&mut self, rate: f32) -> Result<(), Error> {
         let min = self.tts.min_rate();
@@ -133,8 +136,9 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// use speaker::Speaker;
-    /// assert!(Speaker::new().unwrap().reset_rate().is_ok());
+    /// # use speaker::Speaker;
+    /// let speaker = Speaker::new().unwrap();
+    /// speaker.reset_rate().unwrap();
     /// ```
     pub fn reset_rate(&mut self) -> Result<(), Error> {
         self.tts.set_rate(self.tts.normal_rate())?;
@@ -151,8 +155,9 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// use speaker::Speaker;
-    /// assert!(Speaker::new().unwrap().say("Hello world.".to_string(), false).is_ok());
+    /// # use speaker::Speaker;
+    /// let speaker = Speaker::new().unwrap();
+    /// speaker.say("Hello world.".to_string(), false).unwrap();
     /// ```
     pub fn say(&mut self, text: String, interrupt: bool) -> Result<(), Error> {
         debug!("Saying \"{}\"", text);
