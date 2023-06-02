@@ -1,4 +1,4 @@
-use pcap::Device;
+use pcap::{ConnectionStatus, Device};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -19,4 +19,11 @@ impl From<Device> for Sniffer {
 
 pub fn available_devices() -> Result<Vec<Device>, Error> {
     Ok(Device::list()?)
+}
+
+pub fn connected_devices() -> Result<Vec<Device>, Error> {
+    Ok(available_devices()?
+        .into_iter()
+        .filter(|device| device.flags.connection_status == ConnectionStatus::Connected)
+        .collect())
 }

@@ -1,4 +1,4 @@
-use log::info;
+use log::{debug, info};
 use std::string::ToString;
 use thiserror::Error;
 use varys::listen::Listener;
@@ -27,8 +27,8 @@ fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
     info!("Sniffing...");
-    for device in sniff::available_devices()? {
-        info!("Found device {:?}", device);
+    for device in sniff::connected_devices()? {
+        debug!("Found connected device {:?}", device);
     }
 
     Ok(())
