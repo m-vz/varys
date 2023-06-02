@@ -4,6 +4,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error("No default network device was found.")]
+    DefaultDeviceNotFound,
     #[error(transparent)]
     Pcap(#[from] pcap::Error),
 }
@@ -28,8 +30,8 @@ impl Display for Sniffer {
     }
 }
 
-pub fn default_device() -> Result<Option<Device>, Error> {
-    Ok(Device::lookup()?)
+pub fn default_device() -> Result<Device, Error> {
+    Device::lookup()?.ok_or(Error::DefaultDeviceNotFound)
 }
 
 pub fn all_devices() -> Result<Vec<Device>, Error> {

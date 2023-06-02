@@ -29,13 +29,11 @@ fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
     info!("Sniffing...");
-    let default_device = sniff::default_device()?;
-    if let Some(default_device) = default_device {
-        debug!("Default: {}", Sniffer::from(default_device));
-    }
     for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
         debug!("{}", Sniffer::from(device));
     }
+    let sniffer = Sniffer::from(sniff::default_device()?);
+    debug!("Using default: {}", sniffer);
 
     Ok(())
 }
