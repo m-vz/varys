@@ -28,6 +28,10 @@ impl Display for Sniffer {
     }
 }
 
+pub fn default_device() -> Result<Option<Device>, Error> {
+    Ok(Device::lookup()?)
+}
+
 pub fn all_devices() -> Result<Vec<Device>, Error> {
     Ok(Device::list()?)
 }
