@@ -4,6 +4,7 @@ use std::string::ToString;
 use thiserror::Error;
 use varys::listen::Listener;
 use varys::recognise::{Model, Recogniser};
+use varys::sniff::Sniffer;
 use varys::speak::Speaker;
 use varys::{listen, recognise, sniff, speak};
 
@@ -28,16 +29,8 @@ fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
     info!("Sniffing...");
-    for status in [
-        ConnectionStatus::Connected,
-        ConnectionStatus::Disconnected,
-        ConnectionStatus::NotApplicable,
-        ConnectionStatus::Unknown,
-    ] {
-        debug!("Devices with status {:?}:", status);
-        for device in sniff::devices_with_status(&status)? {
-            debug!("\t{:?}", device);
-        }
+    for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
+        debug!("{}", Sniffer::from(device));
     }
 
     Ok(())

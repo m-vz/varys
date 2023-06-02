@@ -1,4 +1,5 @@
 use pcap::{ConnectionStatus, Device};
+use std::fmt::{Display, Formatter};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,6 +15,16 @@ pub struct Sniffer {
 impl From<Device> for Sniffer {
     fn from(device: Device) -> Self {
         Sniffer { device }
+    }
+}
+
+impl Display for Sniffer {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Sniffer on {} ({:?} | {:?})",
+            self.device.name, self.device.flags.connection_status, self.device.flags.if_flags
+        )
     }
 }
 
