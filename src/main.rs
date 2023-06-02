@@ -1,4 +1,5 @@
 use log::{debug, info};
+use pcap::ConnectionStatus;
 use std::string::ToString;
 use thiserror::Error;
 use varys::listen::Listener;
@@ -27,8 +28,16 @@ fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
     info!("Sniffing...");
-    for device in sniff::connected_devices()? {
-        debug!("Found connected device {:?}", device);
+    for status in [
+        ConnectionStatus::Connected,
+        ConnectionStatus::Disconnected,
+        ConnectionStatus::NotApplicable,
+        ConnectionStatus::Unknown,
+    ] {
+        debug!("Devices with status {:?}:", status);
+        for device in sniff::devices_with_status(&status)? {
+            debug!("\t{:?}", device);
+        }
     }
 
     Ok(())

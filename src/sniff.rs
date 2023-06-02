@@ -17,13 +17,13 @@ impl From<Device> for Sniffer {
     }
 }
 
-pub fn available_devices() -> Result<Vec<Device>, Error> {
+pub fn all_devices() -> Result<Vec<Device>, Error> {
     Ok(Device::list()?)
 }
 
-pub fn connected_devices() -> Result<Vec<Device>, Error> {
-    Ok(available_devices()?
+pub fn devices_with_status(status: &ConnectionStatus) -> Result<Vec<Device>, Error> {
+    Ok(all_devices()?
         .into_iter()
-        .filter(|device| device.flags.connection_status == ConnectionStatus::Connected)
+        .filter(|device| device.flags.connection_status == *status)
         .collect())
 }
