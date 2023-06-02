@@ -4,7 +4,7 @@ use thiserror::Error;
 use varys::listen::Listener;
 use varys::recognise::{Model, Recogniser};
 use varys::speak::Speaker;
-use varys::{listen, recognise, speak};
+use varys::{listen, recognise, sniff, speak};
 
 #[derive(Error, Debug)]
 enum Error {
@@ -16,6 +16,8 @@ enum Error {
     Audio(#[from] listen::audio::Error),
     #[error(transparent)]
     Recogniser(#[from] recognise::Error),
+    #[error(transparent)]
+    Sniffer(#[from] sniff::Error),
 }
 
 const RECORDING_PATH: &str = "data/recordings/recorded.wav";
@@ -24,6 +26,11 @@ const VOICE: &str = "Jamie";
 fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
+    Ok(())
+}
+
+#[allow(unused)]
+fn listen_recognise_speak() -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = listener.record(5)?;
