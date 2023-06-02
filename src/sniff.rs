@@ -16,3 +16,7 @@ impl From<Device> for Sniffer {
         Sniffer { device }
     }
 }
+
+pub fn available_devices() -> Result<Vec<Device>, Error> {
+    Ok(Device::list()?)
+}

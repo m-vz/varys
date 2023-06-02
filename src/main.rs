@@ -26,6 +26,11 @@ const VOICE: &str = "Jamie";
 fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
+    info!("Sniffing...");
+    for device in sniff::available_devices()? {
+        info!("Found device {:?}", device);
+    }
+
     Ok(())
 }
 
