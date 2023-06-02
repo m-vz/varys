@@ -6,6 +6,8 @@ use thiserror::Error;
 pub enum Error {
     #[error("No default network device was found.")]
     DefaultDeviceNotFound,
+    #[error("Could not find device {0}.")]
+    DeviceNotFound(String),
     #[error(transparent)]
     Pcap(#[from] pcap::Error),
 }
@@ -43,4 +45,11 @@ pub fn devices_with_status(status: &ConnectionStatus) -> Result<Vec<Device>, Err
         .into_iter()
         .filter(|device| device.flags.connection_status == *status)
         .collect())
+}
+
+pub fn device_by_name(name: &str) -> Result<Device, Error> {
+    all_devices()?
+        .into_iter()
+        .find(|device| device.name == name)
+        .ok_or(Error::DeviceNotFound(name.to_string()))
 }

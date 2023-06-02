@@ -32,8 +32,8 @@ fn main() -> Result<(), Error> {
     for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
         debug!("{}", Sniffer::from(device));
     }
-    let sniffer = Sniffer::from(sniff::default_device()?);
-    debug!("Using default: {}", sniffer);
+    let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
+    debug!("Using: {}", sniffer);
 
     Ok(())
 }
