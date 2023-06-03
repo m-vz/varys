@@ -1,9 +1,10 @@
 use chrono::{DateTime, Utc};
-use log::{info, trace, warn};
+use log::{info, trace};
 use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
 use std::fmt::{Display, Formatter};
-use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Sender, TryRecvError};
 use std::thread;
+use std::thread::JoinHandle;
 use std::time::{Duration, UNIX_EPOCH};
 use thiserror::Error;
 
@@ -81,9 +82,8 @@ impl Sniffer {
             .open()?
             .setnonblock()?;
         let (sender, receiver) = channel();
-        let (stats_sender, stats_receiver) = channel();
 
-        thread::spawn(move || {
+        let join_handle = thread::spawn(move || {
             while receiver.try_recv() == Err(TryRecvError::Empty) {
                 match capture.next_packet() {
                     Ok(packet) => {
@@ -94,17 +94,13 @@ impl Sniffer {
                     }
                 }
             }
-            if stats_sender
-                .send(capture.stats().map_err(Error::Pcap))
-                .is_err()
-            {
-                warn!("Could not send stats to sniffer instance");
-            }
+
+            capture.stats().map_err(Error::Pcap)
         });
 
         Ok(SnifferInstance {
             sender,
-            stats_receiver,
+            join_handle,
         })
     }
 
@@ -135,14 +131,14 @@ impl Display for Sniffer {
 
 pub struct SnifferInstance {
     sender: Sender<()>,
-    stats_receiver: Receiver<Result<Stat, Error>>,
+    join_handle: JoinHandle<Result<Stat, Error>>,
 }
 
 impl SnifferInstance {
     pub fn stop(self) -> Result<SnifferStats, Error> {
         self.sender.send(()).map_err(|_| Error::CannotStop)?;
-        self.stats_receiver
-            .recv()
+        self.join_handle
+            .join()
             .map_err(|_| Error::NoStatsReceived)?
             .map(SnifferStats::from)
     }
