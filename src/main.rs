@@ -34,7 +34,7 @@ fn main() -> Result<(), Error> {
     }
     let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
     debug!("Using: {}", sniffer);
-    sniffer.start()?;
+    sniffer.run_for(5)?;
 
     Ok(())
 }

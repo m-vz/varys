@@ -1,7 +1,9 @@
 use chrono::{DateTime, Utc};
-use log::{info, trace};
-use pcap::{Capture, ConnectionStatus, Device, Packet, PacketCodec, TimestampType};
+use log::{info, trace, warn};
+use pcap::{Capture, ConnectionStatus, Device, Packet, PacketCodec};
 use std::fmt::{Display, Formatter};
+use std::sync::mpsc::{channel, Sender, TryRecvError};
+use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 use thiserror::Error;
 
@@ -40,12 +42,8 @@ impl Display for SnifferPacket {
     }
 }
 
-pub struct Codec;
-
-impl PacketCodec for Codec {
-    type Item = SnifferPacket;
-
-    fn decode(&mut self, packet: Packet) -> Self::Item {
+impl From<Packet<'_>> for SnifferPacket {
+    fn from(packet: Packet) -> Self {
         let timestamp = packet.header.ts;
         let s = timestamp.tv_sec as u64;
         let ms = u64::try_from(timestamp.tv_usec as i64).unwrap_or(0); // tv_usec might be negative for dates before 1970, ignore those
@@ -60,24 +58,52 @@ impl PacketCodec for Codec {
     }
 }
 
+pub struct SnifferInstance(Sender<()>);
+
+impl SnifferInstance {
+    pub fn stop(self) {
+        if self.0.send(()).is_err() {
+            warn!("Tried to stop sniffer that was not running");
+        }
+    }
+}
+
 pub struct Sniffer {
     device: Device,
 }
 
 impl Sniffer {
-    pub fn start(&self) -> Result<(), Error> {
+    pub fn start(&self) -> Result<SnifferInstance, Error> {
         info!("{} starting...", self);
 
-        let capture = Capture::from_device(self.device.clone())?
+        let mut capture = Capture::from_device(self.device.clone())?
             .promisc(true)
             .immediate_mode(true)
             .buffer_size(100_000_000)
-            .tstamp_type(TimestampType::Adapter)
-            .open()?;
+            .open()?
+            .setnonblock()?;
+        let (sender, receiver) = channel();
 
-        for packet in capture.iter(Codec) {
-            trace!("{}", packet?);
-        }
+        thread::spawn(move || {
+            while receiver.try_recv() == Err(TryRecvError::Empty) {
+                match capture.next_packet() {
+                    Ok(packet) => {
+                        trace!("{}", SnifferPacket::from(packet));
+                    }
+                    Err(_) => {
+                        thread::sleep(Duration::from_millis(10));
+                    }
+                }
+            }
+        });
+
+        Ok(SnifferInstance(sender))
+    }
+
+    pub fn run_for(&self, seconds: u64) -> Result<(), Error> {
+        let instance = self.start()?;
+        thread::sleep(Duration::from_secs(seconds));
+        instance.stop();
 
         Ok(())
     }
