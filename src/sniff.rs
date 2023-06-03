@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use log::{info, trace, warn};
-use pcap::{Capture, ConnectionStatus, Device, Packet, PacketCodec};
+use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
 use std::fmt::{Display, Formatter};
-use std::sync::mpsc::{channel, Sender, TryRecvError};
+use std::sync::mpsc::{channel, Receiver, Sender, TryRecvError};
 use std::thread;
 use std::time::{Duration, UNIX_EPOCH};
 use thiserror::Error;
@@ -13,6 +13,10 @@ pub enum Error {
     DefaultDeviceNotFound,
     #[error("Could not find device {0}.")]
     DeviceNotFound(String),
+    #[error("Tried to stop sniffer that was not running.")]
+    CannotStop,
+    #[error("Did not receive sniffer stats.")]
+    NoStatsReceived,
     #[error(transparent)]
     Pcap(#[from] pcap::Error),
 }
@@ -62,16 +66,6 @@ impl From<Packet<'_>> for SnifferPacket {
     }
 }
 
-pub struct SnifferInstance(Sender<()>);
-
-impl SnifferInstance {
-    pub fn stop(self) {
-        if self.0.send(()).is_err() {
-            warn!("Tried to stop sniffer that was not running");
-        }
-    }
-}
-
 pub struct Sniffer {
     device: Device,
 }
@@ -87,6 +81,7 @@ impl Sniffer {
             .open()?
             .setnonblock()?;
         let (sender, receiver) = channel();
+        let (stats_sender, stats_receiver) = channel();
 
         thread::spawn(move || {
             while receiver.try_recv() == Err(TryRecvError::Empty) {
@@ -99,17 +94,26 @@ impl Sniffer {
                     }
                 }
             }
+            if stats_sender
+                .send(capture.stats().map_err(Error::Pcap))
+                .is_err()
+            {
+                warn!("Could not send stats to sniffer instance");
+            }
         });
 
-        Ok(SnifferInstance(sender))
+        Ok(SnifferInstance {
+            sender,
+            stats_receiver,
+        })
     }
 
-    pub fn run_for(&self, seconds: u64) -> Result<(), Error> {
+    pub fn run_for(&self, seconds: u64) -> Result<SnifferStats, Error> {
         let instance = self.start()?;
         thread::sleep(Duration::from_secs(seconds));
-        instance.stop();
+        let stats = instance.stop()?;
 
-        Ok(())
+        Ok(stats)
     }
 }
 
@@ -125,6 +129,48 @@ impl Display for Sniffer {
             f,
             "Sniffer on {} ({:?} | {:?})",
             self.device.name, self.device.flags.connection_status, self.device.flags.if_flags
+        )
+    }
+}
+
+pub struct SnifferInstance {
+    sender: Sender<()>,
+    stats_receiver: Receiver<Result<Stat, Error>>,
+}
+
+impl SnifferInstance {
+    pub fn stop(self) -> Result<SnifferStats, Error> {
+        self.sender.send(()).map_err(|_| Error::CannotStop)?;
+        self.stats_receiver
+            .recv()
+            .map_err(|_| Error::NoStatsReceived)?
+            .map(SnifferStats::from)
+    }
+}
+
+#[derive(Debug)]
+pub struct SnifferStats {
+    pub received: u32,
+    pub buffer_dropped: u32,
+    pub interface_dropped: u32,
+}
+
+impl From<Stat> for SnifferStats {
+    fn from(stats: Stat) -> Self {
+        SnifferStats {
+            received: stats.received,
+            buffer_dropped: stats.dropped,
+            interface_dropped: stats.if_dropped,
+        }
+    }
+}
+
+impl Display for SnifferStats {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Captured {} packets (buffer dropped: {}, interface dropped: {})",
+            self.received, self.buffer_dropped, self.interface_dropped
         )
     }
 }
