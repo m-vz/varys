@@ -23,6 +23,7 @@ enum Error {
 }
 
 const RECORDING_PATH: &str = "data/recordings/recorded.wav";
+const PCAP_PATH: &str = "data/captures/captured.pcap";
 const VOICE: &str = "Jamie";
 
 fn main() -> Result<(), Error> {
@@ -34,7 +35,7 @@ fn main() -> Result<(), Error> {
     }
     let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
     debug!("Using: {}", sniffer);
-    let stats = sniffer.run_for(5)?;
+    let stats = sniffer.run_for(5, Some(PCAP_PATH))?;
     debug!("Stats: {}", stats);
 
     Ok(())

@@ -72,7 +72,7 @@ pub struct Sniffer {
 }
 
 impl Sniffer {
-    pub fn start(&self) -> Result<SnifferInstance, Error> {
+    pub fn start(&self, file_path: Option<&str>) -> Result<SnifferInstance, Error> {
         info!("{} starting...", self);
 
         let mut capture = Capture::from_device(self.device.clone())?
@@ -81,12 +81,16 @@ impl Sniffer {
             .buffer_size(100_000_000)
             .open()?
             .setnonblock()?;
+        let mut file = file_path.map(|path| capture.savefile(path)).transpose()?;
         let (sender, receiver) = channel();
 
         let join_handle = thread::spawn(move || {
             while receiver.try_recv() == Err(TryRecvError::Empty) {
                 match capture.next_packet() {
                     Ok(packet) => {
+                        if let Some(file) = file.as_mut() {
+                            file.write(&packet);
+                        }
                         trace!("{}", SnifferPacket::from(packet));
                     }
                     Err(_) => {
@@ -104,8 +108,8 @@ impl Sniffer {
         })
     }
 
-    pub fn run_for(&self, seconds: u64) -> Result<SnifferStats, Error> {
-        let instance = self.start()?;
+    pub fn run_for(&self, seconds: u64, file_path: Option<&str>) -> Result<SnifferStats, Error> {
+        let instance = self.start(file_path)?;
         thread::sleep(Duration::from_secs(seconds));
         let stats = instance.stop()?;
 
