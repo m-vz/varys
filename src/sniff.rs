@@ -34,10 +34,14 @@ impl Display for SnifferPacket {
 
         write!(
             f,
-            "{} bytes captured on {}: {:?}",
+            "{} bytes captured on {}: {}",
             length,
             self.timestamp.format("%d.%m.%Y %H:%M:%S"),
             self.data
+                .iter()
+                .map(|b| format!("{:02X}", b))
+                .collect::<Vec<String>>()
+                .join(" ")
         )
     }
 }
