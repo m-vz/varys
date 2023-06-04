@@ -12,26 +12,16 @@ pub enum Error {
     Speaker(#[from] speak::Error),
 }
 
-pub enum Assistant {
-    Siri(Siri),
-    Unavailable,
-}
+pub trait Assistant: Setup {}
+impl<T: Setup> Assistant for T {}
 
-impl From<&str> for Assistant {
-    fn from(value: &str) -> Self {
-        match &value.to_lowercase()[..] {
-            "siri" => Assistant::Siri(Siri {}),
-            _ => Assistant::Unavailable,
-        }
-    }
-}
-
-impl Default for Assistant {
-    fn default() -> Self {
-        Assistant::Siri(Siri {})
-    }
-}
-
-pub trait VoiceAssistant {
+pub trait Setup {
     fn setup(&self) -> Result<(), Error>;
+}
+
+pub fn from(name: Option<String>) -> impl Assistant {
+    match name.unwrap_or(String::new()).to_lowercase().as_str() {
+        "siri" => Siri {},
+        _ => Siri {},
+    }
 }

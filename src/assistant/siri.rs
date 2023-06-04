@@ -1,4 +1,4 @@
-use crate::assistant::{Error, VoiceAssistant};
+use crate::assistant::{Error, Setup};
 use crate::cli::interact;
 use crate::cli::key_type::KeyType;
 use crate::speak::Speaker;
@@ -12,7 +12,7 @@ impl Siri {
         &["Ava", "Karen", "Jamie", "Matilda", "Serena", "Zoe"];
 }
 
-impl VoiceAssistant for Siri {
+impl Setup for Siri {
     fn setup(&self) -> Result<(), Error> {
         info!("Starting Siri setup...");
 
