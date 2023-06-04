@@ -3,11 +3,13 @@ pub mod audio;
 use crate::listen::audio::AudioData;
 use crate::recognise::Recogniser;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, PlayStreamError, SampleFormat, StreamConfig};
-use log::{debug, error, info};
+use cpal::{BuildStreamError, Device, PlayStreamError, SampleFormat, Stream, StreamConfig};
+use log::{debug, error, info, trace, warn};
+use simple_moving_average::{NoSumSMA, SMA};
+use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -42,6 +44,9 @@ pub struct Listener {
 }
 
 impl Listener {
+    const DEFAULT_MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
+    /// How many seconds of audio data should be expected by default when starting a recording.
+    const DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
     const DEFAULT_RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
 
     /// Create a new listener using the system default input device.
@@ -82,57 +87,179 @@ impl Listener {
         })
     }
 
-    /// Record audio data.
+    /// Start recording audio data.
     ///
-    /// Returns an error if the audio stream could not be built or played. This might happen if the
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
     /// device is no longer available.
-    ///
-    /// # Arguments
-    ///
-    /// * `seconds`: How long to record for.
     ///
     /// # Examples
     ///
     /// ```
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// listener.record(0).unwrap();
+    /// let instance = listener.start().unwrap();
+    /// # instance.stop().unwrap();
     /// ```
-    pub fn record(&self, seconds: u32) -> Result<AudioData, Error> {
+    pub fn start(&self) -> Result<ListenerInstance, Error> {
+        info!("Starting recording...");
+
         let writer = Arc::new(Mutex::new(Vec::with_capacity(
-            (self.device_config.sample_rate.0 * seconds) as usize,
+            self.device_config.sample_rate.0 as usize
+                * Listener::DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS,
         )));
         let writer_2 = writer.clone();
+        let (average_sender, average) = channel();
+        let mut running_average =
+            NoSumSMA::<_, f32, { Listener::DEFAULT_MOVING_AVERAGE_WINDOW_SIZE }>::new();
+        let mut sample_count: u32 = 0;
+
         let stream = self.device.build_input_stream(
             &self.device_config,
             move |data: &[f32], _| {
                 if let Ok(mut guard) = writer_2.try_lock() {
                     for &sample in data.iter() {
                         guard.push(sample);
+                        running_average.add_sample(sample.abs());
+                        sample_count += 1;
+                        if sample_count >= Listener::DEFAULT_MOVING_AVERAGE_WINDOW_SIZE as u32 {
+                            trace!("{}", running_average.get_average());
+                            if average_sender.send(running_average.get_average()).is_err() {
+                                warn!("Unable to send recording average.");
+                            }
+                            sample_count = 0;
+                        }
                     }
                 }
             },
             move |err| error!("Audio stream error: {}", err),
             self.recording_timeout,
         )?;
-
-        info!("Starting recording...");
         stream.play()?;
+
+        Ok(ListenerInstance {
+            stream,
+            writer,
+            average,
+            channels: self.device_config.channels,
+            sample_rate: self.device_config.sample_rate.0,
+        })
+    }
+
+    /// Record until silence is detected for a certain amount of time. The current thread is blocked
+    /// until recording is done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
+    /// device is no longer available.
+    ///
+    /// # Arguments
+    ///
+    /// * `silence_duration`: How long a silence must be for the recording to be stopped.
+    /// * `silence_threshold`: The highest frequency that is considered silence.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::time;
+    /// # use varys::listen::Listener;
+    /// let listener = Listener::new().unwrap();
+    /// let audio_data = listener.record_until_silent(time::Duration::from_secs(0), 0.001);
+    /// ```
+    pub fn record_until_silent(
+        &self,
+        silence_duration: Duration,
+        silence_threshold: f32,
+    ) -> Result<AudioData, Error> {
+        info!(
+            "Recording audio until silent for {} seconds...",
+            silence_duration.as_secs()
+        );
+
+        let instance = self.start()?;
+        let started = Instant::now();
+        let mut last_audio_detected = Instant::now();
+        while let Ok(average) = instance.average.recv() {
+            let now = Instant::now();
+            if average > silence_threshold {
+                last_audio_detected = now;
+            }
+            if last_audio_detected < now - silence_duration {
+                break;
+            }
+            if let Some(timeout) = self.recording_timeout {
+                if started < now - timeout {
+                    break;
+                }
+            }
+        }
+        instance.stop()
+    }
+
+    /// Record for a specified amount of seconds. The current thread is blocked until recording is
+    /// done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
+    /// device is no longer available.
+    ///
+    /// # Arguments
+    ///
+    /// * `seconds`: How many seconds to record for.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::Listener;
+    /// let listener = Listener::new().unwrap();
+    /// let audio_data = listener.record_for(0);
+    /// ```
+    pub fn record_for(&self, seconds: u32) -> Result<AudioData, Error> {
+        info!("Recording audio for {} seconds", seconds);
+
+        let instance = self.start()?;
         for second in (1..=seconds).rev() {
-            info!("{}...", second);
+            debug!("{}...", second);
             thread::sleep(Duration::from_secs(1));
         }
-        drop(stream);
-        info!("Recording done");
+        instance.stop()
+    }
+}
 
-        let data = Arc::try_unwrap(writer)
+/// A handle to a running listener instance. It can be stopped with [`ListenerInstance::stop`].
+pub struct ListenerInstance {
+    stream: Stream,
+    writer: Arc<Mutex<Vec<f32>>>,
+    average: Receiver<f32>,
+    channels: u16,
+    sample_rate: u32,
+}
+
+impl ListenerInstance {
+    /// Stop the running listener consuming the instance and get the recorded audio data.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::Listener;
+    /// let instance = Listener::new().unwrap().start().unwrap();
+    /// let audio_data = instance.stop().unwrap();
+    /// ```
+    pub fn stop(self) -> Result<AudioData, Error> {
+        info!("Stopping recording...");
+
+        drop(self.stream);
+        let data = Arc::try_unwrap(self.writer)
             .map_err(|_| Error::StillRecording)?
             .into_inner()?;
 
         Ok(AudioData {
             data,
-            channels: self.device_config.channels,
-            sample_rate: self.device_config.sample_rate.0,
+            channels: self.channels,
+            sample_rate: self.sample_rate,
         })
     }
 }

@@ -1,6 +1,7 @@
 use log::{debug, info};
 use pcap::ConnectionStatus;
 use std::string::ToString;
+use std::time::Duration;
 use thiserror::Error;
 use varys::listen::Listener;
 use varys::recognise::{Model, Recogniser};
@@ -29,6 +30,12 @@ const VOICE: &str = "Jamie";
 fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
+    // sniff()
+    listen_recognise_speak()
+}
+
+#[allow(unused)]
+fn sniff() -> Result<(), Error> {
     info!("Sniffing...");
     for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
         debug!("{}", Sniffer::from(device));
@@ -45,7 +52,7 @@ fn main() -> Result<(), Error> {
 fn listen_recognise_speak() -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
-    let mut audio = listener.record(5)?;
+    let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.001)?;
     audio
         .downsample(16000)?
         .save_to_file(RECORDING_PATH.to_string())?;
