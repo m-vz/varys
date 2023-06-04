@@ -64,7 +64,7 @@ fn listen_recognise_speak() -> Result<(), Error> {
     info!("Speaking...");
     let mut speaker = Speaker::new()?;
     speaker.set_voice(VOICE)?;
-    speaker.say(text, false)?;
+    speaker.say(&text, false)?;
 
     Ok(())
 }
