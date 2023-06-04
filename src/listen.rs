@@ -3,7 +3,7 @@ pub mod audio;
 use crate::listen::audio::AudioData;
 use crate::recognise::Recogniser;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, PlayStreamError, SampleFormat, StreamConfig};
+use cpal::{BuildStreamError, Device, PlayStreamError, SampleFormat, Stream, StreamConfig};
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
@@ -42,6 +42,8 @@ pub struct Listener {
 }
 
 impl Listener {
+    /// How many seconds of audio data should be expected by default when starting a recording.
+    const DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
     const DEFAULT_RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
 
     /// Create a new listener using the system default input device.
@@ -96,11 +98,15 @@ impl Listener {
     /// ```
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// listener.record(0).unwrap();
+    /// let instance = listener.start().unwrap();
+    /// # instance.stop().unwrap();
     /// ```
-    pub fn record(&self, seconds: u32) -> Result<AudioData, Error> {
+    pub fn start(&self) -> Result<ListenerInstance, Error> {
+        info!("Starting recording...");
+
         let writer = Arc::new(Mutex::new(Vec::with_capacity(
-            (self.device_config.sample_rate.0 * seconds) as usize,
+            self.device_config.sample_rate.0 as usize
+                * Listener::DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS,
         )));
         let writer_2 = writer.clone();
         let stream = self.device.build_input_stream(
@@ -116,23 +122,49 @@ impl Listener {
             self.recording_timeout,
         )?;
 
-        info!("Starting recording...");
         stream.play()?;
+
+        Ok(ListenerInstance {
+            stream,
+            writer,
+            channels: self.device_config.channels,
+            sample_rate: self.device_config.sample_rate.0,
+        })
+    }
+
+    pub fn record_for(&self, seconds: u32) -> Result<AudioData, Error> {
+        info!("Recording audio for {} seconds", seconds);
+
+        let instance = self.start()?;
         for second in (1..=seconds).rev() {
-            info!("{}...", second);
+            debug!("{}...", second);
             thread::sleep(Duration::from_secs(1));
         }
-        drop(stream);
-        info!("Recording done");
+        instance.stop()
+    }
+}
 
-        let data = Arc::try_unwrap(writer)
+/// A handle to a running listener instance. It can be stopped with [`ListenerInstance::stop`].
+pub struct ListenerInstance {
+    stream: Stream,
+    writer: Arc<Mutex<Vec<f32>>>,
+    channels: u16,
+    sample_rate: u32,
+}
+
+impl ListenerInstance {
+    pub fn stop(self) -> Result<AudioData, Error> {
+        info!("Stopping recording...");
+
+        drop(self.stream);
+        let data = Arc::try_unwrap(self.writer)
             .map_err(|_| Error::StillRecording)?
             .into_inner()?;
 
         Ok(AudioData {
             data,
-            channels: self.device_config.channels,
-            sample_rate: self.device_config.sample_rate.0,
+            channels: self.channels,
+            sample_rate: self.sample_rate,
         })
     }
 }
