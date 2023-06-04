@@ -1,4 +1,5 @@
-use crate::cli::KeyType;
+use crate::cli::interact;
+use crate::cli::key_type::KeyType;
 use crate::speak::Speaker;
 use crate::{cli, speak};
 use colored::Colorize;
@@ -8,7 +9,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    CLI(#[from] cli::Error),
+    CliIo(#[from] cli::interact::Error),
     #[error(transparent)]
     Speaker(#[from] speak::Error),
 }
@@ -30,7 +31,7 @@ impl VoiceAssistant for Siri {
 
         let mut speaker = Speaker::new()?;
 
-        let voice = cli::user_input(
+        let voice = interact::user_input(
             &format!(
                 "Choose the voice to set up (The highest quality voices on macOS are {}):",
                 Siri::PREMIUM_VOICES.join(", ")
@@ -39,19 +40,19 @@ impl VoiceAssistant for Siri {
             "Voice not found, enter a voice that can be used on this system:",
         )?;
         println!("Setting up Siri for {}", voice);
-        cli::user_confirmation(
+        interact::user_confirmation(
             "This requires a number of sentences to be said. To continue, press",
         )?;
-        cli::user_confirmation(
+        interact::user_confirmation(
             "Make sure your iOS device is close enough to this computer to hear it.",
         )?;
-        cli::user_confirmation(&format!(
+        interact::user_confirmation(&format!(
             "On your iOS device, go to {} > {} and enable {} (you might have to disable it first)",
             "Settings".bright_blue(),
             "Siri & Search".bright_blue(),
             "Listen for \"Hey Siri\"".bright_blue()
         ))?;
-        cli::user_confirmation(&format!(
+        interact::user_confirmation(&format!(
             "The sentences will now be said. Press {} on your device and then",
             "Continue".bright_blue()
         ))?;
@@ -64,7 +65,7 @@ impl VoiceAssistant for Siri {
         ] {
             loop {
                 speaker.say(sentence, true)?;
-                if cli::user_choice(
+                if interact::user_choice(
                     "Confirm that Siri recognised the sentence or repeat it",
                     &[KeyType::Enter, KeyType::Key('r')],
                 )? == KeyType::Enter

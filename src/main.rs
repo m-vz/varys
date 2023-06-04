@@ -4,11 +4,12 @@ use std::string::ToString;
 use std::time::Duration;
 use thiserror::Error;
 use varys::assistant::{Siri, VoiceAssistant};
+use varys::cli::interact;
 use varys::listen::Listener;
 use varys::recognise::{Model, Recogniser};
 use varys::sniff::Sniffer;
 use varys::speak::Speaker;
-use varys::{assistant, cli, listen, recognise, sniff, speak};
+use varys::{assistant, listen, recognise, sniff, speak};
 
 #[derive(Error, Debug)]
 enum Error {
@@ -25,7 +26,7 @@ enum Error {
     #[error(transparent)]
     Assistant(#[from] assistant::Error),
     #[error(transparent)]
-    Cli(#[from] cli::Error),
+    Cli(#[from] interact::Error),
 }
 
 const RECORDING_PATH: &str = "data/recordings/recorded.wav";
@@ -88,7 +89,7 @@ fn test_voice_recognition() -> Result<(), Error> {
     let mut speaker = Speaker::new()?;
 
     for voice in ["Karen", "Isha", "Zoe", "Jamie"] {
-        cli::user_confirmation(&format!("Test {}", voice))?;
+        interact::user_confirmation(&format!("Test {}", voice))?;
         speaker.set_voice(voice).unwrap();
         speaker.say("Hey Siri, what is my name?", true).unwrap();
     }
