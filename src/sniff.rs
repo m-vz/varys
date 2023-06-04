@@ -108,7 +108,11 @@ impl Sniffer {
     /// # instance.stop().unwrap();
     /// ```
     pub fn start(&self, file_path: Option<&str>) -> Result<SnifferInstance, Error> {
-        info!("{} starting...", self);
+        if let Some(file_path) = file_path {
+            info!("{} starting (writing to {})...", self, file_path);
+        } else {
+            info!("{} starting (not writing to file)...", self,);
+        }
 
         let mut capture = Capture::from_device(self.device.clone())?
             .promisc(true)
@@ -117,7 +121,7 @@ impl Sniffer {
             .open()?
             .setnonblock()?;
         let mut file = file_path.map(|path| capture.savefile(path)).transpose()?;
-        let (sender, receiver) = channel();
+        let (shutdown_channel, receiver) = channel();
 
         let join_handle = thread::spawn(move || {
             while receiver.try_recv() == Err(TryRecvError::Empty) {
@@ -138,7 +142,7 @@ impl Sniffer {
         });
 
         Ok(SnifferInstance {
-            sender,
+            shutdown_channel,
             join_handle,
         })
     }
@@ -165,6 +169,8 @@ impl Sniffer {
     /// let stats = sniffer.run_for(0, None).unwrap();
     /// ```
     pub fn run_for(&self, seconds: u64, file_path: Option<&str>) -> Result<SnifferStats, Error> {
+        info!("Running sniffer for {} seconds", seconds);
+
         let instance = self.start(file_path)?;
         thread::sleep(Duration::from_secs(seconds));
         let stats = instance.stop()?;
@@ -191,12 +197,12 @@ impl Display for Sniffer {
 
 /// A handle to a running sniffer instance. It can be stopped with [`SnifferInstance::stop`].
 pub struct SnifferInstance {
-    sender: Sender<()>,
+    shutdown_channel: Sender<()>,
     join_handle: JoinHandle<Result<Stat, Error>>,
 }
 
 impl SnifferInstance {
-    /// Stop the running sniffer and get the statistics from the run.
+    /// Stop the running sniffer consuming the instance and get the statistics from the run.
     ///
     /// Returns [`SnifferStats`] with statistics about the capture.
     ///
@@ -210,7 +216,11 @@ impl SnifferInstance {
     /// let stats = instance.stop().unwrap();
     /// ```
     pub fn stop(self) -> Result<SnifferStats, Error> {
-        self.sender.send(()).map_err(|_| Error::CannotStop)?;
+        info!("Sniffer stopping...");
+
+        self.shutdown_channel
+            .send(())
+            .map_err(|_| Error::CannotStop)?;
         self.join_handle
             .join()
             .map_err(|_| Error::NoStatsReceived)?
