@@ -8,7 +8,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, UNIX_EPOCH};
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum Error {
     #[error("No default network device was found.")]
     DefaultDeviceNotFound,
@@ -22,6 +22,7 @@ pub enum Error {
     Pcap(#[from] pcap::Error),
 }
 
+/// A sniffer packet contains all packet information for one captured pcap packet.
 pub struct SnifferPacket {
     pub timestamp: DateTime<Utc>,
     pub len: u32,
@@ -67,11 +68,45 @@ impl From<Packet<'_>> for SnifferPacket {
     }
 }
 
+/// A sniffer is used to capture network packets on a specific network device.
 pub struct Sniffer {
     device: Device,
 }
 
 impl Sniffer {
+    /// Start sniffing on this device.
+    ///
+    /// This requires root privileges to access the network devices, otherwise an error is returned.
+    /// This also returns an error if a `file_path` was provided which could not be written to.
+    ///
+    /// # Arguments
+    ///
+    /// * `file_path`: An optional file path to which the captured traffic is written.
+    ///
+    /// Returns a [`SnifferInstance`], on which [`SnifferInstance::stop`] can be called to stop
+    /// capturing the traffic.
+    ///
+    /// # Examples
+    ///
+    /// Capturing traffic without writing it to file:
+    ///
+    /// ```
+    /// # use varys::sniff;
+    /// # use varys::sniff::Sniffer;
+    /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
+    /// let instance = sniffer.start(None).unwrap();
+    /// # instance.stop().unwrap();
+    /// ```
+    ///
+    /// Capturing traffic to a file:
+    ///
+    /// ```
+    /// # use varys::sniff;
+    /// # use varys::sniff::Sniffer;
+    /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
+    /// let instance = sniffer.start(Some("/dev/null")).unwrap();
+    /// # instance.stop().unwrap();
+    /// ```
     pub fn start(&self, file_path: Option<&str>) -> Result<SnifferInstance, Error> {
         info!("{} starting...", self);
 
@@ -108,6 +143,27 @@ impl Sniffer {
         })
     }
 
+    /// Run a sniffer for a specified amount of seconds and stop it automatically afterwards. The
+    /// current thread is blocked until the sniffer is done.
+    ///
+    /// This requires root privileges to access the network devices, otherwise an error is returned.
+    /// This also returns an error if a `file_path` was provided which could not be written to.
+    ///
+    /// # Arguments
+    ///
+    /// * `seconds`: How many seconds to capture traffic for.
+    /// * `file_path`: An optional file path to which the captured traffic is written.
+    ///
+    /// Returns [`SnifferStats`] with statistics about the capture.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::sniff;
+    /// # use varys::sniff::Sniffer;
+    /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
+    /// let stats = sniffer.run_for(0, None).unwrap();
+    /// ```
     pub fn run_for(&self, seconds: u64, file_path: Option<&str>) -> Result<SnifferStats, Error> {
         let instance = self.start(file_path)?;
         thread::sleep(Duration::from_secs(seconds));
@@ -133,12 +189,26 @@ impl Display for Sniffer {
     }
 }
 
+/// A handle to a running sniffer instance. It can be stopped with [`SnifferInstance::stop`].
 pub struct SnifferInstance {
     sender: Sender<()>,
     join_handle: JoinHandle<Result<Stat, Error>>,
 }
 
 impl SnifferInstance {
+    /// Stop the running sniffer and get the statistics from the run.
+    ///
+    /// Returns [`SnifferStats`] with statistics about the capture.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::sniff;
+    /// # use varys::sniff::Sniffer;
+    /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
+    /// let instance = sniffer.start(None).unwrap();
+    /// let stats = instance.stop().unwrap();
+    /// ```
     pub fn stop(self) -> Result<SnifferStats, Error> {
         self.sender.send(()).map_err(|_| Error::CannotStop)?;
         self.join_handle
@@ -148,6 +218,14 @@ impl SnifferInstance {
     }
 }
 
+/// Statistics about a finished capture.
+///
+/// `received` is the number of packets received in total.
+///
+/// `buffer_dropped` is the number of packets dropped because the buffer for incoming packets was
+/// too small or packets were not processed quickly enough.
+///
+/// `interface_dropped` is the number of packets dropped by the network interface.
 #[derive(Debug)]
 pub struct SnifferStats {
     pub received: u32,
@@ -175,14 +253,36 @@ impl Display for SnifferStats {
     }
 }
 
-pub fn default_device() -> Result<Device, Error> {
-    Device::lookup()?.ok_or(Error::DefaultDeviceNotFound)
-}
-
+/// Get all network devices.
+///
+/// Returns an error if device information could not be retrieved.
+///
+/// # Examples
+///
+/// ```
+/// # use pcap::ConnectionStatus;
+/// # use varys::sniff;
+/// let devices = sniff::all_devices().unwrap();
+/// ```
 pub fn all_devices() -> Result<Vec<Device>, Error> {
     Ok(Device::list()?)
 }
 
+/// Get all network devices with a certain connection status.
+///
+/// Returns an error if device information could not be retrieved.
+///
+/// # Arguments
+///
+/// * `status`: The status to filter the devices by.
+///
+/// # Examples
+///
+/// ```
+/// # use pcap::ConnectionStatus;
+/// # use varys::sniff;
+/// let connected_devices = sniff::devices_with_status(&ConnectionStatus::Connected).unwrap();
+/// ```
 pub fn devices_with_status(status: &ConnectionStatus) -> Result<Vec<Device>, Error> {
     Ok(all_devices()?
         .into_iter()
@@ -190,6 +290,42 @@ pub fn devices_with_status(status: &ConnectionStatus) -> Result<Vec<Device>, Err
         .collect())
 }
 
+/// Get the system default network device suitable for network capture.
+///
+/// Returns an error if no default device was found or device information could not be retrieved.
+///
+/// # Examples
+///
+/// ```
+/// # use pcap::ConnectionStatus;
+/// # use varys::sniff;
+/// let default_device = sniff::default_device().unwrap();
+/// ```
+pub fn default_device() -> Result<Device, Error> {
+    Device::lookup()?.ok_or(Error::DefaultDeviceNotFound)
+}
+
+/// Get the network device with a specific name
+///
+/// Returns an error if no device with the given name was found or if device information could not
+/// be retrieved.
+///
+/// # Arguments
+///
+/// * `name`: The name of the device to find.
+///
+/// # Examples
+///
+/// ```
+/// # use pcap::ConnectionStatus;
+/// # use varys::sniff;
+/// use varys::sniff::Error;
+/// let connected_devices = sniff::device_by_name("en0").unwrap();
+/// assert_eq!(
+///     sniff::device_by_name("Invalid device name").unwrap_err(),
+///     Error::DeviceNotFound("Invalid device name".to_string())
+/// );
+/// ```
 pub fn device_by_name(name: &str) -> Result<Device, Error> {
     all_devices()?
         .into_iter()
