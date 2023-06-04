@@ -35,9 +35,10 @@ const VOICE: &str = "Jamie";
 fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
-    setup_siri()
+    test_voice_recognition()
 }
 
+#[allow(unused)]
 fn setup_siri() -> Result<(), Error> {
     let siri = Siri {};
     siri.setup()?;
@@ -86,10 +87,10 @@ fn test_voice_recognition() -> Result<(), Error> {
 
     let mut speaker = Speaker::new()?;
 
-    for voice in Siri::PREMIUM_VOICES {
+    for voice in ["Karen", "Isha", "Zoe", "Jamie"] {
         cli::user_confirmation(&format!("Test {}", voice))?;
         speaker.set_voice(voice).unwrap();
-        speaker.say("Hey Siri, what's my name?", true).unwrap();
+        speaker.say("Hey Siri, what is my name?", true).unwrap();
     }
 
     Ok(())
