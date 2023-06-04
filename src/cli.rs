@@ -4,10 +4,10 @@ use std::io;
 use std::io::{Read, Write};
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug)]
 pub enum Error {
-    #[error("Unable to read user input.")]
-    UserInput,
+    #[error(transparent)]
+    IO(#[from] io::Error),
 }
 
 #[derive(PartialEq)]
@@ -50,11 +50,32 @@ impl From<char> for KeyType {
 
 pub fn user_choice(text: &str, choices: &[KeyType]) -> Result<KeyType, Error> {
     let mut writer = io::BufWriter::new(io::stdout());
-    write!(writer, "{} {}", text, action_description(choices)).map_err(|_| Error::UserInput)?;
-    writer.flush().map_err(|_| Error::UserInput)?;
-    let result = read_single_char().map(KeyType::from);
-    writeln!(writer).map_err(|_| Error::UserInput)?;
-    result
+    write!(writer, "{} {}", text, action_description(choices))?;
+    writer.flush()?;
+
+    loop {
+        let key = read_single_char().map(KeyType::from)?;
+        writeln!(writer)?;
+
+        if choices.contains(&key) {
+            return Ok(key);
+        } else {
+            if choices.len() > 1 {
+                write!(
+                    writer,
+                    "Press one of {} to continue...",
+                    action_description(choices)
+                )?;
+            } else {
+                write!(
+                    writer,
+                    "Press {} to continue...",
+                    action_description(choices)
+                )?;
+            }
+            writer.flush()?;
+        }
+    }
 }
 
 pub fn user_confirmation(text: &str) -> Result<(), Error> {
@@ -62,14 +83,12 @@ pub fn user_confirmation(text: &str) -> Result<(), Error> {
 }
 
 fn read_single_char() -> Result<char, Error> {
-    crossterm::terminal::enable_raw_mode().map_err(|_| Error::UserInput)?;
+    crossterm::terminal::enable_raw_mode()?;
 
     let mut input = [0_u8];
-    io::stdin()
-        .read_exact(&mut input)
-        .map_err(|_| Error::UserInput)?;
+    io::stdin().read_exact(&mut input)?;
 
-    crossterm::terminal::disable_raw_mode().map_err(|_| Error::UserInput)?;
+    crossterm::terminal::disable_raw_mode()?;
 
     Ok(input[0] as char)
 }
