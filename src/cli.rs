@@ -48,6 +48,28 @@ impl From<char> for KeyType {
     }
 }
 
+pub fn user_input(
+    text: &str,
+    mut validation: impl FnMut(&str) -> bool,
+    invalid_message: &str,
+) -> Result<String, Error> {
+    let mut writer = io::BufWriter::new(io::stdout());
+    write!(writer, "{} ", text)?;
+    writer.flush()?;
+
+    let mut input = String::new();
+    loop {
+        io::stdin().read_line(&mut input)?;
+        input = input.trim().to_string();
+        if validation(&input) {
+            return Ok(input);
+        } else {
+            write!(writer, "{} ", invalid_message)?;
+            writer.flush()?;
+        }
+    }
+}
+
 pub fn user_choice(text: &str, choices: &[KeyType]) -> Result<KeyType, Error> {
     let mut writer = io::BufWriter::new(io::stdout());
     write!(writer, "{} {}", text, action_description(choices))?;
