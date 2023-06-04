@@ -84,14 +84,10 @@ impl Listener {
         })
     }
 
-    /// Record audio data.
+    /// Start recording audio data.
     ///
-    /// Returns an error if the audio stream could not be built or played. This might happen if the
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
     /// device is no longer available.
-    ///
-    /// # Arguments
-    ///
-    /// * `seconds`: How long to record for.
     ///
     /// # Examples
     ///
@@ -132,6 +128,25 @@ impl Listener {
         })
     }
 
+    /// Record for a specified amount of seconds. The current thread is blocked until recording is
+    /// done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
+    /// device is no longer available.
+    ///
+    /// # Arguments
+    ///
+    /// * `seconds`: How many seconds to record for.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::Listener;
+    /// let listener = Listener::new().unwrap();
+    /// let audio_data = listener.record_for(0);
+    /// ```
     pub fn record_for(&self, seconds: u32) -> Result<AudioData, Error> {
         info!("Recording audio for {} seconds", seconds);
 
@@ -153,6 +168,17 @@ pub struct ListenerInstance {
 }
 
 impl ListenerInstance {
+    /// Stop the running listener consuming the instance and get the recorded audio data.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::Listener;
+    /// let instance = Listener::new().unwrap().start().unwrap();
+    /// let audio_data = instance.stop().unwrap();
+    /// ```
     pub fn stop(self) -> Result<AudioData, Error> {
         info!("Stopping recording...");
 
