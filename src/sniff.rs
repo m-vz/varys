@@ -173,9 +173,7 @@ impl Sniffer {
 
         let instance = self.start(file_path)?;
         thread::sleep(Duration::from_secs(seconds));
-        let stats = instance.stop()?;
-
-        Ok(stats)
+        instance.stop()
     }
 }
 
