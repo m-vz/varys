@@ -145,6 +145,27 @@ impl Listener {
         })
     }
 
+    /// Record until silence is detected for a certain amount of time. The current thread is blocked
+    /// until recording is done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
+    /// device is no longer available.
+    ///
+    /// # Arguments
+    ///
+    /// * `silence_duration`: How long a silence must be for the recording to be stopped.
+    /// * `silence_threshold`: The highest frequency that is considered silence.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::time;
+    /// # use varys::listen::Listener;
+    /// let listener = Listener::new().unwrap();
+    /// let audio_data = listener.record_until_silent(time::Duration::from_secs(0), 0.001);
+    /// ```
     pub fn record_until_silent(
         &self,
         silence_duration: Duration,
