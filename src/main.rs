@@ -3,11 +3,12 @@ use pcap::ConnectionStatus;
 use std::string::ToString;
 use std::time::Duration;
 use thiserror::Error;
+use varys::assistant::{Siri, VoiceAssistant};
 use varys::listen::Listener;
 use varys::recognise::{Model, Recogniser};
 use varys::sniff::Sniffer;
 use varys::speak::Speaker;
-use varys::{listen, recognise, sniff, speak};
+use varys::{assistant, cli, listen, recognise, sniff, speak};
 
 #[derive(Error, Debug)]
 enum Error {
@@ -21,6 +22,10 @@ enum Error {
     Recogniser(#[from] recognise::Error),
     #[error(transparent)]
     Sniffer(#[from] sniff::Error),
+    #[error(transparent)]
+    Assistant(#[from] assistant::Error),
+    #[error(transparent)]
+    Cli(#[from] cli::Error),
 }
 
 const RECORDING_PATH: &str = "data/recordings/recorded.wav";
@@ -30,8 +35,14 @@ const VOICE: &str = "Jamie";
 fn main() -> Result<(), Error> {
     pretty_env_logger::init();
 
-    // sniff()
-    listen_recognise_speak()
+    setup_siri()
+}
+
+fn setup_siri() -> Result<(), Error> {
+    let siri = Siri {};
+    siri.setup()?;
+
+    Ok(())
 }
 
 #[allow(unused)]
@@ -65,6 +76,21 @@ fn listen_recognise_speak() -> Result<(), Error> {
     let mut speaker = Speaker::new()?;
     speaker.set_voice(VOICE)?;
     speaker.say(&text, false)?;
+
+    Ok(())
+}
+
+#[allow(unused)]
+fn test_voice_recognition() -> Result<(), Error> {
+    info!("Testing Siri voices...");
+
+    let mut speaker = Speaker::new()?;
+
+    for voice in Siri::PREMIUM_VOICES {
+        cli::user_confirmation(&format!("Test {}", voice))?;
+        speaker.set_voice(voice).unwrap();
+        speaker.say("Hey Siri, what's my name?", true).unwrap();
+    }
 
     Ok(())
 }
