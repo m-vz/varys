@@ -4,10 +4,12 @@ use crate::listen::audio::AudioData;
 use crate::recognise::Recogniser;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{BuildStreamError, Device, PlayStreamError, SampleFormat, Stream, StreamConfig};
-use log::{debug, error, info};
+use log::{debug, error, info, trace, warn};
+use simple_moving_average::{NoSumSMA, SMA};
+use std::sync::mpsc::{channel, Receiver};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -42,6 +44,7 @@ pub struct Listener {
 }
 
 impl Listener {
+    const DEFAULT_MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
     /// How many seconds of audio data should be expected by default when starting a recording.
     const DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
     const DEFAULT_RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
@@ -105,27 +108,65 @@ impl Listener {
                 * Listener::DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS,
         )));
         let writer_2 = writer.clone();
+        let (average_sender, average) = channel();
+        let mut running_average =
+            NoSumSMA::<_, f32, { Listener::DEFAULT_MOVING_AVERAGE_WINDOW_SIZE }>::new();
+        let mut sample_count: u32 = 0;
+
         let stream = self.device.build_input_stream(
             &self.device_config,
             move |data: &[f32], _| {
                 if let Ok(mut guard) = writer_2.try_lock() {
                     for &sample in data.iter() {
                         guard.push(sample);
+                        running_average.add_sample(sample.abs());
+                        sample_count += 1;
+                        if sample_count >= Listener::DEFAULT_MOVING_AVERAGE_WINDOW_SIZE as u32 {
+                            trace!("{}", running_average.get_average());
+                            if average_sender.send(running_average.get_average()).is_err() {
+                                warn!("Unable to send recording average.");
+                            }
+                            sample_count = 0;
+                        }
                     }
                 }
             },
             move |err| error!("Audio stream error: {}", err),
             self.recording_timeout,
         )?;
-
         stream.play()?;
 
         Ok(ListenerInstance {
             stream,
             writer,
+            average,
             channels: self.device_config.channels,
             sample_rate: self.device_config.sample_rate.0,
         })
+    }
+
+    pub fn record_until_silent(
+        &self,
+        silence_duration: Duration,
+        silence_threshold: f32,
+    ) -> Result<AudioData, Error> {
+        info!(
+            "Recording audio until silent for {} seconds...",
+            silence_duration.as_secs()
+        );
+
+        let instance = self.start()?;
+        let mut last_audio_detected = Instant::now();
+        while let Ok(average) = instance.average.recv() {
+            let now = Instant::now();
+            if average > silence_threshold {
+                last_audio_detected = now;
+            }
+            if last_audio_detected < now - silence_duration {
+                break;
+            }
+        }
+        instance.stop()
     }
 
     /// Record for a specified amount of seconds. The current thread is blocked until recording is
@@ -163,6 +204,7 @@ impl Listener {
 pub struct ListenerInstance {
     stream: Stream,
     writer: Arc<Mutex<Vec<f32>>>,
+    average: Receiver<f32>,
     channels: u16,
     sample_rate: u32,
 }
