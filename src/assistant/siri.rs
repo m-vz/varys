@@ -1,4 +1,4 @@
-use crate::assistant::{Error, Setup};
+use crate::assistant::{Error, Setup, Test};
 use crate::cli::interact;
 use crate::cli::key_type::KeyType;
 use crate::speak::Speaker;
@@ -62,6 +62,22 @@ impl Setup for Siri {
             }
         }
         println!("Finished setting up Siri");
+
+        Ok(())
+    }
+}
+
+impl Test for Siri {
+    fn test(&self, voices: Vec<String>) -> Result<(), Error> {
+        info!("Testing Siri voices...");
+
+        let mut speaker = Speaker::new()?;
+
+        for voice in voices {
+            interact::user_confirmation(&format!("Test {}", voice))?;
+            speaker.set_voice(&voice).unwrap();
+            speaker.say("Hey Siri, what is my name?", true).unwrap();
+        }
 
         Ok(())
     }

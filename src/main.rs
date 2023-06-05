@@ -2,7 +2,6 @@ use log::{debug, info};
 use pcap::ConnectionStatus;
 use std::string::ToString;
 use std::time::Duration;
-use varys::cli::interact;
 use varys::listen::Listener;
 use varys::recognise::{Model, Recogniser};
 use varys::sniff::Sniffer;
@@ -48,20 +47,6 @@ fn listen_recognise_speak() -> Result<(), Error> {
     let mut speaker = Speaker::new()?;
     speaker.set_voice(VOICE)?;
     speaker.say(&text, false)?;
-
-    Ok(())
-}
-
-fn test_voice_recognition() -> Result<(), Error> {
-    info!("Testing Siri voices...");
-
-    let mut speaker = Speaker::new()?;
-
-    for voice in ["Karen", "Isha", "Zoe", "Jamie"] {
-        interact::user_confirmation(&format!("Test {}", voice))?;
-        speaker.set_voice(voice).unwrap();
-        speaker.say("Hey Siri, what is my name?", true).unwrap();
-    }
 
     Ok(())
 }

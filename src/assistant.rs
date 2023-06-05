@@ -12,11 +12,15 @@ pub enum Error {
     Speaker(#[from] speak::Error),
 }
 
-pub trait Assistant: Setup {}
-impl<T: Setup> Assistant for T {}
+pub trait Assistant: Setup + Test {}
+impl<T: Setup + Test> Assistant for T {}
 
 pub trait Setup {
     fn setup(&self) -> Result<(), Error>;
+}
+
+pub trait Test {
+    fn test(&self, voices: Vec<String>) -> Result<(), Error>;
 }
 
 pub fn from(name: Option<String>) -> impl Assistant {

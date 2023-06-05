@@ -1,8 +1,7 @@
+use crate::assistant::Assistant;
 use crate::cli::arguments::{Arguments, AssistantCommand, AssistantSubcommand, Command};
 use crate::{assistant, Error};
-use assistant::Setup;
 use clap::Parser;
-use log::debug;
 
 pub mod arguments;
 pub mod interact;
@@ -10,18 +9,17 @@ pub mod key_type;
 
 pub fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
-    debug!("{:?}", arguments);
+    let assistant = assistant::from(arguments.assistant);
 
     match arguments.command {
-        Command::Assistant(command) => assistant(command),
+        Command::Assistant(command) => assistant_command(command, assistant),
     }
 }
 
-fn assistant(command: AssistantCommand) -> Result<(), Error> {
-    let assistant = assistant::from(command.assistant);
-
+fn assistant_command(command: AssistantCommand, assistant: impl Assistant) -> Result<(), Error> {
     match command.command {
         AssistantSubcommand::Setup => assistant.setup()?,
+        AssistantSubcommand::Test(test) => assistant.test(test.voices)?,
     };
 
     Ok(())
