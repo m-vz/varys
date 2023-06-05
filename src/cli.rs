@@ -1,13 +1,15 @@
 use crate::assistant::Assistant;
 use crate::cli::arguments::{
-    Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand,
+    Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand, SniffCommand,
 };
 use crate::listen::Listener;
 use crate::recognise::Recogniser;
+use crate::sniff::Sniffer;
 use crate::speak::Speaker;
-use crate::{assistant, speak, Error};
+use crate::{assistant, sniff, Error};
 use clap::Parser;
-use log::{info, warn};
+use log::{debug, info};
+use pcap::ConnectionStatus;
 use std::time;
 
 pub mod arguments;
@@ -21,6 +23,7 @@ pub fn run() -> Result<(), Error> {
     match arguments.command {
         Command::Assistant(command) => assistant_command(command, assistant),
         Command::Parrot(command) => parrot_command(command),
+        Command::Sniff(command) => sniff_command(command),
     }
 }
 
@@ -41,11 +44,10 @@ fn parrot_command(command: ParrotCommand) -> Result<(), Error> {
     } else {
         listener.record_until_silent(time::Duration::from_secs(2), 0.001)?
     };
-    if let Ok(file_path) = command.file.into_os_string().into_string() {
-        audio.downsample(16000)?.save_to_file(file_path)?;
-    } else {
-        warn!("Could not convert file path to a valid string")
-    }
+
+    let mut file_path = command.file;
+    file_path.set_extension("wav");
+    audio.downsample(16000)?.save_to_file(file_path)?;
 
     info!("Recognising...");
     let recogniser = Recogniser::with_model(crate::recognise::Model::Large)?;
@@ -55,6 +57,19 @@ fn parrot_command(command: ParrotCommand) -> Result<(), Error> {
     let mut speaker = Speaker::new()?;
     speaker.set_voice(&command.voice)?;
     speaker.say(&text, false)?;
+
+    Ok(())
+}
+
+fn sniff_command(command: SniffCommand) -> Result<(), Error> {
+    info!("Sniffing...");
+    for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
+        debug!("{}", Sniffer::from(device));
+    }
+    let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
+    debug!("Using: {}", sniffer);
+    let stats = sniffer.run_for(5, Some(command.file))?;
+    debug!("Stats: {}", stats);
 
     Ok(())
 }

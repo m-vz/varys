@@ -17,6 +17,8 @@ pub enum Command {
     Assistant(AssistantCommand),
     /// Listen for something that was said and repeat it
     Parrot(ParrotCommand),
+    /// Record network traffic on a specified interface
+    Sniff(SniffCommand),
 }
 
 #[derive(Debug, Args)]
@@ -49,5 +51,17 @@ pub struct ParrotCommand {
     #[arg(short, long, default_value = "Zoe")]
     pub voice: String,
     /// Where to store the recorded audio
+    pub file: PathBuf,
+}
+
+#[derive(Debug, Args)]
+pub struct SniffCommand {
+    /// The duration in seconds to listen for
+    #[arg(short, long, default_value_t = 5)]
+    pub seconds: u32,
+    /// The network interface to listen on
+    #[arg(short, long, default_value = "en0")]
+    pub interface: String,
+    /// Where to store the recorded traffic
     pub file: PathBuf,
 }
