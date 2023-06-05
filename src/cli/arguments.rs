@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
@@ -6,7 +7,7 @@ pub struct Arguments {
     #[clap(subcommand)]
     pub command: Command,
     /// Which voice assistant to interact with
-    #[arg(short, long, value_name = "ASSISTANT")]
+    #[arg(short, long)]
     pub assistant: Option<String>,
 }
 
@@ -14,6 +15,8 @@ pub struct Arguments {
 pub enum Command {
     /// Interact with a voice assistant
     Assistant(AssistantCommand),
+    /// Listen for something that was said and repeat it
+    Parrot(ParrotCommand),
 }
 
 #[derive(Debug, Args)]
@@ -35,4 +38,16 @@ pub struct TestCommand {
     #[arg(required(true))]
     /// The names of the system voices to test with
     pub voices: Vec<String>,
+}
+
+#[derive(Debug, Args)]
+pub struct ParrotCommand {
+    /// Optional duration in seconds to listen for. If omitted, listen until silence is detected
+    #[arg(short, long)]
+    pub seconds: Option<u32>,
+    /// The voice to use for speaking
+    #[arg(short, long, default_value = "Zoe")]
+    pub voice: String,
+    /// Where to store the recorded audio
+    pub file: PathBuf,
 }
