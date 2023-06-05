@@ -1,5 +1,6 @@
 use hound::WavSpec;
 use log::debug;
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -126,15 +127,16 @@ impl AudioData {
     /// # Arguments
     ///
     /// * `file_path`: Where to save the `.wav` file.
-    pub fn save_to_file(&self, file_path: String) -> Result<(), Error> {
+    pub fn save_to_file(&self, mut file_path: PathBuf) -> Result<(), Error> {
         let wav_config = WavSpec {
             channels: 1,
             sample_rate: self.sample_rate,
             bits_per_sample: 32,
             sample_format: hound::SampleFormat::Float,
         };
+        file_path.set_extension("wav");
         debug!(
-            "Writing .wav file {} using config {:?}",
+            "Writing .wav file {:?} using config {:?}",
             file_path, wav_config
         );
         let mut writer = hound::WavWriter::create(file_path, wav_config)?;
