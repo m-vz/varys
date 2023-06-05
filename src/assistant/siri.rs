@@ -1,9 +1,18 @@
-use crate::assistant::{Error, Setup, Test};
+use crate::assistant::{Error, Interact, Setup, Test};
 use crate::cli::interact;
 use crate::cli::key_type::KeyType;
+use crate::listen::Listener;
+use crate::recognise::{Model, Recogniser};
+use crate::sniff;
+use crate::sniff::Sniffer;
 use crate::speak::Speaker;
 use colored::Colorize;
-use log::info;
+use log::{info, warn};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+use std::fs::read_to_string;
+use std::path::PathBuf;
+use std::time::Duration;
 
 pub struct Siri {}
 
@@ -62,6 +71,43 @@ impl Setup for Siri {
             }
         }
         println!("Finished setting up Siri");
+
+        Ok(())
+    }
+}
+
+impl Interact for Siri {
+    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), crate::Error> {
+        info!("Interacting with Siri...");
+
+        let mut speaker = Speaker::new()?;
+        speaker.set_voice(voice)?;
+        let listener = Listener::new()?;
+        let recogniser = Recogniser::with_model(Model::Large)?;
+        let sniffer = Sniffer::from(sniff::device_by_name(interface)?);
+
+        if let Ok(queries) = read_to_string(queries) {
+            let mut queries: Vec<String> = queries
+                .lines()
+                .map(|q| format!("Hey Siri. {}", q))
+                .collect();
+            queries.shuffle(&mut thread_rng());
+
+            for query in queries {
+                info!("Saying {}", query);
+
+                let sniffer_instance = sniffer.start(Some(PathBuf::from(format!(
+                    "query-{}.pcap",
+                    chrono::offset::Local::now().format("%Y-%m-%d-%H-%M-%S-%f")
+                ))))?;
+                speaker.say(&query, true)?;
+                let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.001)?;
+                info!("{}", recogniser.recognise(&mut audio)?);
+                info!("{}", sniffer_instance.stop()?);
+            }
+        } else {
+            warn!("Could not read queries");
+        }
 
         Ok(())
     }

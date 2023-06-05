@@ -9,6 +9,12 @@ pub struct Arguments {
     /// Which voice assistant to interact with
     #[arg(short, long)]
     pub assistant: Option<String>,
+    /// The network interface to listen on
+    #[arg(short, long, default_value = "en0")]
+    pub interface: String,
+    /// The voice to use for speaking
+    #[arg(short, long, default_value = "Zoe")]
+    pub voice: String,
 }
 
 #[derive(Debug, Subcommand)]
@@ -31,8 +37,16 @@ pub struct AssistantCommand {
 pub enum AssistantSubcommand {
     /// Setup voice recognition
     Setup,
+    /// Interact with a voice assistant
+    Interact(InteractionCommand),
     /// Test voice recognition with a number of voices
     Test(TestCommand),
+}
+
+#[derive(Debug, Args)]
+pub struct InteractionCommand {
+    /// The file with queries to ask the assistant
+    pub queries: PathBuf,
 }
 
 #[derive(Debug, Args)]
@@ -47,9 +61,6 @@ pub struct ParrotCommand {
     /// Optional duration in seconds to listen for. If omitted, listen until silence is detected
     #[arg(short, long)]
     pub seconds: Option<u32>,
-    /// The voice to use for speaking
-    #[arg(short, long, default_value = "Zoe")]
-    pub voice: String,
     /// Where to store the recorded audio
     pub file: PathBuf,
 }
@@ -59,9 +70,6 @@ pub struct SniffCommand {
     /// The duration in seconds to listen for
     #[arg(short, long, default_value_t = 5)]
     pub seconds: u32,
-    /// The network interface to listen on
-    #[arg(short, long, default_value = "en0")]
-    pub interface: String,
     /// Where to store the recorded traffic
     pub file: PathBuf,
 }

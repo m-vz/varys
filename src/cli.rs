@@ -3,7 +3,7 @@ use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand, SniffCommand,
 };
 use crate::listen::Listener;
-use crate::recognise::Recogniser;
+use crate::recognise::{Model, Recogniser};
 use crate::sniff::Sniffer;
 use crate::speak::Speaker;
 use crate::{assistant, sniff, Error};
@@ -18,25 +18,35 @@ pub mod key_type;
 
 pub fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
-    let assistant = assistant::from(arguments.assistant);
+    let assistant = assistant::from(arguments.assistant.as_deref());
 
     match arguments.command {
-        Command::Assistant(command) => assistant_command(command, assistant),
-        Command::Parrot(command) => parrot_command(command),
+        Command::Assistant(command) => {
+            assistant_command(&arguments.interface, &arguments.voice, command, assistant)
+        }
+        Command::Parrot(command) => parrot_command(&arguments.voice, command),
         Command::Sniff(command) => sniff_command(command),
     }
 }
 
-fn assistant_command(command: AssistantCommand, assistant: impl Assistant) -> Result<(), Error> {
+fn assistant_command(
+    interface: &str,
+    voice: &str,
+    command: AssistantCommand,
+    assistant: impl Assistant,
+) -> Result<(), Error> {
     match command.command {
         AssistantSubcommand::Setup => assistant.setup()?,
         AssistantSubcommand::Test(test) => assistant.test(test.voices)?,
+        AssistantSubcommand::Interact(command) => {
+            assistant.interact(interface, voice, command.queries)?
+        }
     };
 
     Ok(())
 }
 
-fn parrot_command(command: ParrotCommand) -> Result<(), Error> {
+fn parrot_command(voice: &str, command: ParrotCommand) -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = if let Some(seconds) = command.seconds {
@@ -50,12 +60,12 @@ fn parrot_command(command: ParrotCommand) -> Result<(), Error> {
     audio.downsample(16000)?.save_to_file(file_path)?;
 
     info!("Recognising...");
-    let recogniser = Recogniser::with_model(crate::recognise::Model::Large)?;
+    let recogniser = Recogniser::with_model(Model::Large)?;
     let text = recogniser.recognise(&mut audio)?;
 
     info!("Speaking...");
     let mut speaker = Speaker::new()?;
-    speaker.set_voice(&command.voice)?;
+    speaker.set_voice(voice)?;
     speaker.say(&text, false)?;
 
     Ok(())

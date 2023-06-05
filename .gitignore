@@ -20,3 +20,4 @@ Icon
 ### Custom
 /data/recordings/*.wav
 /data/captures/*.pcap
+/*.pcap
