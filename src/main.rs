@@ -1,5 +1,6 @@
 use log::{debug, info};
 use pcap::ConnectionStatus;
+use std::path::PathBuf;
 use varys::sniff::Sniffer;
 use varys::Error;
 use varys::{cli, sniff};
@@ -18,7 +19,7 @@ fn sniff() -> Result<(), Error> {
     }
     let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
     debug!("Using: {}", sniffer);
-    let stats = sniffer.run_for(5, Some(PCAP_PATH))?;
+    let stats = sniffer.run_for(5, Some(PathBuf::from(PCAP_PATH)))?;
     debug!("Stats: {}", stats);
 
     Ok(())

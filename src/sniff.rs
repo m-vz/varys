@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use log::{info, trace};
 use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use std::sync::mpsc::{channel, Sender, TryRecvError};
 use std::thread;
 use std::thread::JoinHandle;
@@ -101,15 +102,16 @@ impl Sniffer {
     /// Capturing traffic to a file:
     ///
     /// ```
+    /// # use std::path::PathBuf;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
-    /// let instance = sniffer.start(Some("/dev/null")).unwrap();
+    /// let instance = sniffer.start(Some(PathBuf::from("/dev/null"))).unwrap();
     /// # instance.stop().unwrap();
     /// ```
-    pub fn start(&self, file_path: Option<&str>) -> Result<SnifferInstance, Error> {
-        if let Some(file_path) = file_path {
-            info!("{} starting (writing to {})...", self, file_path);
+    pub fn start(&self, file_path: Option<PathBuf>) -> Result<SnifferInstance, Error> {
+        if let Some(file_path) = &file_path {
+            info!("{} starting (writing to {:?})...", self, file_path);
         } else {
             info!("{} starting (not writing to file)...", self,);
         }
@@ -168,7 +170,7 @@ impl Sniffer {
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
     /// let stats = sniffer.run_for(0, None).unwrap();
     /// ```
-    pub fn run_for(&self, seconds: u64, file_path: Option<&str>) -> Result<SnifferStats, Error> {
+    pub fn run_for(&self, seconds: u64, file_path: Option<PathBuf>) -> Result<SnifferStats, Error> {
         info!("Running sniffer for {} seconds", seconds);
 
         let instance = self.start(file_path)?;
