@@ -83,7 +83,7 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     }
     let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
     debug!("Using: {}", sniffer);
-    let stats = sniffer.run_for(5, Some(command.file))?;
+    let stats = sniffer.run_for(5, command.file)?;
     debug!("Stats: {}", stats);
 
     Ok(())

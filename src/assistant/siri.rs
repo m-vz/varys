@@ -98,10 +98,10 @@ impl VoiceAssistant for Siri {
             for query in queries {
                 info!("Saying {}", query);
 
-                let sniffer_instance = sniffer.start(Some(PathBuf::from(format!(
+                let sniffer_instance = sniffer.start(PathBuf::from(format!(
                     "query-{}.pcap",
                     chrono::offset::Local::now().format("%Y-%m-%d-%H-%M-%S-%f")
-                ))))?;
+                )))?;
                 speaker.say(&query, true)?;
                 let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.001)?;
                 info!("{}", recogniser.recognise(&mut audio)?);
