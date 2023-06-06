@@ -2,56 +2,125 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    // speak
-    #[error(transparent)]
-    Tts(#[from] tts::Error),
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    // tts
+    #[error("Value is out of range")]
+    OutOfRange,
     #[error("Required feature {0} is unsupported")]
     UnsupportedFeature(String),
     #[error("Voice {0} is not available or does not exist")]
     VoiceNotAvailable(String),
-
-    // listen
-    /// Error that happens if no audio input device was found.
-    #[error("Audio input device not found")]
-    MissingInputDevice,
-    /// Error that happens if the audio input device does not support a required configuration.
-    #[error("Audio device does not support required configuration")]
-    ConfigurationNotSupported,
-    /// Error that happens when trying to access audio data while it is still being recorded.
-    #[error("Recording still running")]
-    StillRecording,
-    #[error(transparent)]
-    BuildStream(#[from] cpal::BuildStreamError),
-    #[error(transparent)]
-    PlayStream(#[from] cpal::PlayStreamError),
-    #[error(transparent)]
-    RecordingFailed(#[from] std::sync::PoisonError<Vec<f32>>),
+    #[error("Tts error")]
+    Tts,
 
     // audio
+    #[error("Audio input device not found")]
+    AudioInputDeviceNotFound,
+    #[error("Audio device does not support required configuration")]
+    ConfigurationNotSupported,
+    #[error("Tried to access audio data while recording still running")]
+    StillRecording,
+    #[error("Could not access recorded audio data")]
+    RecordingFailed,
     #[error(
-        "Downsampling requires the target sample rate to be a divisor of the current sample rate."
+        "Downsampling requires the target sample rate to be a divisor of the current sample rate"
     )]
     NoDivisor,
-    #[error(transparent)]
-    Hound(#[from] hound::Error),
+    #[error("CPAL error")]
+    Cpal,
+    #[error("Hound error")]
+    Hound,
 
-    // recognise
-    #[error(transparent)]
-    WhisperError(#[from] whisper_rs::WhisperError),
+    // sst
+    #[error("Failed to create new whisper context")]
+    WhisperContext,
+    #[error("An error occurred during recognition")]
+    Recognition,
+    #[error("Whisper error")]
+    Whisper,
 
-    // sniff
+    // network
     #[error("No default network device was found.")]
     DefaultDeviceNotFound,
     #[error("Could not find device {0}.")]
-    DeviceNotFound(String),
+    NetworkDeviceNotFound(String),
     #[error("Tried to stop sniffer that was not running.")]
     CannotStop,
     #[error("Did not receive sniffer stats.")]
     NoStatsReceived,
-    #[error(transparent)]
-    Pcap(#[from] pcap::Error),
+    #[error("Pcap error")]
+    Pcap,
+}
 
-    // interact
-    #[error(transparent)]
-    InputOutput(#[from] std::io::Error),
+impl From<tts::Error> for Error {
+    fn from(value: tts::Error) -> Self {
+        match value {
+            tts::Error::Io(err) => err.into(),
+            tts::Error::UnsupportedFeature => Error::UnsupportedFeature(String::new()),
+            tts::Error::OutOfRange => Error::OutOfRange,
+            _ => Error::Tts,
+        }
+    }
+}
+
+impl From<cpal::BuildStreamError> for Error {
+    fn from(value: cpal::BuildStreamError) -> Self {
+        match value {
+            cpal::BuildStreamError::DeviceNotAvailable => Error::AudioInputDeviceNotFound,
+            cpal::BuildStreamError::StreamConfigNotSupported => Error::ConfigurationNotSupported,
+            _ => Error::Cpal,
+        }
+    }
+}
+
+impl From<cpal::SupportedStreamConfigsError> for Error {
+    fn from(value: cpal::SupportedStreamConfigsError) -> Self {
+        match value {
+            cpal::SupportedStreamConfigsError::DeviceNotAvailable => {
+                Error::AudioInputDeviceNotFound
+            }
+            _ => Error::Cpal,
+        }
+    }
+}
+
+impl From<cpal::PlayStreamError> for Error {
+    fn from(value: cpal::PlayStreamError) -> Self {
+        match value {
+            cpal::PlayStreamError::DeviceNotAvailable => Error::AudioInputDeviceNotFound,
+            _ => Error::Cpal,
+        }
+    }
+}
+
+impl From<hound::Error> for Error {
+    fn from(value: hound::Error) -> Self {
+        match value {
+            hound::Error::IoError(err) => err.into(),
+            _ => Error::Hound,
+        }
+    }
+}
+
+impl From<whisper_rs::WhisperError> for Error {
+    fn from(value: whisper_rs::WhisperError) -> Self {
+        match value {
+            whisper_rs::WhisperError::InitError => Error::WhisperContext,
+            whisper_rs::WhisperError::UnableToCalculateSpectrogram
+            | whisper_rs::WhisperError::FailedToEncode
+            | whisper_rs::WhisperError::FailedToDecode => Error::Recognition,
+            _ => Error::Whisper,
+        }
+    }
+}
+
+impl From<pcap::Error> for Error {
+    fn from(value: pcap::Error) -> Self {
+        match value {
+            pcap::Error::IoError(err) => std::io::Error::from(err).into(),
+            _ => Error::Pcap,
+        }
+    }
 }

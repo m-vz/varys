@@ -50,14 +50,13 @@ impl Listener {
     pub fn new() -> Result<Self, Error> {
         let device = cpal::default_host()
             .default_input_device()
-            .ok_or(Error::MissingInputDevice)?;
+            .ok_or(Error::AudioInputDeviceNotFound)?;
         if let Ok(name) = device.name() {
             debug!("Using audio device {}", name);
         }
 
         let device_config: StreamConfig = device
-            .supported_input_configs()
-            .map_err(|_| Error::ConfigurationNotSupported)?
+            .supported_input_configs()?
             .find(|config| {
                 config.sample_format() == SampleFormat::F32
                     && config.max_sample_rate().0 % Recogniser::SAMPLE_RATE == 0
@@ -241,7 +240,8 @@ impl ListenerInstance {
         drop(self.stream);
         let data = Arc::try_unwrap(self.writer)
             .map_err(|_| Error::StillRecording)?
-            .into_inner()?;
+            .into_inner()
+            .map_err(|_| Error::RecordingFailed)?;
 
         Ok(AudioData {
             data,

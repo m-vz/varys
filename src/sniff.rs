@@ -127,7 +127,7 @@ impl Sniffer {
                 }
             }
 
-            capture.stats().map_err(Error::Pcap)
+            capture.stats().map_err(Error::from)
         });
 
         Ok(SnifferInstance {
@@ -320,7 +320,7 @@ pub fn default_device() -> Result<Device, Error> {
 /// let connected_devices = sniff::device_by_name("en0").unwrap();
 /// let invalid_device = sniff::device_by_name("Invalid device name");
 ///
-/// if let Err(Error::DeviceNotFound(name)) = invalid_device {
+/// if let Err(Error::NetworkDeviceNotFound(name)) = invalid_device {
 ///     if name.as_str() == "Invalid device name" {
 ///         return;
 ///     } else {
@@ -334,5 +334,5 @@ pub fn device_by_name(name: &str) -> Result<Device, Error> {
     all_devices()?
         .into_iter()
         .find(|device| device.name == name)
-        .ok_or(Error::DeviceNotFound(name.to_string()))
+        .ok_or(Error::NetworkDeviceNotFound(name.to_string()))
 }
