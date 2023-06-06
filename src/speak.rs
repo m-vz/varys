@@ -1,3 +1,5 @@
+use std::sync::mpsc::{channel, TryRecvError};
+
 #[cfg(target_os = "macos")]
 use cocoa_foundation::{
     base::id,
@@ -7,19 +9,9 @@ use lerp::Lerp;
 use log::debug;
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
-use std::sync::mpsc::{channel, TryRecvError};
-use thiserror::Error;
 use tts::{Features, Tts, Voice};
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    Tts(#[from] tts::Error),
-    #[error("Required feature {0} is unsupported")]
-    UnsupportedFeature(String),
-    #[error("Voice {0} is not available or does not exist")]
-    VoiceNotAvailable(String),
-}
+use crate::error::Error;
 
 /// A speaker that can synthesize voices.
 pub struct Speaker {

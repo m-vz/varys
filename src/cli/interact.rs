@@ -1,14 +1,12 @@
-use crate::cli::key_type::KeyType;
-use colored::Colorize;
-use std::io;
-use std::io::{Read, Write};
-use thiserror::Error;
+use std::{
+    io,
+    io::{Read, Write},
+};
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    InputOutput(#[from] io::Error),
-}
+use colored::Colorize;
+
+use crate::cli::key_type::KeyType;
+use crate::error::Error;
 
 /// Validated input from the user. Only supports single-line input.
 ///

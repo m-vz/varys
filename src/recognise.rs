@@ -1,16 +1,8 @@
-use crate::listen::audio;
-use crate::listen::audio::AudioData;
 use log::trace;
-use thiserror::Error;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperError};
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    WhisperError(#[from] WhisperError),
-    #[error(transparent)]
-    Audio(#[from] audio::Error),
-}
+use crate::error::Error;
+use crate::listen::audio::AudioData;
 
 pub const MODEL_LARGE: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
 pub const MODEL_MEDIUM_EN: &str = "data/models/ggml-model-whisper-medium.en-q5_0.bin";

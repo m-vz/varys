@@ -1,27 +1,14 @@
-use chrono::{DateTime, Utc};
-use log::{info, trace};
-use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::thread;
-use std::thread::JoinHandle;
 use std::time::{Duration, UNIX_EPOCH};
-use thiserror::Error;
+use std::{thread, thread::JoinHandle};
 
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum Error {
-    #[error("No default network device was found.")]
-    DefaultDeviceNotFound,
-    #[error("Could not find device {0}.")]
-    DeviceNotFound(String),
-    #[error("Tried to stop sniffer that was not running.")]
-    CannotStop,
-    #[error("Did not receive sniffer stats.")]
-    NoStatsReceived,
-    #[error(transparent)]
-    Pcap(#[from] pcap::Error),
-}
+use chrono::{DateTime, Utc};
+use log::{info, trace};
+use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
+
+use crate::error::Error;
 
 /// A sniffer packet contains all packet information for one captured pcap packet.
 pub struct SnifferPacket {

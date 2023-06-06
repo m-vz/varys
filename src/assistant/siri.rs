@@ -1,18 +1,17 @@
-use crate::assistant::{Error, VoiceAssistant};
-use crate::cli::interact;
-use crate::cli::key_type::KeyType;
-use crate::listen::Listener;
-use crate::recognise::{Model, Recogniser};
-use crate::sniff;
-use crate::sniff::Sniffer;
-use crate::speak::Speaker;
-use colored::Colorize;
-use log::{info, warn};
-use rand::seq::SliceRandom;
-use rand::thread_rng;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::time::Duration;
+
+use colored::Colorize;
+use log::{info, warn};
+use rand::{seq::SliceRandom, thread_rng};
+
+use crate::assistant::{Error, VoiceAssistant};
+use crate::cli::{interact, key_type::KeyType};
+use crate::listen::Listener;
+use crate::recognise::{Model, Recogniser};
+use crate::speak::Speaker;
+use crate::{sniff, sniff::Sniffer};
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}
@@ -80,7 +79,7 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), crate::Error> {
+    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), Error> {
         info!("Interacting with Siri...");
 
         let mut speaker = Speaker::new()?;

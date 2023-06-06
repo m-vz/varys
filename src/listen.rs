@@ -1,35 +1,22 @@
-pub mod audio;
-
-use crate::listen::audio::AudioData;
-use crate::recognise::Recogniser;
-use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{BuildStreamError, Device, PlayStreamError, SampleFormat, Stream, StreamConfig};
-use log::{debug, error, info, trace, warn};
-use simple_moving_average::{NoSumSMA, SMA};
-use std::sync::mpsc::{channel, Receiver};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{
+    mpsc::{channel, Receiver},
+    Arc, Mutex,
+};
 use std::thread;
 use std::time::{Duration, Instant};
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum Error {
-    /// Error that happens if no audio input device was found.
-    #[error("Audio input device not found")]
-    MissingInputDevice,
-    /// Error that happens if the audio input device does not support a required configuration.
-    #[error("Audio device does not support required configuration")]
-    ConfigurationNotSupported,
-    /// Error that happens when trying to access audio data while it is still being recorded.
-    #[error("Recording still running")]
-    StillRecording,
-    #[error(transparent)]
-    BuildStream(#[from] BuildStreamError),
-    #[error(transparent)]
-    PlayStream(#[from] PlayStreamError),
-    #[error(transparent)]
-    RecordingFailed(#[from] PoisonError<Vec<f32>>),
-}
+use cpal::{
+    traits::{DeviceTrait, HostTrait, StreamTrait},
+    Device, SampleFormat, Stream, StreamConfig,
+};
+use log::{debug, error, info, trace, warn};
+use simple_moving_average::{NoSumSMA, SMA};
+
+use crate::error::Error;
+use crate::listen::audio::AudioData;
+use crate::recognise::Recogniser;
+
+pub mod audio;
 
 /// A listener that can parse voice input.
 pub struct Listener {
