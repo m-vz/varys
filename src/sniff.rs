@@ -315,13 +315,20 @@ pub fn default_device() -> Result<Device, Error> {
 ///
 /// ```
 /// # use pcap::ConnectionStatus;
+/// # use varys::error::Error;
 /// # use varys::sniff;
-/// use varys::sniff::Error;
 /// let connected_devices = sniff::device_by_name("en0").unwrap();
-/// assert_eq!(
-///     sniff::device_by_name("Invalid device name").unwrap_err(),
-///     Error::DeviceNotFound("Invalid device name".to_string())
-/// );
+/// let invalid_device = sniff::device_by_name("Invalid device name");
+///
+/// if let Err(Error::DeviceNotFound(name)) = invalid_device {
+///     if name.as_str() == "Invalid device name" {
+///         return;
+///     } else {
+///         panic!("Wrong error format.");
+///     }
+/// } else {
+///     panic!("Error expected.");
+/// }
 /// ```
 pub fn device_by_name(name: &str) -> Result<Device, Error> {
     all_devices()?

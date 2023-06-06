@@ -42,13 +42,23 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::{Error, Speaker};
+    /// # #[cfg(target_os = "macos")]
+    /// # {
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
-    /// # #[cfg(target_os = "macos")]
+    ///
     /// assert!(speaker.set_voice("Jamie").is_ok());
-    /// # #[cfg(target_os = "macos")]
     /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Malcolm").is_ok());
+    /// # }
+    /// ```
+    ///
+    /// ```
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// let invalid = speaker.set_voice("Invalid Name");
+    ///
     /// if let Err(Error::VoiceNotAvailable(text)) = invalid {
     ///     assert_eq!(text, "Invalid Name");
     /// } else {
