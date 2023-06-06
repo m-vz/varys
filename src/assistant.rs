@@ -13,6 +13,7 @@ pub enum Error {
     Speaker(#[from] speak::Error),
 }
 
+/// This trait is implemented by all voice assistants supported by varys.
 pub trait VoiceAssistant {
     /// The name of the voice assistant.
     ///

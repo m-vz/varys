@@ -14,6 +14,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use std::time::Duration;
 
+/// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}
 
 impl Siri {
