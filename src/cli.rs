@@ -1,4 +1,4 @@
-use crate::assistant::Assistant;
+use crate::assistant::VoiceAssistant;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand, SniffCommand,
 };
@@ -33,11 +33,11 @@ fn assistant_command(
     interface: &str,
     voice: &str,
     command: AssistantCommand,
-    assistant: impl Assistant,
+    assistant: impl VoiceAssistant,
 ) -> Result<(), Error> {
     match command.command {
         AssistantSubcommand::Setup => assistant.setup()?,
-        AssistantSubcommand::Test(test) => assistant.test(test.voices)?,
+        AssistantSubcommand::Test(test) => assistant.test_voices(test.voices)?,
         AssistantSubcommand::Interact(command) => {
             assistant.interact(interface, voice, command.queries)?
         }

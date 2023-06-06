@@ -1,4 +1,4 @@
-use crate::assistant::{Error, Interact, Setup, Test};
+use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::interact;
 use crate::cli::key_type::KeyType;
 use crate::listen::Listener;
@@ -21,7 +21,11 @@ impl Siri {
         &["Ava", "Karen", "Jamie", "Matilda", "Serena", "Zoe"];
 }
 
-impl Setup for Siri {
+impl VoiceAssistant for Siri {
+    fn name(&self) -> String {
+        "Siri".to_string()
+    }
+
     fn setup(&self) -> Result<(), Error> {
         info!("Starting Siri setup...");
 
@@ -74,9 +78,7 @@ impl Setup for Siri {
 
         Ok(())
     }
-}
 
-impl Interact for Siri {
     fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), crate::Error> {
         info!("Interacting with Siri...");
 
@@ -111,10 +113,8 @@ impl Interact for Siri {
 
         Ok(())
     }
-}
 
-impl Test for Siri {
-    fn test(&self, voices: Vec<String>) -> Result<(), Error> {
+    fn test_voices(&self, voices: Vec<String>) -> Result<(), Error> {
         info!("Testing Siri voices...");
 
         let mut speaker = Speaker::new()?;
