@@ -1,5 +1,8 @@
 use std::fmt::{Display, Formatter};
 
+/// Represents a single key on the keyboard.
+///
+/// Can be parsed from from a `char` taken from user input.
 #[derive(PartialEq)]
 pub enum KeyType {
     Key(char),
@@ -8,6 +11,19 @@ pub enum KeyType {
 }
 
 impl KeyType {
+    /// Join keys into a string, separated by a separator.
+    ///
+    /// # Arguments
+    ///
+    /// * `keys`: The keys to join together.
+    /// * `separator`: The separator to separate the keys with.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::cli::key_type::KeyType;
+    /// assert_eq!(KeyType::join(&[KeyType::from('r'), KeyType::Enter], ", "), "r, Enter");
+    /// ```
     pub fn join(keys: &[KeyType], separator: &str) -> String {
         let full: String = keys.iter().map(|k| format!("{}{}", k, separator)).collect();
         full[..full.len() - separator.len()].to_string()

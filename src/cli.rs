@@ -16,6 +16,9 @@ pub mod arguments;
 pub mod interact;
 pub mod key_type;
 
+/// Start the cli program.
+///
+/// This parses the arguments passed in the command line and runs the appropriate command.
 pub fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
     let assistant = assistant::from(arguments.assistant.as_deref());
