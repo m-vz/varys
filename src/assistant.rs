@@ -1,17 +1,9 @@
-pub mod siri;
+use std::path::PathBuf;
 
 use crate::assistant::siri::Siri;
-use crate::{cli, speak};
-use std::path::PathBuf;
-use thiserror::Error;
+use crate::error::Error;
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    CliIo(#[from] cli::interact::Error),
-    #[error(transparent)]
-    Speaker(#[from] speak::Error),
-}
+pub mod siri;
 
 /// This trait is implemented by all voice assistants supported by varys.
 pub trait VoiceAssistant {
@@ -53,12 +45,12 @@ pub trait VoiceAssistant {
     /// # let assistant = from(None);
     /// assistant.interact("ap1", "Zoe", PathBuf::from("data/test_queries.txt".to_string())).unwrap();
     /// ```
-    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), crate::Error>;
+    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///
     /// The voices are tested in the order they are passed in.
-    ///
+    ///$
     /// # Arguments
     ///
     /// * `voices`: The voices to test.

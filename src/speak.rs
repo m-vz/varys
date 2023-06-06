@@ -1,3 +1,5 @@
+use std::sync::mpsc::{channel, TryRecvError};
+
 #[cfg(target_os = "macos")]
 use cocoa_foundation::{
     base::id,
@@ -7,19 +9,9 @@ use lerp::Lerp;
 use log::debug;
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
-use std::sync::mpsc::{channel, TryRecvError};
-use thiserror::Error;
 use tts::{Features, Tts, Voice};
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(transparent)]
-    Tts(#[from] tts::Error),
-    #[error("Required feature {0} is unsupported")]
-    UnsupportedFeature(String),
-    #[error("Voice {0} is not available or does not exist")]
-    VoiceNotAvailable(String),
-}
+use crate::error::Error;
 
 /// A speaker that can synthesize voices.
 pub struct Speaker {
@@ -50,13 +42,23 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::{Error, Speaker};
+    /// # #[cfg(target_os = "macos")]
+    /// # {
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
-    /// # #[cfg(target_os = "macos")]
+    ///
     /// assert!(speaker.set_voice("Jamie").is_ok());
-    /// # #[cfg(target_os = "macos")]
     /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Malcolm").is_ok());
+    /// # }
+    /// ```
+    ///
+    /// ```
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
+    /// let mut speaker = Speaker::new().unwrap();
     /// let invalid = speaker.set_voice("Invalid Name");
+    ///
     /// if let Err(Error::VoiceNotAvailable(text)) = invalid {
     ///     assert_eq!(text, "Invalid Name");
     /// } else {

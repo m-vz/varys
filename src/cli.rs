@@ -1,16 +1,18 @@
-use crate::assistant::VoiceAssistant;
-use crate::cli::arguments::{
-    Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand, SniffCommand,
-};
-use crate::listen::Listener;
-use crate::recognise::{Model, Recogniser};
-use crate::sniff::Sniffer;
-use crate::speak::Speaker;
-use crate::{assistant, sniff, Error};
+use std::time;
+
 use clap::Parser;
 use log::{debug, info};
 use pcap::ConnectionStatus;
-use std::time;
+
+use crate::cli::arguments::{
+    Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand, SniffCommand,
+};
+use crate::error::Error;
+use crate::listen::Listener;
+use crate::recognise::{Model, Recogniser};
+use crate::speak::Speaker;
+use crate::{assistant, assistant::VoiceAssistant};
+use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
 pub mod interact;

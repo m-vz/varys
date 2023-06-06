@@ -1,17 +1,9 @@
+use std::path::PathBuf;
+
 use hound::WavSpec;
 use log::debug;
-use std::path::PathBuf;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum Error {
-    #[error(
-        "Downsampling requires the target sample rate to be a divisor of the current sample rate."
-    )]
-    NoDivisor,
-    #[error(transparent)]
-    Hound(#[from] hound::Error),
-}
+use crate::error::Error;
 
 /// Holds interleaved audio data for one or more channels.
 pub struct AudioData {

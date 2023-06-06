@@ -1,5 +1,5 @@
 use varys::cli;
-use varys::Error;
+use varys::error::Error;
 
 fn main() -> Result<(), Error> {
     pretty_env_logger::init();

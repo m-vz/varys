@@ -1,27 +1,14 @@
-use chrono::{DateTime, Utc};
-use log::{info, trace};
-use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::thread;
-use std::thread::JoinHandle;
 use std::time::{Duration, UNIX_EPOCH};
-use thiserror::Error;
+use std::{thread, thread::JoinHandle};
 
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum Error {
-    #[error("No default network device was found.")]
-    DefaultDeviceNotFound,
-    #[error("Could not find device {0}.")]
-    DeviceNotFound(String),
-    #[error("Tried to stop sniffer that was not running.")]
-    CannotStop,
-    #[error("Did not receive sniffer stats.")]
-    NoStatsReceived,
-    #[error(transparent)]
-    Pcap(#[from] pcap::Error),
-}
+use chrono::{DateTime, Utc};
+use log::{info, trace};
+use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
+
+use crate::error::Error;
 
 /// A sniffer packet contains all packet information for one captured pcap packet.
 pub struct SnifferPacket {
@@ -140,7 +127,7 @@ impl Sniffer {
                 }
             }
 
-            capture.stats().map_err(Error::Pcap)
+            capture.stats().map_err(Error::from)
         });
 
         Ok(SnifferInstance {
@@ -328,17 +315,24 @@ pub fn default_device() -> Result<Device, Error> {
 ///
 /// ```
 /// # use pcap::ConnectionStatus;
+/// # use varys::error::Error;
 /// # use varys::sniff;
-/// use varys::sniff::Error;
 /// let connected_devices = sniff::device_by_name("en0").unwrap();
-/// assert_eq!(
-///     sniff::device_by_name("Invalid device name").unwrap_err(),
-///     Error::DeviceNotFound("Invalid device name".to_string())
-/// );
+/// let invalid_device = sniff::device_by_name("Invalid device name");
+///
+/// if let Err(Error::NetworkDeviceNotFound(name)) = invalid_device {
+///     if name.as_str() == "Invalid device name" {
+///         return;
+///     } else {
+///         panic!("Wrong error format.");
+///     }
+/// } else {
+///     panic!("Error expected.");
+/// }
 /// ```
 pub fn device_by_name(name: &str) -> Result<Device, Error> {
     all_devices()?
         .into_iter()
         .find(|device| device.name == name)
-        .ok_or(Error::DeviceNotFound(name.to_string()))
+        .ok_or(Error::NetworkDeviceNotFound(name.to_string()))
 }
