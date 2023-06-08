@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::time::{Duration, UNIX_EPOCH};
 use std::{thread, thread::JoinHandle};
+use std::{time, time::Duration};
 
 use chrono::{DateTime, Utc};
 use log::{info, trace};
@@ -46,7 +46,7 @@ impl From<Packet<'_>> for SnifferPacket {
         let s = timestamp.tv_sec as u64;
         let ms = u64::try_from(timestamp.tv_usec as i64).unwrap_or(0); // tv_usec might be negative for dates before 1970, ignore those
         let timestamp =
-            DateTime::from(UNIX_EPOCH + Duration::from_secs(s) + Duration::from_micros(ms));
+            DateTime::from(time::UNIX_EPOCH + Duration::from_secs(s) + Duration::from_micros(ms));
         SnifferPacket {
             timestamp,
             len: packet.header.len,
@@ -69,7 +69,8 @@ impl Sniffer {
     ///
     /// # Arguments
     ///
-    /// * `file_path`: The path to which the captured traffic is written.
+    /// * `file_path`: The path to which the captured traffic is written. The extension `.pcap` will
+    /// be added if it isn't already in the path.
     ///
     /// Returns a [`SnifferInstance`], on which [`SnifferInstance::stop`] can be called to stop
     /// capturing the traffic.
@@ -79,15 +80,18 @@ impl Sniffer {
     /// Start sniffer, writing to `capture.pcap`:
     ///
     /// ```no_run
-    /// # use std::path::PathBuf;
+    /// # use std::path::Path;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
     ///
-    /// let instance = sniffer.start(PathBuf::from("/path/to/capture.pcap")).unwrap();
+    /// let instance = sniffer.start(Path::new("/path/to/capture.pcap")).unwrap();
     /// # instance.stop().unwrap();
     /// ```
-    pub fn start(&self, file_path: PathBuf) -> Result<SnifferInstance, Error> {
+    pub fn start(&self, file_path: &Path) -> Result<SnifferInstance, Error> {
+        let mut file_path = file_path.to_owned();
+        file_path.set_extension("pcap");
+
         info!("{} starting (writing to {:?})...", self, file_path);
 
         let mut capture = Capture::from_device(self.device.clone())?
@@ -106,9 +110,7 @@ impl Sniffer {
                         file.write(&packet);
                         trace!("{}", SnifferPacket::from(packet));
                     }
-                    Err(_) => {
-                        thread::sleep(Duration::from_millis(10));
-                    }
+                    Err(_) => thread::sleep(Duration::from_millis(10)),
                 }
             }
 
@@ -130,7 +132,8 @@ impl Sniffer {
     /// # Arguments
     ///
     /// * `seconds`: How many seconds to capture traffic for.
-    /// * `file_path`: The file path to which the captured traffic is written.
+    /// * `file_path`: The path to which the captured traffic is written. The extension `.pcap` will
+    /// be added if it isn't already in the path.
     ///
     /// Returns [`SnifferStats`] with statistics about the capture.
     ///
@@ -139,14 +142,14 @@ impl Sniffer {
     /// Capture traffic for 5 seconds, writing to `capture.pcap`:
     ///
     /// ```no_run
-    /// # use std::path::PathBuf;
+    /// # use std::path::Path;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
     ///
-    /// let stats = sniffer.run_for(5, PathBuf::from("capture.pcap")).unwrap();
+    /// let stats = sniffer.run_for(5, Path::new("capture.pcap")).unwrap();
     /// ```
-    pub fn run_for(&self, seconds: u64, file_path: PathBuf) -> Result<SnifferStats, Error> {
+    pub fn run_for(&self, seconds: u64, file_path: &Path) -> Result<SnifferStats, Error> {
         info!("Running sniffer for {} seconds", seconds);
 
         let instance = self.start(file_path)?;
@@ -185,11 +188,11 @@ impl SnifferInstance {
     /// # Examples
     ///
     /// ```no_run
-    /// # use std::path::PathBuf;
+    /// # use std::path::Path;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
-    /// let instance = sniffer.start(PathBuf::from("capture.pcap")).unwrap();
+    /// let instance = sniffer.start(Path::new("capture.pcap")).unwrap();
     ///
     /// let stats = instance.stop().unwrap();
     /// ```

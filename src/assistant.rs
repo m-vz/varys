@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::assistant::siri::Siri;
 use crate::error::Error;
@@ -40,12 +40,12 @@ pub trait VoiceAssistant {
     /// # Examples
     ///
     /// ```no_run
-    /// # use std::path::PathBuf;
+    /// # use std::path::Path;
     /// # use varys::assistant::{from, VoiceAssistant};
     /// # let assistant = from(None);
-    /// assistant.interact("ap1", "Zoe", PathBuf::from("data/test_queries.txt".to_string())).unwrap();
+    /// assistant.interact("ap1", "Zoe", Path::new("data/test_queries.txt")).unwrap();
     /// ```
-    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), Error>;
+    fn interact(&self, interface: &str, voice: &str, queries: &Path) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///
