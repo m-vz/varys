@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::mpsc::{channel, Sender, TryRecvError};
-use std::time::{Duration, UNIX_EPOCH};
 use std::{thread, thread::JoinHandle};
+use std::{time, time::Duration};
 
 use chrono::{DateTime, Utc};
 use log::{info, trace};
@@ -28,14 +28,9 @@ impl Display for SnifferPacket {
 
         write!(
             f,
-            "{} bytes captured on {}: {}",
+            "{} bytes captured on {}",
             length,
-            self.timestamp.format("%d.%m.%Y %H:%M:%S"),
-            self.data
-                .iter()
-                .map(|b| format!("{:02X}", b))
-                .collect::<Vec<String>>()
-                .join(" ")
+            self.timestamp.format("%d.%m.%Y %H:%M:%S")
         )
     }
 }
@@ -46,7 +41,7 @@ impl From<Packet<'_>> for SnifferPacket {
         let s = timestamp.tv_sec as u64;
         let ms = u64::try_from(timestamp.tv_usec as i64).unwrap_or(0); // tv_usec might be negative for dates before 1970, ignore those
         let timestamp =
-            DateTime::from(UNIX_EPOCH + Duration::from_secs(s) + Duration::from_micros(ms));
+            DateTime::from(time::UNIX_EPOCH + Duration::from_secs(s) + Duration::from_micros(ms));
         SnifferPacket {
             timestamp,
             len: packet.header.len,
@@ -69,39 +64,30 @@ impl Sniffer {
     ///
     /// # Arguments
     ///
-    /// * `file_path`: An optional file path to which the captured traffic is written.
+    /// * `file_path`: The path to which the captured traffic is written. The extension `.pcap` will
+    /// be added if it isn't already in the path.
     ///
     /// Returns a [`SnifferInstance`], on which [`SnifferInstance::stop`] can be called to stop
     /// capturing the traffic.
     ///
     /// # Examples
     ///
-    /// Capturing traffic without writing it to file:
+    /// Start sniffer, writing to `capture.pcap`:
     ///
-    /// ```
+    /// ```no_run
+    /// # use std::path::Path;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
-    /// let instance = sniffer.start(None).unwrap();
+    ///
+    /// let instance = sniffer.start(Path::new("/path/to/capture.pcap")).unwrap();
     /// # instance.stop().unwrap();
     /// ```
-    ///
-    /// Capturing traffic to a file:
-    ///
-    /// ```
-    /// # use std::path::PathBuf;
-    /// # use varys::sniff;
-    /// # use varys::sniff::Sniffer;
-    /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
-    /// let instance = sniffer.start(Some(PathBuf::from("/dev/null"))).unwrap();
-    /// # instance.stop().unwrap();
-    /// ```
-    pub fn start(&self, file_path: Option<PathBuf>) -> Result<SnifferInstance, Error> {
-        if let Some(file_path) = &file_path {
-            info!("{} starting (writing to {:?})...", self, file_path);
-        } else {
-            info!("{} starting (not writing to file)...", self,);
-        }
+    pub fn start(&self, file_path: &Path) -> Result<SnifferInstance, Error> {
+        let mut file_path = file_path.to_owned();
+        file_path.set_extension("pcap");
+
+        info!("{} starting (writing to {:?})...", self, file_path);
 
         let mut capture = Capture::from_device(self.device.clone())?
             .promisc(true)
@@ -109,21 +95,17 @@ impl Sniffer {
             .buffer_size(100_000_000)
             .open()?
             .setnonblock()?;
-        let mut file = file_path.map(|path| capture.savefile(path)).transpose()?;
+        let mut file = capture.savefile(file_path)?;
         let (shutdown_channel, receiver) = channel();
 
         let join_handle = thread::spawn(move || {
             while receiver.try_recv() == Err(TryRecvError::Empty) {
                 match capture.next_packet() {
                     Ok(packet) => {
-                        if let Some(file) = file.as_mut() {
-                            file.write(&packet);
-                        }
+                        file.write(&packet);
                         trace!("{}", SnifferPacket::from(packet));
                     }
-                    Err(_) => {
-                        thread::sleep(Duration::from_millis(10));
-                    }
+                    Err(_) => thread::sleep(Duration::from_millis(10)),
                 }
             }
 
@@ -145,19 +127,24 @@ impl Sniffer {
     /// # Arguments
     ///
     /// * `seconds`: How many seconds to capture traffic for.
-    /// * `file_path`: An optional file path to which the captured traffic is written.
+    /// * `file_path`: The path to which the captured traffic is written. The extension `.pcap` will
+    /// be added if it isn't already in the path.
     ///
     /// Returns [`SnifferStats`] with statistics about the capture.
     ///
     /// # Examples
     ///
-    /// ```
+    /// Capture traffic for 5 seconds, writing to `capture.pcap`:
+    ///
+    /// ```no_run
+    /// # use std::path::Path;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
-    /// let stats = sniffer.run_for(0, None).unwrap();
+    ///
+    /// let stats = sniffer.run_for(5, Path::new("capture.pcap")).unwrap();
     /// ```
-    pub fn run_for(&self, seconds: u64, file_path: Option<PathBuf>) -> Result<SnifferStats, Error> {
+    pub fn run_for(&self, seconds: u64, file_path: &Path) -> Result<SnifferStats, Error> {
         info!("Running sniffer for {} seconds", seconds);
 
         let instance = self.start(file_path)?;
@@ -195,11 +182,13 @@ impl SnifferInstance {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
+    /// # use std::path::Path;
     /// # use varys::sniff;
     /// # use varys::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
-    /// let instance = sniffer.start(None).unwrap();
+    /// let instance = sniffer.start(Path::new("capture.pcap")).unwrap();
+    ///
     /// let stats = instance.stop().unwrap();
     /// ```
     pub fn stop(self) -> Result<SnifferStats, Error> {

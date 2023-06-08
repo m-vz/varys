@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use hound::WavSpec;
 use log::debug;
@@ -118,15 +118,18 @@ impl AudioData {
     ///
     /// # Arguments
     ///
-    /// * `file_path`: Where to save the `.wav` file.
-    pub fn save_to_file(&self, mut file_path: PathBuf) -> Result<(), Error> {
+    /// * `file_path`: Where to save the file. The extension `.wav` will be added if it isn't
+    /// already in the path.
+    pub fn save_to_file(&self, file_path: &Path) -> Result<(), Error> {
         let wav_config = WavSpec {
             channels: 1,
             sample_rate: self.sample_rate,
             bits_per_sample: 32,
             sample_format: hound::SampleFormat::Float,
         };
+        let mut file_path = file_path.to_owned();
         file_path.set_extension("wav");
+
         debug!(
             "Writing .wav file {:?} using config {:?}",
             file_path, wav_config

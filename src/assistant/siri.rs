@@ -1,17 +1,18 @@
-use std::fs::read_to_string;
-use std::path::PathBuf;
+use std::fs;
+use std::path::Path;
 use std::time::Duration;
 
+use chrono::Local;
 use colored::Colorize;
 use log::{info, warn};
-use rand::{seq::SliceRandom, thread_rng};
+use rand::seq::SliceRandom;
 
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{sniff, sniff::Sniffer};
+use crate::{compression, sniff, sniff::Sniffer};
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}
@@ -79,7 +80,7 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    fn interact(&self, interface: &str, voice: &str, queries: PathBuf) -> Result<(), Error> {
+    fn interact(&self, interface: &str, voice: &str, queries: &Path) -> Result<(), Error> {
         info!("Interacting with Siri...");
 
         let mut speaker = Speaker::new()?;
@@ -88,24 +89,25 @@ impl VoiceAssistant for Siri {
         let recogniser = Recogniser::with_model(Model::Large)?;
         let sniffer = Sniffer::from(sniff::device_by_name(interface)?);
 
-        if let Ok(queries) = read_to_string(queries) {
+        if let Ok(queries) = fs::read_to_string(queries) {
             let mut queries: Vec<String> = queries
                 .lines()
                 .map(|q| format!("Hey Siri. {}", q))
                 .collect();
-            queries.shuffle(&mut thread_rng());
+            queries.shuffle(&mut rand::thread_rng());
 
             for query in queries {
                 info!("Saying {}", query);
 
-                let sniffer_instance = sniffer.start(Some(PathBuf::from(format!(
-                    "query-{}.pcap",
-                    chrono::offset::Local::now().format("%Y-%m-%d-%H-%M-%S-%f")
-                ))))?;
+                let file_path =
+                    format!("query-{}.pcap", Local::now().format("%Y-%m-%d-%H-%M-%S-%f"));
+                let file_path = Path::new(file_path.as_str());
+                let sniffer_instance = sniffer.start(file_path)?;
                 speaker.say(&query, true)?;
                 let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.001)?;
                 info!("{}", recogniser.recognise(&mut audio)?);
                 info!("{}", sniffer_instance.stop()?);
+                compression::compress_gzip(file_path, false)?;
             }
         } else {
             warn!("Could not read queries");
