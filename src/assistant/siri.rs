@@ -107,6 +107,7 @@ impl VoiceAssistant for Siri {
                 let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.001)?;
                 info!("{}", recogniser.recognise(&mut audio)?);
                 info!("{}", sniffer_instance.stop()?);
+                compression::compress_gzip(file_path, false)?;
             }
         } else {
             warn!("Could not read queries");

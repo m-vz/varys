@@ -11,7 +11,7 @@ use crate::error::Error;
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{assistant, assistant::VoiceAssistant};
+use crate::{assistant, assistant::VoiceAssistant, compression};
 use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
@@ -85,6 +85,7 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     debug!("Using: {}", sniffer);
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {}", stats);
+    compression::compress_gzip(&command.file, true)?;
 
     Ok(())
 }
