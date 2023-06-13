@@ -1,6 +1,3 @@
-use std::path::Path;
-
-use hound::WavSpec;
 use log::debug;
 
 use crate::error::Error;
@@ -110,38 +107,6 @@ impl AudioData {
         self.sample_rate = sample_rate;
 
         Ok(self)
-    }
-
-    /// Save audio data to a `.wav` file.
-    ///
-    /// Returns an error if the file could not be written.
-    ///
-    /// # Arguments
-    ///
-    /// * `file_path`: Where to save the file. The extension `.wav` will be added if it isn't
-    /// already in the path.
-    pub fn save_to_file(&self, file_path: &Path) -> Result<(), Error> {
-        let wav_config = WavSpec {
-            channels: 1,
-            sample_rate: self.sample_rate,
-            bits_per_sample: 32,
-            sample_format: hound::SampleFormat::Float,
-        };
-        let mut file_path = file_path.to_owned();
-        file_path.set_extension("wav");
-
-        debug!(
-            "Writing .wav file {:?} using config {:?}",
-            file_path, wav_config
-        );
-        let mut writer = hound::WavWriter::create(file_path, wav_config)?;
-
-        for &sample in &self.data {
-            writer.write_sample(sample)?;
-        }
-        writer.finalize()?;
-
-        Ok(())
     }
 }
 

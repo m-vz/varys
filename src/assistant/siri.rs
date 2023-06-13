@@ -12,7 +12,7 @@ use crate::cli::{interact, key_type::KeyType};
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{compression, sniff, sniff::Sniffer};
+use crate::{file, sniff, sniff::Sniffer};
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}
@@ -107,7 +107,7 @@ impl VoiceAssistant for Siri {
                 let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.001)?;
                 info!("{}", recogniser.recognise(&mut audio)?);
                 info!("{}", sniffer_instance.stop()?);
-                compression::compress_gzip(file_path, false)?;
+                file::compress_gzip(file_path, false)?;
             }
         } else {
             warn!("Could not read queries");

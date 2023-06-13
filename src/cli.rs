@@ -11,7 +11,7 @@ use crate::error::Error;
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{assistant, assistant::VoiceAssistant, compression};
+use crate::{assistant, assistant::VoiceAssistant, file};
 use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
@@ -62,7 +62,8 @@ fn parrot_command(voice: &str, command: ParrotCommand) -> Result<(), Error> {
 
     let mut file_path = command.file;
     file_path.set_extension("wav");
-    audio.downsample(16000)?.save_to_file(&file_path)?;
+    audio.downsample(16000)?;
+    file::write_wav(&file_path, &audio)?;
 
     info!("Recognising...");
     let recogniser = Recogniser::with_model(Model::Large)?;
@@ -85,7 +86,7 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     debug!("Using: {}", sniffer);
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {}", stats);
-    compression::compress_gzip(&command.file, true)?;
+    file::compress_gzip(&command.file, true)?;
 
     Ok(())
 }
