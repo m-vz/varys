@@ -4,10 +4,10 @@ use thiserror::Error;
 pub enum Error {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-
-    // tts
     #[error("Value is out of range")]
     OutOfRange,
+
+    // tts
     #[error("Required feature {0} is unsupported")]
     UnsupportedFeature(String),
     #[error("Voice {0} is not available or does not exist")]
@@ -28,6 +28,14 @@ pub enum Error {
         "Downsampling requires the target sample rate to be a divisor of the current sample rate"
     )]
     NoDivisor,
+    #[error(
+        "Opus does not support sample rate {0}hz. Use one of 8000, 12000, 16000, 24000 or 48000"
+    )]
+    UnsupportedSampleRate(u32),
+    #[error("Opus does not support more than two channels (got audio data with {0} channels)")]
+    UnsupportedChannelCount(u16),
+    #[error("OPUS error")]
+    Opus,
     #[error("CPAL error")]
     Cpal,
     #[error("Hound error")]
@@ -82,6 +90,20 @@ impl From<cpal::SupportedStreamConfigsError> for Error {
                 Error::AudioInputDeviceNotFound
             }
             _ => Error::Cpal,
+        }
+    }
+}
+
+impl From<audiopus::Error> for Error {
+    fn from(value: audiopus::Error) -> Self {
+        match value {
+            audiopus::Error::InvalidSampleRate(channels) => {
+                Error::UnsupportedSampleRate(channels as u32)
+            }
+            audiopus::Error::InvalidChannels(channels) => {
+                Error::UnsupportedChannelCount(channels as u16)
+            }
+            _ => Error::Opus,
         }
     }
 }

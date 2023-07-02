@@ -19,6 +19,7 @@ Icon
 
 ### Custom
 /data/recordings/*.wav
+/data/recordings/*.opus
 /data/captures/*.pcap
 /data/captures/*.pcap.gz
 /*.pcap
