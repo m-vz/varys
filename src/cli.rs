@@ -57,13 +57,10 @@ fn parrot_command(voice: &str, command: ParrotCommand) -> Result<(), Error> {
     let mut audio = if let Some(seconds) = command.seconds {
         listener.record_for(seconds)?
     } else {
-        listener.record_until_silent(time::Duration::from_secs(2), 0.001)?
+        listener.record_until_silent(time::Duration::from_secs(2), 0.01)?
     };
-
-    let mut file_path = command.file;
-    file_path.set_extension("wav");
     audio.downsample(16000)?;
-    file::write_wav(&file_path, &audio)?;
+    file::audio::write_audio(&command.file, &audio)?;
 
     info!("Recognising...");
     let recogniser = Recogniser::with_model(Model::Large)?;

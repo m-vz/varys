@@ -126,7 +126,7 @@ impl Listener {
             stream,
             writer,
             average,
-            channels: self.device_config.channels,
+            channels: u8::try_from(self.device_config.channels).map_err(|_| Error::OutOfRange)?,
             sample_rate: self.device_config.sample_rate.0,
         })
     }
@@ -150,7 +150,7 @@ impl Listener {
     /// # use std::time;
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// let audio_data = listener.record_until_silent(time::Duration::from_secs(0), 0.001);
+    /// let audio_data = listener.record_until_silent(time::Duration::from_secs(0), 0.01);
     /// ```
     pub fn record_until_silent(
         &self,
@@ -218,7 +218,7 @@ pub struct ListenerInstance {
     stream: Stream,
     writer: Arc<Mutex<Vec<f32>>>,
     average: Receiver<f32>,
-    channels: u16,
+    channels: u8,
     sample_rate: u32,
 }
 

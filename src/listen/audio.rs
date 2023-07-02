@@ -1,6 +1,12 @@
-use log::debug;
+use audiopus::coder::Encoder;
+use audiopus::{Application, Bitrate, Channels, SampleRate};
+use log::{debug, trace};
 
 use crate::error::Error;
+
+const OPUS_FRAME_TIME: usize = 20; // ms (see https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.4)
+const OPUS_FRAME_RATE: usize = 1000 / OPUS_FRAME_TIME; // 1/s
+pub const OPUS_SAMPLE_RATE: usize = 48000; // 1/s (see https://datatracker.ietf.org/doc/html/rfc7845#section-4)
 
 /// Holds interleaved audio data for one or more channels.
 pub struct AudioData {
@@ -8,7 +14,7 @@ pub struct AudioData {
     /// With two channels, this looks like `[l0, r0, l1, r1, ...]`
     pub data: Vec<f32>,
     /// The amount of channels stored.
-    pub channels: u16,
+    pub channels: u8,
     /// The sample rate of the audio data.
     pub sample_rate: u32,
 }
@@ -107,6 +113,75 @@ impl AudioData {
         self.sample_rate = sample_rate;
 
         Ok(self)
+    }
+
+    /// Encode the audio data into OPUS frames.
+    ///
+    /// Returns the OPUS frames, the size of the padding added to the start and the number of samples per frame.
+    ///
+    /// Returns an error if encoding failed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::audio::AudioData;
+    /// let mut audio = AudioData {
+    ///     data: vec![0_f32, 1_f32, 2_f32, 3_f32, 4_f32],
+    ///     channels: 1,
+    ///     sample_rate: 48000,
+    /// };
+    /// audio.encode_opus().unwrap();
+    /// ```
+    pub fn encode_opus(&self) -> Result<(Vec<Vec<u8>>, u16, usize), Error> {
+        if self.data.is_empty() {
+            return Ok((vec![], 0, 0));
+        }
+
+        let sample_rate = i32::try_from(self.sample_rate).map_err(|_| Error::OutOfRange)?;
+        let channels = i32::try_from(self.channels).map_err(|_| Error::OutOfRange)?;
+        let mut encoder = Encoder::new(
+            SampleRate::try_from(sample_rate)?,
+            Channels::try_from(channels)?,
+            Application::Voip,
+        )?;
+        encoder.set_bitrate(Bitrate::BitsPerSecond(24000))?;
+
+        let frame_size = (sample_rate * channels) as usize / OPUS_FRAME_RATE;
+        let mut encoded_frames = Vec::new();
+
+        let padding = u16::try_from(encoder.lookahead()?).map_err(|_| Error::OutOfRange)?;
+        let mut padded_data = vec![0.0; padding as usize];
+        padded_data.extend(self.data.iter());
+
+        for start in (0..padded_data.len()).step_by(frame_size) {
+            let end = start + frame_size;
+            if end >= padded_data.len() {
+                // drop the last packet if it doesn't fit – opus only supports specific frame sizes
+                break;
+            }
+            let mut encoded_frame = vec![0; frame_size];
+
+            loop {
+                match encoder.encode_float(&padded_data[start..end], &mut encoded_frame) {
+                    Ok(length) => {
+                        encoded_frame.truncate(length);
+                        encoded_frames.push(encoded_frame);
+                        break Ok(());
+                    }
+                    Err(audiopus::Error::Opus(audiopus::ErrorCode::BufferTooSmall)) => {
+                        trace!("Buffer size too small, doubling it");
+                        encoded_frame.reserve(encoded_frame.capacity());
+                    }
+                    Err(e) => break Err(Error::from(e)),
+                }
+            }?;
+        }
+
+        Ok((
+            encoded_frames,
+            padding,
+            sample_rate as usize / OPUS_FRAME_RATE,
+        ))
     }
 }
 
