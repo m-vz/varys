@@ -26,6 +26,8 @@ pub enum Command {
     Parrot(ParrotCommand),
     /// Record network traffic on a specified interface
     Sniff(SniffCommand),
+    /// Calibrate audio recording
+    Calibrate,
 }
 
 #[derive(Debug, Args)]

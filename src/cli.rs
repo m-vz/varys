@@ -31,6 +31,7 @@ pub fn run() -> Result<(), Error> {
         }
         Command::Parrot(command) => parrot_command(&arguments.voice, command),
         Command::Sniff(command) => sniff_command(command),
+        Command::Calibrate => calibrate_command(),
     }
 }
 
@@ -84,6 +85,12 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {}", stats);
     file::compress_gzip(&command.file, true)?;
+
+    Ok(())
+}
+
+fn calibrate_command() -> Result<(), Error> {
+    interact::user_confirmation("Calibration will record the average ambient noise. Stay quiet for five seconds. To begin, press")?;
 
     Ok(())
 }
