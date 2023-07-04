@@ -16,6 +16,9 @@ pub struct Arguments {
     /// The voice to use for speaking
     #[arg(short, long, default_value = "Zoe")]
     pub voice: String,
+    /// The sensitivity to distinguish ambient noise from speech
+    #[arg(short, long, default_value_t = 0.01)]
+    pub sensitivity: f32,
 }
 
 #[derive(Debug, Subcommand)]

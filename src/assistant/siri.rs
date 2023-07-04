@@ -80,7 +80,13 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    fn interact(&self, interface: &str, voice: &str, queries: &Path) -> Result<(), Error> {
+    fn interact(
+        &self,
+        interface: &str,
+        voice: &str,
+        sensitivity: f32,
+        queries: &Path,
+    ) -> Result<(), Error> {
         info!("Interacting with Siri...");
 
         let mut speaker = Speaker::new()?;
@@ -104,7 +110,8 @@ impl VoiceAssistant for Siri {
                 let file_path = Path::new(file_path.as_str());
                 let sniffer_instance = sniffer.start(file_path)?;
                 speaker.say(&query, true)?;
-                let mut audio = listener.record_until_silent(Duration::from_secs(2), 0.01)?;
+                let mut audio =
+                    listener.record_until_silent(Duration::from_secs(2), sensitivity)?;
                 info!("{}", recogniser.recognise(&mut audio)?);
                 info!("{}", sniffer_instance.stop()?);
                 file::compress_gzip(file_path, false)?;

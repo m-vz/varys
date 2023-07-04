@@ -26,10 +26,16 @@ pub fn run() -> Result<(), Error> {
     let assistant = assistant::from(arguments.assistant.as_deref());
 
     match arguments.command {
-        Command::Assistant(command) => {
-            assistant_command(&arguments.interface, &arguments.voice, command, assistant)
+        Command::Assistant(command) => assistant_command(
+            &arguments.interface,
+            &arguments.voice,
+            arguments.sensitivity,
+            command,
+            assistant,
+        ),
+        Command::Parrot(command) => {
+            parrot_command(&arguments.voice, arguments.sensitivity, command)
         }
-        Command::Parrot(command) => parrot_command(&arguments.voice, command),
         Command::Sniff(command) => sniff_command(command),
         Command::Calibrate => calibrate_command(),
     }
@@ -38,6 +44,7 @@ pub fn run() -> Result<(), Error> {
 fn assistant_command(
     interface: &str,
     voice: &str,
+    sensitivity: f32,
     command: AssistantCommand,
     assistant: impl VoiceAssistant,
 ) -> Result<(), Error> {
@@ -45,20 +52,20 @@ fn assistant_command(
         AssistantSubcommand::Setup => assistant.setup()?,
         AssistantSubcommand::Test(test) => assistant.test_voices(test.voices)?,
         AssistantSubcommand::Interact(command) => {
-            assistant.interact(interface, voice, &command.queries)?
+            assistant.interact(interface, voice, sensitivity, &command.queries)?
         }
     };
 
     Ok(())
 }
 
-fn parrot_command(voice: &str, command: ParrotCommand) -> Result<(), Error> {
+fn parrot_command(voice: &str, sensitivity: f32, command: ParrotCommand) -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = if let Some(seconds) = command.seconds {
         listener.record_for(seconds)?
     } else {
-        listener.record_until_silent(time::Duration::from_secs(2), 0.01)?
+        listener.record_until_silent(time::Duration::from_secs(2), sensitivity)?
     };
     audio.downsample(16000)?;
     file::audio::write_audio(&command.file, &audio)?;
@@ -81,9 +88,9 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
         debug!("{}", Sniffer::from(device));
     }
     let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
-    debug!("Using: {}", sniffer);
+    debug!("Using: {sniffer}");
     let stats = sniffer.run_for(5, &command.file)?;
-    debug!("Stats: {}", stats);
+    debug!("Stats: {stats}");
     file::compress_gzip(&command.file, true)?;
 
     Ok(())
