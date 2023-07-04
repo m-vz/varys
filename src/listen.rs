@@ -18,6 +18,11 @@ use crate::recognise::Recogniser;
 
 pub mod audio;
 
+const RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
+const MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
+/// How many seconds of audio data should be expected by default when starting a recording.
+const RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
+
 /// A listener that can parse voice input.
 pub struct Listener {
     device: Device,
@@ -31,11 +36,6 @@ pub struct Listener {
 }
 
 impl Listener {
-    const DEFAULT_MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
-    /// How many seconds of audio data should be expected by default when starting a recording.
-    const DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
-    const DEFAULT_RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
-
     /// Create a new listener using the system default input device.
     ///
     /// Returns an error if no input device was found or if it doesn't support the required sample
@@ -69,7 +69,7 @@ impl Listener {
         Ok(Listener {
             device,
             device_config,
-            recording_timeout: Listener::DEFAULT_RECORDING_TIMEOUT,
+            recording_timeout: RECORDING_TIMEOUT,
         })
     }
 
@@ -90,13 +90,11 @@ impl Listener {
         info!("Starting recording...");
 
         let writer = Arc::new(Mutex::new(Vec::with_capacity(
-            self.device_config.sample_rate.0 as usize
-                * Listener::DEFAULT_RECORDING_BUFFER_CAPACITY_SECONDS,
+            self.device_config.sample_rate.0 as usize * RECORDING_BUFFER_CAPACITY_SECONDS,
         )));
         let writer_2 = writer.clone();
         let (average_sender, average) = channel();
-        let mut running_average =
-            NoSumSMA::<_, f32, { Listener::DEFAULT_MOVING_AVERAGE_WINDOW_SIZE }>::new();
+        let mut running_average = NoSumSMA::<_, f32, { MOVING_AVERAGE_WINDOW_SIZE }>::new();
         let mut sample_count: u32 = 0;
 
         let stream = self.device.build_input_stream(
@@ -107,7 +105,7 @@ impl Listener {
                         guard.push(sample);
                         running_average.add_sample(sample.abs());
                         sample_count += 1;
-                        if sample_count >= Listener::DEFAULT_MOVING_AVERAGE_WINDOW_SIZE as u32 {
+                        if sample_count >= MOVING_AVERAGE_WINDOW_SIZE as u32 {
                             trace!("{}", running_average.get_average());
                             if average_sender.send(running_average.get_average()).is_err() {
                                 warn!("Unable to send recording average.");
