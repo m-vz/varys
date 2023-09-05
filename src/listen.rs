@@ -18,6 +18,7 @@ use crate::recognise::Recogniser;
 
 pub mod audio;
 
+const CALIBRATION_TIMEOUT: Duration = Duration::from_secs(5);
 const RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
 const MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
 /// How many seconds of audio data should be expected by default when starting a recording.
@@ -208,6 +209,28 @@ impl Listener {
             thread::sleep(Duration::from_secs(1));
         }
         instance.stop()
+    }
+
+    /// Listen for a specified amount of seconds to find the ambient noise threshold to use as
+    /// sensitivity. The current thread is blocked until recording is done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the
+    /// device is no longer available.
+    pub fn calibrate(&self) -> Result<f32, Error> {
+        info!("Calibrating ambient noise...");
+
+        let instance = self.start()?;
+        let started = Instant::now();
+        let mut averages = Vec::new();
+        while let Ok(average) = instance.average.recv() {
+            averages.push(average);
+            if started < Instant::now() - CALIBRATION_TIMEOUT {
+                break;
+            }
+        }
+        instance.stop()?;
+
+        Ok(averages.iter().sum::<f32>() / averages.len() as f32)
     }
 }
 
