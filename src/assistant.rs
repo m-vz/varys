@@ -43,9 +43,15 @@ pub trait VoiceAssistant {
     /// # use std::path::Path;
     /// # use varys::assistant::{from, VoiceAssistant};
     /// # let assistant = from(None);
-    /// assistant.interact("ap1", "Zoe", Path::new("data/test_queries.txt")).unwrap();
+    /// assistant.interact("ap1", "Zoe", 0.01, Path::new("data/test_queries.txt")).unwrap();
     /// ```
-    fn interact(&self, interface: &str, voice: &str, queries: &Path) -> Result<(), Error>;
+    fn interact(
+        &self,
+        interface: &str,
+        voice: &str,
+        sensitivity: f32,
+        queries: &Path,
+    ) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///

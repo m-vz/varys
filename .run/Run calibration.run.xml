@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run parrot (opus)" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --package varys --bin varys -- -v Zoe parrot data/recordings/recorded.opus" />
+  <configuration default="false" name="Run calibration" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run --package varys --bin varys -- calibrate" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="emulateTerminal" value="true" />
     <option name="channel" value="DEFAULT" />
