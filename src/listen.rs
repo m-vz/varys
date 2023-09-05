@@ -178,7 +178,10 @@ impl Listener {
                 }
             }
         }
-        instance.stop()
+
+        let mut audio = instance.stop()?;
+        audio.trim_silence(silence_threshold);
+        Ok(audio)
     }
 
     /// Record for a specified amount of seconds. The current thread is blocked until recording is
@@ -198,9 +201,9 @@ impl Listener {
     /// ```
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// let audio_data = listener.record_for(0);
+    /// let audio_data = listener.record_for(0, 0.01);
     /// ```
-    pub fn record_for(&self, seconds: u32) -> Result<AudioData, Error> {
+    pub fn record_for(&self, seconds: u32, silence_threshold: f32) -> Result<AudioData, Error> {
         info!("Recording audio for {} seconds", seconds);
 
         let instance = self.start()?;
@@ -208,7 +211,10 @@ impl Listener {
             debug!("{}...", second);
             thread::sleep(Duration::from_secs(1));
         }
-        instance.stop()
+
+        let mut audio = instance.stop()?;
+        audio.trim_silence(silence_threshold);
+        Ok(audio)
     }
 
     /// Listen for a specified amount of seconds to find the ambient noise threshold to use as

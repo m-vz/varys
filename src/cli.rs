@@ -63,7 +63,7 @@ fn listen_command(voice: &str, sensitivity: f32, command: ListenCommand) -> Resu
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = if let Some(seconds) = command.seconds {
-        listener.record_for(seconds)?
+        listener.record_for(seconds, sensitivity)?
     } else {
         listener.record_until_silent(time::Duration::from_secs(2), sensitivity)?
     };
