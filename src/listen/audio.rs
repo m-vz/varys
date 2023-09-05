@@ -115,6 +115,57 @@ impl AudioData {
         Ok(self)
     }
 
+    /// Trim silent parts of the audio from the start and the end.
+    ///
+    /// If there is no audio above the threshold, the data is cleared.
+    ///
+    /// # Arguments
+    ///
+    /// * `threshold`: Determines what samples are considered silent.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::audio::AudioData;
+    /// let mut audio = AudioData {
+    ///     data: vec![0_f32, 1_f32, 2_f32, 3_f32, 4_f32, 0_f32, 0_f32],
+    ///     channels: 1,
+    ///     sample_rate: 48000,
+    /// };
+    /// assert_eq!(audio.trim_silence(1_f32).data, vec![1_f32, 2_f32, 3_f32, 4_f32]);
+    /// ```
+    pub fn trim_silence(&mut self, threshold: f32) -> &mut Self {
+        // find the index of the first sample that is above the threshold
+        let from = self
+            .data
+            .iter()
+            .enumerate()
+            .find(|(_, &sample)| sample >= threshold)
+            .map(|(i, _)| i);
+
+        if let Some(first) = from {
+            // there is at least one sample above the threshold
+            // find the index of the last sample that is above the threshold
+            // we can unwrap because we know there is at least one sample above the threshold
+            let last = self
+                .data
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, &sample)| sample >= threshold)
+                .map(|(i, _)| i)
+                .unwrap();
+            // trim the data
+            self.data = self.data[first..=last].to_vec();
+        } else {
+            // there are no samples above the threshold
+            // clear the data
+            self.data = Vec::new();
+        }
+
+        self
+    }
+
     /// Encode the audio data into OPUS frames.
     ///
     /// Returns the OPUS frames, the size of the padding added to the start and the number of samples per frame.

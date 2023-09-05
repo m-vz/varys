@@ -5,7 +5,7 @@ use log::{debug, info};
 use pcap::ConnectionStatus;
 
 use crate::cli::arguments::{
-    Arguments, AssistantCommand, AssistantSubcommand, Command, ParrotCommand, SniffCommand,
+    Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
 use crate::error::Error;
 use crate::listen::Listener;
@@ -33,8 +33,8 @@ pub fn run() -> Result<(), Error> {
             command,
             assistant,
         ),
-        Command::Parrot(command) => {
-            parrot_command(&arguments.voice, arguments.sensitivity, command)
+        Command::Listen(command) => {
+            listen_command(&arguments.voice, arguments.sensitivity, command)
         }
         Command::Sniff(command) => sniff_command(command),
         Command::Calibrate => calibrate_command(),
@@ -59,25 +59,27 @@ fn assistant_command(
     Ok(())
 }
 
-fn parrot_command(voice: &str, sensitivity: f32, command: ParrotCommand) -> Result<(), Error> {
+fn listen_command(voice: &str, sensitivity: f32, command: ListenCommand) -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = if let Some(seconds) = command.seconds {
-        listener.record_for(seconds)?
+        listener.record_for(seconds, sensitivity)?
     } else {
         listener.record_until_silent(time::Duration::from_secs(2), sensitivity)?
     };
     audio.downsample(16000)?;
     file::audio::write_audio(&command.file, &audio)?;
 
-    info!("Recognising...");
-    let recogniser = Recogniser::with_model(Model::Large)?;
-    let text = recogniser.recognise(&mut audio)?;
+    if command.parrot {
+        info!("Recognising...");
+        let recogniser = Recogniser::with_model(Model::Large)?;
+        let text = recogniser.recognise(&mut audio)?;
 
-    info!("Speaking...");
-    let mut speaker = Speaker::new()?;
-    speaker.set_voice(voice)?;
-    speaker.say(&text, false)?;
+        info!("Speaking...");
+        let mut speaker = Speaker::new()?;
+        speaker.set_voice(voice)?;
+        speaker.say(&text, false)?;
+    }
 
     Ok(())
 }
