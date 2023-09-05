@@ -25,8 +25,8 @@ pub struct Arguments {
 pub enum Command {
     /// Interact with a voice assistant
     Assistant(AssistantCommand),
-    /// Listen for something that was said and repeat it
-    Parrot(ParrotCommand),
+    /// Listen for something that was said and optionally repeat it
+    Listen(ListenCommand),
     /// Record network traffic on a specified interface
     Sniff(SniffCommand),
     /// Calibrate audio recording
@@ -63,10 +63,13 @@ pub struct TestCommand {
 }
 
 #[derive(Debug, Args)]
-pub struct ParrotCommand {
+pub struct ListenCommand {
     /// Optional duration in seconds to listen for. If omitted, listen until silence is detected
     #[arg(short, long)]
     pub seconds: Option<u32>,
+    /// Whether to repeat the audio back
+    #[arg(short, long)]
+    pub parrot: bool,
     /// Where to store the recorded audio
     pub file: PathBuf,
 }
