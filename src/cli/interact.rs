@@ -1,9 +1,11 @@
 use std::{
     io,
     io::{Read, Write},
+    process,
 };
 
 use colored::Colorize;
+use log::info;
 
 use crate::cli::key_type::KeyType;
 use crate::error::Error;
@@ -80,6 +82,10 @@ pub fn user_choice(text: &str, choices: &[KeyType]) -> Result<KeyType, Error> {
 
         if choices.contains(&key) {
             return Ok(key);
+        } else if key == KeyType::CtrlC {
+            writer.flush().unwrap();
+            info!("Received SIGINT, exiting...");
+            process::exit(130);
         } else {
             write!(
                 writer,

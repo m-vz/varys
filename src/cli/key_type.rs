@@ -7,6 +7,7 @@ use std::fmt::{Display, Formatter};
 pub enum KeyType {
     Key(char),
     Enter,
+    CtrlC,
     Illegal,
 }
 
@@ -38,6 +39,7 @@ impl Display for KeyType {
             match self {
                 KeyType::Key(key) => key.to_string(),
                 KeyType::Enter => "Enter".to_string(),
+                KeyType::CtrlC => "Ctrl+C".to_string(),
                 KeyType::Illegal => "ILLEGAL".to_string(),
             }
         )
@@ -49,6 +51,7 @@ impl From<char> for KeyType {
         match value {
             'a'..='z' | 'A'..='Z' | '0'..='9' => KeyType::Key(value),
             '\n' | '\r' => KeyType::Enter,
+            '\u{3}' => KeyType::CtrlC,
             _ => KeyType::Illegal,
         }
     }
