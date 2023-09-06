@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run listen (wav)" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --package varys --bin varys -- -v Zoe listen data/recordings/recorded.wav" />
+    <option name="command" value="run --package varys --bin varys -- listen --voice Zoe data/recordings/recorded.wav" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="emulateTerminal" value="true" />
     <option name="channel" value="DEFAULT" />

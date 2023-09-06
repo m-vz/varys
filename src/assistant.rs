@@ -24,7 +24,7 @@ pub trait VoiceAssistant {
     ///
     /// ```no_run
     /// # use varys::assistant::{from, VoiceAssistant};
-    /// # let assistant = from(None);
+    /// # let assistant = from("Siri");
     /// assistant.setup().unwrap();
     /// ```
     fn setup(&self) -> Result<(), Error>;
@@ -42,7 +42,7 @@ pub trait VoiceAssistant {
     /// ```no_run
     /// # use std::path::Path;
     /// # use varys::assistant::{from, VoiceAssistant};
-    /// # let assistant = from(None);
+    /// # let assistant = from("Siri");
     /// assistant.interact("ap1", "Zoe", 0.01, Path::new("data/test_queries.txt")).unwrap();
     /// ```
     fn interact(
@@ -65,7 +65,7 @@ pub trait VoiceAssistant {
     ///
     /// ```no_run
     /// # use varys::assistant::{from, VoiceAssistant};
-    /// # let assistant = from(None);
+    /// # let assistant = from("Siri");
     /// let voices = vec!["Zoe".to_string(), "Isha".to_string()];
     /// assistant.test_voices(voices).unwrap();
     /// ```
@@ -84,12 +84,12 @@ pub trait VoiceAssistant {
 ///
 /// ```
 /// # use varys::assistant::{from, VoiceAssistant};
-/// assert_eq!(from(None).name().as_str(), "Siri");
-/// assert_eq!(from(Some("Siri")).name().as_str(), "Siri");
-/// assert_eq!(from(Some("siri")).name().as_str(), "Siri");
+/// assert_eq!(from("").name().as_str(), "Siri");
+/// assert_eq!(from("Siri").name().as_str(), "Siri");
+/// assert_eq!(from("siri").name().as_str(), "Siri");
 /// ```
-pub fn from(name: Option<&str>) -> impl VoiceAssistant {
-    match name.unwrap_or("").to_lowercase().as_str() {
+pub fn from(name: &str) -> impl VoiceAssistant {
+    match name.to_lowercase().as_str() {
         "siri" => Siri {},
         _ => Siri {},
     }

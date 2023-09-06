@@ -145,7 +145,7 @@ impl Listener {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// # use std::time;
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
