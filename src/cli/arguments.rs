@@ -16,6 +16,9 @@ pub struct Arguments {
     /// The sensitivity to distinguish ambient noise from speech
     #[arg(long, global = true, default_value_t = 0.01)]
     pub sensitivity: f32,
+    /// The speech recognition model to use
+    #[arg(long, global = true, default_value = "")]
+    pub model: String,
 }
 
 #[derive(Debug, Subcommand)]

@@ -7,9 +7,21 @@ use crate::listen::audio::AudioData;
 pub const MODEL_LARGE: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
 pub const MODEL_MEDIUM_EN: &str = "data/models/ggml-model-whisper-medium.en-q5_0.bin";
 
+#[derive(Default)]
 pub enum Model {
+    #[default]
     Large,
     Medium,
+}
+
+impl From<String> for Model {
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "large" => Model::Large,
+            "medium" => Model::Medium,
+            _ => Model::default(),
+        }
+    }
 }
 
 /// Wraps the whisper API.
@@ -88,7 +100,7 @@ impl Recogniser {
     ///     sample_rate: 16000,
     /// };
     /// let recogniser =
-    ///     Recogniser::with_model(Model::Large).unwrap();
+    ///     Recogniser::with_model(Model::Medium).unwrap();
     /// recogniser.recognise(&mut audio).unwrap();
     /// ```
     pub fn recognise(&self, audio: &mut AudioData) -> Result<String, Error> {

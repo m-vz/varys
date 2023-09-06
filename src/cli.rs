@@ -23,16 +23,18 @@ pub mod key_type;
 /// This parses the arguments passed in the command line and runs the appropriate command.
 pub fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
+    let model = Model::from(arguments.model);
 
     match arguments.command {
         Command::Assistant(command) => assistant_command(
             &arguments.interface,
             &arguments.voice,
             arguments.sensitivity,
+            model,
             command,
         ),
         Command::Listen(command) => {
-            listen_command(&arguments.voice, arguments.sensitivity, command)
+            listen_command(&arguments.voice, arguments.sensitivity, model, command)
         }
         Command::Sniff(command) => sniff_command(command),
         Command::Calibrate => calibrate_command(),
@@ -43,6 +45,7 @@ fn assistant_command(
     interface: &str,
     voice: &str,
     sensitivity: f32,
+    model: Model,
     command: AssistantCommand,
 ) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
@@ -51,14 +54,19 @@ fn assistant_command(
         AssistantSubcommand::Setup => assistant.setup()?,
         AssistantSubcommand::Test(test) => assistant.test_voices(test.voices)?,
         AssistantSubcommand::Interact(command) => {
-            assistant.interact(interface, voice, sensitivity, &command.queries)?
+            assistant.interact(interface, voice, sensitivity, model, &command.queries)?
         }
     };
 
     Ok(())
 }
 
-fn listen_command(voice: &str, sensitivity: f32, command: ListenCommand) -> Result<(), Error> {
+fn listen_command(
+    voice: &str,
+    sensitivity: f32,
+    model: Model,
+    command: ListenCommand,
+) -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = if let Some(seconds) = command.seconds {
@@ -71,7 +79,7 @@ fn listen_command(voice: &str, sensitivity: f32, command: ListenCommand) -> Resu
 
     if command.parrot {
         info!("Recognising...");
-        let recogniser = Recogniser::with_model(Model::Large)?;
+        let recogniser = Recogniser::with_model(model)?;
         let text = recogniser.recognise(&mut audio)?;
 
         info!("Speaking...");

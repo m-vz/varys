@@ -85,6 +85,7 @@ impl VoiceAssistant for Siri {
         interface: &str,
         voice: &str,
         sensitivity: f32,
+        model: Model,
         queries: &Path,
     ) -> Result<(), Error> {
         info!("Interacting with Siri...");
@@ -92,7 +93,7 @@ impl VoiceAssistant for Siri {
         let mut speaker = Speaker::new()?;
         speaker.set_voice(voice)?;
         let listener = Listener::new()?;
-        let recogniser = Recogniser::with_model(Model::Large)?;
+        let recogniser = Recogniser::with_model(model)?;
         let sniffer = Sniffer::from(sniff::device_by_name(interface)?);
 
         if let Ok(queries) = fs::read_to_string(queries) {
