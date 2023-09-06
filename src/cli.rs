@@ -23,7 +23,6 @@ pub mod key_type;
 /// This parses the arguments passed in the command line and runs the appropriate command.
 pub fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
-    let assistant = assistant::from(arguments.assistant.as_deref());
 
     match arguments.command {
         Command::Assistant(command) => assistant_command(
@@ -31,7 +30,6 @@ pub fn run() -> Result<(), Error> {
             &arguments.voice,
             arguments.sensitivity,
             command,
-            assistant,
         ),
         Command::Listen(command) => {
             listen_command(&arguments.voice, arguments.sensitivity, command)
@@ -46,8 +44,9 @@ fn assistant_command(
     voice: &str,
     sensitivity: f32,
     command: AssistantCommand,
-    assistant: impl VoiceAssistant,
 ) -> Result<(), Error> {
+    let assistant = assistant::from(command.assistant.as_str());
+
     match command.command {
         AssistantSubcommand::Setup => assistant.setup()?,
         AssistantSubcommand::Test(test) => assistant.test_voices(test.voices)?,

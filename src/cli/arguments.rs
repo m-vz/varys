@@ -7,17 +7,14 @@ use clap::{Args, Parser, Subcommand};
 pub struct Arguments {
     #[clap(subcommand)]
     pub command: Command,
-    /// Which voice assistant to interact with
-    #[arg(short, long)]
-    pub assistant: Option<String>,
     /// The network interface to listen on
-    #[arg(short, long, default_value = "en0")]
+    #[arg(long, global = true, default_value = "en0")]
     pub interface: String,
     /// The voice to use for speaking
-    #[arg(short, long, default_value = "Zoe")]
+    #[arg(long, global = true, default_value = "Zoe")]
     pub voice: String,
     /// The sensitivity to distinguish ambient noise from speech
-    #[arg(short, long, default_value_t = 0.01)]
+    #[arg(long, global = true, default_value_t = 0.01)]
     pub sensitivity: f32,
 }
 
@@ -35,6 +32,9 @@ pub enum Command {
 
 #[derive(Debug, Args)]
 pub struct AssistantCommand {
+    /// Which voice assistant to interact with
+    pub assistant: String,
+    /// What to do with the assistant
     #[clap(subcommand)]
     pub command: AssistantSubcommand,
 }

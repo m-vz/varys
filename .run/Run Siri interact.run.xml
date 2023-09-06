@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run Siri interact" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --package varys --bin varys -- -a Siri assistant interact data/test_queries.txt" />
+    <option name="command" value="run --package varys --bin varys -- assistant Siri interact data/test_queries.txt" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="emulateTerminal" value="true" />
     <option name="channel" value="DEFAULT" />

@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run Siri test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --package varys --bin varys -- -a Siri assistant test Karen Isha Zoe Jamie" />
+    <option name="command" value="run --package varys --bin varys -- assistant Siri test Karen Isha Zoe Jamie" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="emulateTerminal" value="true" />
     <option name="channel" value="DEFAULT" />
