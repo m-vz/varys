@@ -37,8 +37,8 @@ pub fn user_input(
     write!(writer, "{} ", text)?;
     writer.flush()?;
 
-    let mut input = String::new();
     loop {
+        let mut input = String::new();
         io::stdin().read_line(&mut input)?;
         input = input.trim().to_string();
         if validation(&input) {
