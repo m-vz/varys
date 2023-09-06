@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::assistant::siri::Siri;
 use crate::error::Error;
+use crate::recognise::Model;
 
 pub mod siri;
 
@@ -42,14 +43,16 @@ pub trait VoiceAssistant {
     /// ```no_run
     /// # use std::path::Path;
     /// # use varys::assistant::{from, VoiceAssistant};
+    /// # use varys::recognise::Model;
     /// # let assistant = from("Siri");
-    /// assistant.interact("ap1", "Zoe", 0.01, Path::new("data/test_queries.txt")).unwrap();
+    /// assistant.interact("ap1", "Zoe", 0.01, Model::Large, Path::new("data/test_queries.txt")).unwrap();
     /// ```
     fn interact(
         &self,
         interface: &str,
         voice: &str,
         sensitivity: f32,
+        model: Model,
         queries: &Path,
     ) -> Result<(), Error>;
 
