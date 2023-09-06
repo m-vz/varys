@@ -163,14 +163,16 @@ impl Listener {
 
         let instance = self.start()?;
         let started = Instant::now();
-        let mut last_audio_detected = Instant::now();
+        let mut last_audio_detected = None;
         while let Ok(average) = instance.average.recv() {
             let now = Instant::now();
             if average > silence_threshold {
-                last_audio_detected = now;
+                last_audio_detected = Some(now);
             }
-            if last_audio_detected < now - silence_duration {
-                break;
+            if let Some(last_audio_detected) = last_audio_detected {
+                if last_audio_detected < now - silence_duration {
+                    break;
+                }
             }
             if let Some(timeout) = self.recording_timeout {
                 if started < now - timeout {
