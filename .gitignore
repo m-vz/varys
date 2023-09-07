@@ -22,5 +22,6 @@ Icon
 /data/recordings/*.opus
 /data/captures/*.pcap
 /data/captures/*.pcap.gz
+/data/db
 /*.pcap
 /*.pcap.gz
