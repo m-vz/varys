@@ -31,7 +31,6 @@ pub fn run() -> Result<(), Error> {
             listen_command(&arguments.voice, arguments.sensitivity, model, command)
         }
         Command::Sniff(command) => sniff_command(command),
-        Command::Calibrate => calibrate_command(),
         Command::Run(command) => run_command(
             &arguments.interface,
             &arguments.voice,
@@ -59,6 +58,28 @@ fn listen_command(
     model: Model,
     command: ListenCommand,
 ) -> Result<(), Error> {
+    if command.calibrate {
+        calibrate()
+    } else {
+        listen(voice, sensitivity, model, command)
+    }
+}
+
+fn calibrate() -> Result<(), Error> {
+    interact::user_confirmation("Calibration will record the average ambient noise. Stay quiet for five seconds. To begin, press")?;
+
+    let average = Listener::new()?.calibrate()?;
+    info!("The average ambient noise is {average}");
+
+    Ok(())
+}
+
+fn listen(
+    voice: &str,
+    sensitivity: f32,
+    model: Model,
+    command: ListenCommand,
+) -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
     let mut audio = if let Some(seconds) = command.seconds {
@@ -67,7 +88,9 @@ fn listen_command(
         listener.record_until_silent(time::Duration::from_secs(2), sensitivity)?
     };
     audio.downsample(16000)?;
-    file::audio::write_audio(&command.file, &audio)?;
+    if let Some(file) = command.file {
+        file::audio::write_audio(&file, &audio)?;
+    }
 
     if command.parrot {
         info!("Recognising...");
@@ -93,15 +116,6 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {stats}");
     file::compress_gzip(&command.file, true)?;
-
-    Ok(())
-}
-
-fn calibrate_command() -> Result<(), Error> {
-    interact::user_confirmation("Calibration will record the average ambient noise. Stay quiet for five seconds. To begin, press")?;
-
-    let average = Listener::new()?.calibrate()?;
-    info!("The average ambient noise is {average}");
 
     Ok(())
 }

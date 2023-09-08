@@ -29,8 +29,6 @@ pub enum Command {
     Listen(ListenCommand),
     /// Record network traffic on a specified interface
     Sniff(SniffCommand),
-    /// Calibrate audio recording
-    Calibrate,
     /// Start varys
     Run(RunCommand),
 }
@@ -64,11 +62,14 @@ pub struct ListenCommand {
     /// Optional duration in seconds to listen for. If omitted, listen until silence is detected
     #[arg(short, long)]
     pub seconds: Option<u32>,
+    /// Calibrate to the current ambient noise
+    #[arg(short, long)]
+    pub calibrate: bool,
     /// Whether to repeat the audio back
     #[arg(short, long)]
     pub parrot: bool,
     /// Where to store the recorded audio
-    pub file: PathBuf,
+    pub file: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]
