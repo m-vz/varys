@@ -31,6 +31,8 @@ pub enum Command {
     Sniff(SniffCommand),
     /// Calibrate audio recording
     Calibrate,
+    /// Start varys
+    Run(RunCommand),
 }
 
 #[derive(Debug, Args)]
@@ -46,16 +48,8 @@ pub struct AssistantCommand {
 pub enum AssistantSubcommand {
     /// Setup voice recognition
     Setup,
-    /// Interact with a voice assistant
-    Interact(InteractionCommand),
     /// Test voice recognition with a number of voices
     Test(TestCommand),
-}
-
-#[derive(Debug, Args)]
-pub struct InteractionCommand {
-    /// The file with queries to ask the assistant
-    pub queries: PathBuf,
 }
 
 #[derive(Debug, Args)]
@@ -84,4 +78,12 @@ pub struct SniffCommand {
     pub seconds: u32,
     /// Where to store the recorded traffic
     pub file: PathBuf,
+}
+
+#[derive(Debug, Args)]
+pub struct RunCommand {
+    /// Which voice assistant to interact with
+    pub assistant: String,
+    /// The file with queries to ask the assistant
+    pub queries: PathBuf,
 }

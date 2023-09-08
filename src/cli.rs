@@ -26,36 +26,28 @@ pub fn run() -> Result<(), Error> {
     let model = Model::from(arguments.model);
 
     match arguments.command {
-        Command::Assistant(command) => assistant_command(
+        Command::Assistant(command) => assistant_command(command),
+        Command::Listen(command) => {
+            listen_command(&arguments.voice, arguments.sensitivity, model, command)
+        }
+        Command::Sniff(command) => sniff_command(command),
+        Command::Calibrate => calibrate_command(),
+        Command::Run(command) => run_command(
             &arguments.interface,
             &arguments.voice,
             arguments.sensitivity,
             model,
             command,
         ),
-        Command::Listen(command) => {
-            listen_command(&arguments.voice, arguments.sensitivity, model, command)
-        }
-        Command::Sniff(command) => sniff_command(command),
-        Command::Calibrate => calibrate_command(),
     }
 }
 
-fn assistant_command(
-    interface: &str,
-    voice: &str,
-    sensitivity: f32,
-    model: Model,
-    command: AssistantCommand,
-) -> Result<(), Error> {
+fn assistant_command(command: AssistantCommand) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
 
     match command.command {
         AssistantSubcommand::Setup => assistant.setup()?,
         AssistantSubcommand::Test(test) => assistant.test_voices(test.voices)?,
-        AssistantSubcommand::Interact(command) => {
-            assistant.interact(interface, voice, sensitivity, model, &command.queries)?
-        }
     };
 
     Ok(())
@@ -112,4 +104,16 @@ fn calibrate_command() -> Result<(), Error> {
     info!("The average ambient noise is {average}");
 
     Ok(())
+}
+
+fn run_command(
+    interface: &str,
+    voice: &str,
+    sensitivity: f32,
+    model: Model,
+    command: arguments::RunCommand,
+) -> Result<(), Error> {
+    let assistant = assistant::from(command.assistant.as_str());
+
+    assistant.interact(interface, voice, sensitivity, model, &command.queries)
 }

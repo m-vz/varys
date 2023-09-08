@@ -1,12 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run Siri interact" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run --package varys --bin varys -- assistant Siri interact data/test_queries.txt" />
+  <configuration default="false" name="Run listen" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run --package varys --bin varys -- listen --voice Zoe data/recordings/recorded.opus" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <option name="emulateTerminal" value="true" />
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />
     <option name="allFeatures" value="false" />
-    <option name="withSudo" value="true" />
+    <option name="withSudo" value="false" />
     <option name="buildTarget" value="REMOTE" />
     <option name="backtrace" value="SHORT" />
     <envs>
