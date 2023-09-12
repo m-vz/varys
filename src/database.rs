@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use crate::error::Error;
 
 pub mod interaction;
+pub mod interactor_config;
 pub mod session;
 
 /// Connect to the database as specified in the environment variable `DATABASE_URL`.

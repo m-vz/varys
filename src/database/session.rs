@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use clap::crate_version;
 use sqlx::{FromRow, PgPool};
 
+use crate::database::interactor_config::InteractorConfig;
 use crate::error::Error;
 
 /// The representation of a session in the database.
@@ -14,21 +15,24 @@ pub struct Session {
     pub started: DateTime<Utc>,
     #[sqlx(default)]
     pub ended: Option<DateTime<Utc>>,
+    interactor_config_id: i32,
 }
 
 impl Session {
-    /// Create a new session in the database
+    /// Create a new session in the database.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use
-    pub async fn create(pool: &PgPool) -> Result<Self, Error> {
+    /// * `pool`: The database pool to use.
+    pub async fn create(pool: &PgPool, config: &InteractorConfig) -> Result<Self, Error> {
         let started = Utc::now();
         let version = crate_version!().to_string();
+        let interactor_config_id = config.get_or_create(pool).await?;
         let id = sqlx::query!(
-            "INSERT INTO session (started, version) VALUES ($1, $2) RETURNING id",
+            "INSERT INTO session (started, version, interactor_config_id) VALUES ($1, $2, $3) RETURNING id",
             started,
-            version
+            version,
+            interactor_config_id,
         )
         .fetch_one(pool)
         .await?
@@ -39,15 +43,16 @@ impl Session {
             version,
             started,
             ended: None,
+            interactor_config_id,
         })
     }
 
-    /// Get an session from the database
+    /// Get an session from the database.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use
-    /// * `id`: The id of the session
+    /// * `pool`: The database pool to use.
+    /// * `id`: The id of the session.
     pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
         Ok(
             sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id)
@@ -56,11 +61,11 @@ impl Session {
         )
     }
 
-    /// Mark an session as completed by setting its end time
+    /// Mark an session as completed by setting its end time.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use
+    /// * `pool`: The database pool to use.
     pub async fn complete(&mut self, pool: &PgPool) -> Result<(), Error> {
         let ended = Utc::now();
         sqlx::query!(
@@ -73,5 +78,9 @@ impl Session {
         self.ended = Some(ended);
 
         Ok(())
+    }
+
+    pub async fn config(&self, pool: &PgPool) -> Result<Option<InteractorConfig>, Error> {
+        InteractorConfig::get(self.interactor_config_id, pool).await
     }
 }

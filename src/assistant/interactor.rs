@@ -5,6 +5,7 @@ use chrono::Utc;
 use log::info;
 
 use crate::database::interaction::Interaction;
+use crate::database::interactor_config::InteractorConfig;
 use crate::database::session::Session;
 use crate::error::Error;
 use crate::listen::Listener;
@@ -19,6 +20,7 @@ pub struct Interactor {
     speaker: Speaker,
     sensitivity: f32,
     recogniser: Recogniser,
+    config: InteractorConfig,
 }
 
 impl Interactor {
@@ -47,12 +49,20 @@ impl Interactor {
         sensitivity: f32,
         model: Model,
     ) -> Result<Self, Error> {
+        let config = InteractorConfig {
+            interface: interface.clone(),
+            voice: voice.clone(),
+            sensitivity: sensitivity.to_string(),
+            model: model.to_string(),
+        };
+
         Ok(Self {
             listener: Listener::new()?,
             sniffer: Sniffer::from(sniff::device_by_name(interface.as_str())?),
             speaker: Speaker::with_voice(voice.as_str())?,
             sensitivity,
             recogniser: Recogniser::with_model(model)?,
+            config,
         })
     }
 
@@ -80,7 +90,7 @@ impl Interactor {
     /// ```
     pub async fn start(&mut self, queries: Vec<String>) -> Result<(), Error> {
         let pool = database::connect().await?;
-        let mut session = Session::create(&pool).await?;
+        let mut session = Session::create(&pool, &self.config).await?;
 
         for query in queries {
             info!("Saying {}", query);

@@ -1,4 +1,5 @@
 use log::trace;
+use std::fmt::Display;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
 use crate::error::Error;
@@ -20,6 +21,15 @@ impl From<String> for Model {
             "large" => Model::Large,
             "medium" => Model::Medium,
             _ => Model::default(),
+        }
+    }
+}
+
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Model::Large => write!(f, "Large"),
+            Model::Medium => write!(f, "Medium"),
         }
     }
 }
