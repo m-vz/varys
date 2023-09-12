@@ -1,9 +1,11 @@
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
 
-use crate::database::interaction::Interaction;
 use crate::error::Error;
 
+/// The representation of a session in the database.
+///
+/// A session can have one or more [`Interaction`]s.
 #[derive(FromRow, Debug)]
 pub struct Session {
     pub id: i32,
@@ -13,7 +15,12 @@ pub struct Session {
 }
 
 impl Session {
-    pub async fn new(pool: &PgPool) -> Result<Self, Error> {
+    /// Create a new session in the database
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The database pool to use
+    pub async fn create(pool: &PgPool) -> Result<Self, Error> {
         let started = Utc::now();
         let id = sqlx::query!(
             "INSERT INTO session (started) VALUES ($1) RETURNING id",
@@ -30,6 +37,12 @@ impl Session {
         })
     }
 
+    /// Get an session from the database
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The database pool to use
+    /// * `id`: The id of the session
     pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
         Ok(
             sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id)
@@ -38,14 +51,11 @@ impl Session {
         )
     }
 
-    pub async fn new_interaction(&self, pool: &PgPool) -> Result<Interaction, Error> {
-        let mut interaction = Interaction::create(pool, self).await?;
-
-        interaction.add_session(pool, self).await?;
-
-        Ok(interaction)
-    }
-
+    /// Mark an session as completed by setting its end time
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The database pool to use
     pub async fn complete(&mut self, pool: &PgPool) -> Result<(), Error> {
         let ended = Utc::now();
         sqlx::query!(

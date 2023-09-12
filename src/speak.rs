@@ -35,6 +35,34 @@ impl Speaker {
         Ok(speaker)
     }
 
+    /// Create a new speaker and set the voice that should be spoken with.
+    ///
+    /// # Arguments
+    ///
+    /// * `id_or_name`: The id or name of the voice to use.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(target_os = "macos")]
+    /// # {
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
+    /// assert!(Speaker::with_voice("Jamie").is_ok());
+    /// # }
+    /// ```
+    ///
+    /// ```
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
+    /// let invalid_speaker = Speaker::with_voice("Invalid Name");
+    ///
+    /// if let Err(Error::VoiceNotAvailable(text)) = invalid_speaker {
+    ///     assert_eq!(text, "Invalid Name");
+    /// } else {
+    ///     panic!("Must return `Error::VoiceNotAvailable`");
+    /// }
+    /// ```
     pub fn with_voice(id_or_name: &str) -> Result<Self, Error> {
         let mut speaker = Self::new()?;
         speaker.set_voice(id_or_name)?;

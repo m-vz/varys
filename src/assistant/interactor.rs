@@ -4,6 +4,7 @@ use std::time::Duration;
 use chrono::Utc;
 use log::info;
 
+use crate::database::interaction::Interaction;
 use crate::database::session::Session;
 use crate::error::Error;
 use crate::listen::Listener;
@@ -21,6 +22,25 @@ pub struct Interactor {
 }
 
 impl Interactor {
+    /// Create an interactor and all its components.
+    ///
+    /// This will create a [`Listener`], a [`Sniffer`], a [`Speaker`] and a [`Recogniser`].
+    ///
+    /// # Arguments
+    ///
+    /// * `interface`: The interface to create the sniffer on.
+    /// * `voice`: The voice to use for the speaker.
+    /// * `sensitivity`: The sensitivity of the listener.
+    /// * `model`: The model to use for the recogniser.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::assistant::interactor::Interactor;
+    /// # use varys::recognise::Model;
+    /// let mut interactor =
+    ///     Interactor::with("ap1".to_string(), "Zoe".to_string(), 0.01, Model::Large).unwrap();
+    /// ```
     pub fn with(
         interface: String,
         voice: String,
@@ -36,15 +56,37 @@ impl Interactor {
         })
     }
 
+    /// Start a new session of interactions.
+    ///
+    /// # Arguments
+    ///
+    /// * `queries`: The queries to ask during this session.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use varys::assistant::interactor::Interactor;
+    /// # use varys::recognise::Model;
+    /// let mut interactor =
+    ///     Interactor::with("ap1".to_string(), "Zoe".to_string(), 0.01, Model::Large).unwrap();
+    /// let queries = vec!["How are you?".to_string(), "What is your name?".to_string()];
+    /// # tokio::runtime::Builder::new_current_thread()
+    /// #     .enable_all()
+    /// #     .build()
+    /// #     .unwrap()
+    /// #     .block_on(async {
+    /// interactor.start(queries).await.unwrap();
+    /// #     })
+    /// ```
     pub async fn start(&mut self, queries: Vec<String>) -> Result<(), Error> {
         let pool = database::connect().await?;
-        let mut session = Session::new(&pool).await?;
+        let mut session = Session::create(&pool).await?;
 
         for query in queries {
             info!("Saying {}", query);
 
             // prepare the interaction
-            let mut interaction = session.new_interaction(&pool).await?;
+            let mut interaction = Interaction::create(&pool, &session).await?;
 
             // start the sniffer
             let file_path = format!("query-{}.pcap", Utc::now().format("%Y-%m-%d-%H-%M-%S-%f"));

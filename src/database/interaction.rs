@@ -4,6 +4,9 @@ use sqlx::{FromRow, PgPool};
 use crate::database::session::Session;
 use crate::error::Error;
 
+/// The representation of an interaction in the database.
+/// 
+/// Each interaction belongs to a [`Session`].
 #[derive(FromRow, Debug)]
 pub struct Interaction {
     pub id: i32,
@@ -14,6 +17,12 @@ pub struct Interaction {
 }
 
 impl Interaction {
+    /// Create a new interaction in the database
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The database pool to use
+    /// * `session`: The session to associate the interaction with
     pub async fn create(pool: &PgPool, session: &Session) -> Result<Self, Error> {
         let started = Utc::now();
         let id = sqlx::query!(
@@ -33,6 +42,12 @@ impl Interaction {
         })
     }
 
+    /// Get an interaction from the database
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The database pool to use
+    /// * `id`: The id of the interaction
     pub async fn get(pool: &PgPool, id: i32) -> Result<Option<Self>, Error> {
         Ok(
             sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id)
@@ -41,18 +56,11 @@ impl Interaction {
         )
     }
 
-    pub async fn add_session(&mut self, pool: &PgPool, session: &Session) -> Result<(), Error> {
-        sqlx::query!(
-            "UPDATE interaction SET session_id = $1 WHERE id = $2",
-            session.id,
-            self.id
-        )
-        .execute(pool)
-        .await?;
-
-        Ok(())
-    }
-
+    /// Mark an interaction as completed by setting its end time
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The database pool to use
     pub async fn complete(&mut self, pool: &PgPool) -> Result<(), Error> {
         let ended = Utc::now();
         sqlx::query!(

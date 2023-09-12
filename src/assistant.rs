@@ -38,8 +38,7 @@ pub trait VoiceAssistant {
     ///
     /// # Arguments
     ///
-    /// * `interface`: The network interface to capture traffic from.
-    /// * `voice`: The system voice to use for the interactions.
+    /// * `interactor`: The interactor to use.
     /// * `queries`: A list of queries to use for the interactions. Each line should contain one
     /// query.
     ///
