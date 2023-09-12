@@ -1,3 +1,8 @@
+/*
+ * This migration file will be changed until the system is running (and production data exists) at which point changes
+ * will be added in new migrations.
+ */
+
 create table interactor_config (
     id serial primary key,
     interface text not null,
