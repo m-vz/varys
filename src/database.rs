@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use crate::error::Error;
 
 pub mod interaction;
+pub mod session;
 
 pub async fn connect() -> Result<PgPool, Error> {
     let url = env::var("DATABASE_URL").map_err(|_| Error::MissingDatabaseUrl)?;

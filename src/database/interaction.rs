@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
 
+use crate::database::session::Session;
 use crate::error::Error;
 
 #[derive(FromRow, Debug)]
@@ -9,18 +10,16 @@ pub struct Interaction {
     pub started: DateTime<Utc>,
     #[sqlx(default)]
     pub ended: Option<DateTime<Utc>>,
+    pub session_id: i32,
 }
 
 impl Interaction {
-    pub async fn create(
-        started: DateTime<Utc>,
-        ended: DateTime<Utc>,
-        pool: &PgPool,
-    ) -> Result<Self, Error> {
+    pub async fn create(pool: &PgPool, session: &Session) -> Result<Self, Error> {
+        let started = Utc::now();
         let id = sqlx::query!(
-            "INSERT INTO interaction (started, ended) VALUES ($1, $2) RETURNING id",
+            "INSERT INTO interaction (started, session_id) VALUES ($1, $2) RETURNING id",
             started,
-            ended,
+            session.id
         )
         .fetch_one(pool)
         .await?
@@ -30,10 +29,11 @@ impl Interaction {
             id,
             started,
             ended: None,
+            session_id: session.id,
         })
     }
 
-    pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
+    pub async fn get(pool: &PgPool, id: i32) -> Result<Option<Self>, Error> {
         Ok(
             sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id)
                 .fetch_optional(pool)
@@ -41,12 +41,11 @@ impl Interaction {
         )
     }
 
-    pub async fn update(&self, pool: &PgPool) -> Result<(), Error> {
+    pub async fn add_session(&mut self, pool: &PgPool, session: &Session) -> Result<(), Error> {
         sqlx::query!(
-            "UPDATE interaction SET started = $1, ended = $2 WHERE id = $3",
-            self.started,
-            self.ended,
-            self.id,
+            "UPDATE interaction SET session_id = $1 WHERE id = $2",
+            session.id,
+            self.id
         )
         .execute(pool)
         .await?;
@@ -54,7 +53,17 @@ impl Interaction {
         Ok(())
     }
 
-    pub fn completed(&self) -> bool {
-        self.ended.is_some()
+    pub async fn complete(&mut self, pool: &PgPool) -> Result<(), Error> {
+        let ended = Utc::now();
+        sqlx::query!(
+            "UPDATE interaction SET ended = $1 WHERE id = $2",
+            ended,
+            self.id
+        )
+        .execute(pool)
+        .await?;
+        self.ended = Some(ended);
+
+        Ok(())
     }
 }
