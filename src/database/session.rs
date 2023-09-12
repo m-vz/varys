@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use clap::crate_version;
 use sqlx::{FromRow, PgPool};
 
 use crate::error::Error;
@@ -9,6 +10,7 @@ use crate::error::Error;
 #[derive(FromRow, Debug)]
 pub struct Session {
     pub id: i32,
+    pub version: String,
     pub started: DateTime<Utc>,
     #[sqlx(default)]
     pub ended: Option<DateTime<Utc>>,
@@ -22,9 +24,11 @@ impl Session {
     /// * `pool`: The database pool to use
     pub async fn create(pool: &PgPool) -> Result<Self, Error> {
         let started = Utc::now();
+        let version = crate_version!().to_string();
         let id = sqlx::query!(
-            "INSERT INTO session (started) VALUES ($1) RETURNING id",
+            "INSERT INTO session (started, version) VALUES ($1, $2) RETURNING id",
             started,
+            version
         )
         .fetch_one(pool)
         .await?
@@ -32,6 +36,7 @@ impl Session {
 
         Ok(Session {
             id,
+            version,
             started,
             ended: None,
         })

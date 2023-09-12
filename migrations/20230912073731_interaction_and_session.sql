@@ -1,5 +1,6 @@
 create table session (
     id serial primary key,
+    version text not null,
     started timestamptz not null,
     ended timestamptz
 );
