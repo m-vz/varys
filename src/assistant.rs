@@ -39,7 +39,8 @@ pub trait VoiceAssistant {
     ///
     /// * `interface`: The network interface to capture traffic from.
     /// * `voice`: The system voice to use for the interactions.
-    /// * `queries`: A list of queries to use for the interactions. Each line should contain one query.
+    /// * `queries`: A list of queries to use for the interactions. Each line should contain one
+    /// query.
     ///
     /// # Examples
     ///
@@ -48,7 +49,22 @@ pub trait VoiceAssistant {
     /// # use varys::assistant::{from, VoiceAssistant};
     /// # use varys::recognise::Model;
     /// # let assistant = from("Siri");
-    /// assistant.interact("ap1", "Zoe", 0.01, Model::Large, Path::new("data/test_queries.txt")).unwrap();
+    /// # tokio::runtime::Builder::new_current_thread()
+    /// #     .enable_all()
+    /// #     .build()
+    /// #     .unwrap()
+    /// #     .block_on(async {
+    /// assistant
+    ///     .interact(
+    ///         "ap1",
+    ///         "Zoe",
+    ///         0.01,
+    ///         Model::Large,
+    ///         Path::new("data/test_queries.txt")
+    ///     )
+    ///     .await
+    ///     .unwrap();
+    /// #     })
     /// ```
     async fn interact(
         &self,
