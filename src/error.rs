@@ -6,6 +6,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Value is out of range")]
     OutOfRange,
+    #[error("Unable to read dotenv file: {0}")]
+    Dotenv(String),
 
     // tts
     #[error("Required feature {0} is unsupported")]
@@ -68,8 +70,6 @@ pub enum Error {
     DatabaseMigration(String),
     #[error("Environment variable DATABASE_URL is missing")]
     MissingDatabaseUrl,
-    #[error("Unable to read dotenv file: {0}")]
-    Dotenv(String),
 }
 
 impl From<tts::Error> for Error {

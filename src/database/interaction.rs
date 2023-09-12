@@ -1,19 +1,20 @@
-use chrono::{DateTime, Local};
-use sqlx::PgPool;
+use chrono::{DateTime, Utc};
+use sqlx::{FromRow, PgPool};
 
 use crate::error::Error;
 
-#[derive(Debug)]
+#[derive(FromRow, Debug)]
 pub struct Interaction {
     pub id: i32,
-    pub started: DateTime<Local>,
-    pub ended: DateTime<Local>,
+    pub started: DateTime<Utc>,
+    #[sqlx(default)]
+    pub ended: Option<DateTime<Utc>>,
 }
 
 impl Interaction {
     pub async fn create(
-        started: DateTime<Local>,
-        ended: DateTime<Local>,
+        started: DateTime<Utc>,
+        ended: DateTime<Utc>,
         pool: &PgPool,
     ) -> Result<Self, Error> {
         let id = sqlx::query!(
@@ -25,7 +26,19 @@ impl Interaction {
         .await?
         .id;
 
-        Ok(Interaction { id, started, ended })
+        Ok(Interaction {
+            id,
+            started,
+            ended: None,
+        })
+    }
+
+    pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
+        Ok(
+            sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id)
+                .fetch_optional(pool)
+                .await?,
+        )
     }
 
     pub async fn update(&self, pool: &PgPool) -> Result<(), Error> {
@@ -41,11 +54,7 @@ impl Interaction {
         Ok(())
     }
 
-    pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
-        Ok(
-            sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id)
-                .fetch_optional(pool)
-                .await?,
-        )
+    pub fn completed(&self) -> bool {
+        self.ended.is_some()
     }
 }
