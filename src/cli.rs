@@ -4,6 +4,7 @@ use clap::Parser;
 use log::{debug, info};
 use pcap::ConnectionStatus;
 
+use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
@@ -131,8 +132,8 @@ async fn run_command(
     command: arguments::RunCommand,
 ) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
+    let mut interactor =
+        Interactor::with(interface.to_string(), voice.to_string(), sensitivity, model)?;
 
-    assistant
-        .interact(interface, voice, sensitivity, model, &command.queries)
-        .await
+    assistant.interact(&mut interactor, &command.queries).await
 }

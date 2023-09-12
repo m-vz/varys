@@ -1,20 +1,15 @@
 use std::fs;
 use std::path::Path;
-use std::time::Duration;
 
 use async_trait::async_trait;
-use chrono::Local;
 use colored::Colorize;
 use log::{info, warn};
 use rand::seq::SliceRandom;
 
+use crate::assistant::interactor::Interactor;
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
-use crate::database::session::Session;
-use crate::listen::Listener;
-use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{database, file, sniff, sniff::Sniffer};
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}
@@ -83,66 +78,27 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    async fn interact(
-        &self,
-        interface: &str,
-        voice: &str,
-        sensitivity: f32,
-        model: Model,
-        queries: &Path,
-    ) -> Result<(), Error> {
+    async fn interact(&self, interactor: &mut Interactor, queries: &Path) -> Result<(), Error> {
         info!("Interacting with Siri...");
 
-        let mut speaker = Speaker::new()?;
-        speaker.set_voice(voice)?;
-        let listener = Listener::new()?;
-        let recogniser = Recogniser::with_model(model)?;
-        let sniffer = Sniffer::from(sniff::device_by_name(interface)?);
+        let queries = fs::read_to_string(queries);
 
-        if let Ok(queries) = fs::read_to_string(queries) {
-            let mut queries: Vec<String> = queries
-                .lines()
-                .map(|q| format!("Hey Siri. {}", q))
-                .collect();
-            queries.shuffle(&mut rand::thread_rng());
+        match queries {
+            Ok(queries) => {
+                let mut queries: Vec<String> = queries
+                    .lines()
+                    .map(|q| format!("Hey Siri. {}", q))
+                    .collect();
+                queries.shuffle(&mut rand::thread_rng());
 
-            let pool = database::connect().await?;
-            let mut session = Session::new(&pool).await?;
-
-            for query in queries {
-                info!("Saying {}", query);
-
-                // prepare the interaction
-                let mut interaction = session.new_interaction(&pool).await?;
-
-                // start the sniffer
-                let file_path =
-                    format!("query-{}.pcap", Local::now().format("%Y-%m-%d-%H-%M-%S-%f"));
-                let file_path = Path::new(file_path.as_str());
-                let sniffer_instance = sniffer.start(file_path)?;
-
-                // say the query and record the response
-                speaker.say(&query, true)?;
-                let mut audio =
-                    listener.record_until_silent(Duration::from_secs(2), sensitivity)?;
-
-                // recognise the response
-                info!("{}", recogniser.recognise(&mut audio)?);
-
-                // finish the sniffer
-                info!("{}", sniffer_instance.stop()?);
-                file::compress_gzip(file_path, false)?;
-
-                // finish the interaction
-                interaction.complete(&pool).await?;
+                interactor.start(queries).await
             }
+            Err(_) => {
+                warn!("Could not read queries");
 
-            session.complete(&pool).await?;
-        } else {
-            warn!("Could not read queries");
+                Err(Error::Io(queries.unwrap_err()))
+            }
         }
-
-        Ok(())
     }
 
     fn test_voices(&self, voices: Vec<String>) -> Result<(), Error> {

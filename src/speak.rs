@@ -35,6 +35,12 @@ impl Speaker {
         Ok(speaker)
     }
 
+    pub fn with_voice(id_or_name: &str) -> Result<Self, Error> {
+        let mut speaker = Self::new()?;
+        speaker.set_voice(id_or_name)?;
+        Ok(speaker)
+    }
+
     /// Set the voice that should be spoken with.
     ///
     /// Returns an error if a voice with the given id or name is not available on the current platform.

@@ -2,10 +2,11 @@ use std::path::Path;
 
 use async_trait::async_trait;
 
+use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
 use crate::error::Error;
-use crate::recognise::Model;
 
+pub mod interactor;
 pub mod siri;
 
 /// This trait is implemented by all voice assistants supported by varys.
@@ -47,33 +48,20 @@ pub trait VoiceAssistant {
     /// ```no_run
     /// # use std::path::Path;
     /// # use varys::assistant::{from, VoiceAssistant};
+    /// # use varys::assistant::interactor::Interactor;
     /// # use varys::recognise::Model;
-    /// # let assistant = from("Siri");
+    /// let assistant = from("Siri");
+    /// let mut interactor =
+    ///     Interactor::with("ap1".to_string(), "Zoe".to_string(), 0.01, Model::Large).unwrap();
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
     /// #     .build()
     /// #     .unwrap()
     /// #     .block_on(async {
-    /// assistant
-    ///     .interact(
-    ///         "ap1",
-    ///         "Zoe",
-    ///         0.01,
-    ///         Model::Large,
-    ///         Path::new("data/test_queries.txt")
-    ///     )
-    ///     .await
-    ///     .unwrap();
+    /// assistant.interact(&mut interactor, Path::new("data/test_queries.txt")).await.unwrap();
     /// #     })
     /// ```
-    async fn interact(
-        &self,
-        interface: &str,
-        voice: &str,
-        sensitivity: f32,
-        model: Model,
-        queries: &Path,
-    ) -> Result<(), Error>;
+    async fn interact(&self, interactor: &mut Interactor, queries: &Path) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///
