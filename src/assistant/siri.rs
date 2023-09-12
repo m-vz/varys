@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use chrono::Local;
 use colored::Colorize;
 use log::{info, warn};
@@ -22,6 +23,7 @@ impl Siri {
         &["Ava", "Karen", "Jamie", "Matilda", "Serena", "Zoe"];
 }
 
+#[async_trait]
 impl VoiceAssistant for Siri {
     fn name(&self) -> String {
         "Siri".to_string()
@@ -80,7 +82,7 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    fn interact(
+    async fn interact(
         &self,
         interface: &str,
         voice: &str,

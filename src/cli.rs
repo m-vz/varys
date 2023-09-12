@@ -21,7 +21,7 @@ pub mod key_type;
 /// Start the cli program.
 ///
 /// This parses the arguments passed in the command line and runs the appropriate command.
-pub fn run() -> Result<(), Error> {
+pub async fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
     let model = Model::from(arguments.model);
 
@@ -31,13 +31,16 @@ pub fn run() -> Result<(), Error> {
             listen_command(&arguments.voice, arguments.sensitivity, model, command)
         }
         Command::Sniff(command) => sniff_command(command),
-        Command::Run(command) => run_command(
-            &arguments.interface,
-            &arguments.voice,
-            arguments.sensitivity,
-            model,
-            command,
-        ),
+        Command::Run(command) => {
+            run_command(
+                &arguments.interface,
+                &arguments.voice,
+                arguments.sensitivity,
+                model,
+                command,
+            )
+            .await
+        }
     }
 }
 
@@ -120,7 +123,7 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     Ok(())
 }
 
-fn run_command(
+async fn run_command(
     interface: &str,
     voice: &str,
     sensitivity: f32,
@@ -129,5 +132,7 @@ fn run_command(
 ) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
 
-    assistant.interact(interface, voice, sensitivity, model, &command.queries)
+    assistant
+        .interact(interface, voice, sensitivity, model, &command.queries)
+        .await
 }

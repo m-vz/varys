@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use async_trait::async_trait;
+
 use crate::assistant::siri::Siri;
 use crate::error::Error;
 use crate::recognise::Model;
@@ -7,6 +9,7 @@ use crate::recognise::Model;
 pub mod siri;
 
 /// This trait is implemented by all voice assistants supported by varys.
+#[async_trait]
 pub trait VoiceAssistant {
     /// The name of the voice assistant.
     ///
@@ -47,7 +50,7 @@ pub trait VoiceAssistant {
     /// # let assistant = from("Siri");
     /// assistant.interact("ap1", "Zoe", 0.01, Model::Large, Path::new("data/test_queries.txt")).unwrap();
     /// ```
-    fn interact(
+    async fn interact(
         &self,
         interface: &str,
         voice: &str,
