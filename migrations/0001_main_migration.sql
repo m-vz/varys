@@ -25,9 +25,11 @@ create table session (
 
 create table interaction (
     id serial primary key,
+    session_id int not null,
+    query text not null,
+    response text,
     started timestamptz not null,
     ended timestamptz,
-    session_id int not null,
     
     constraint fk_session foreign key (session_id) references session(id)
 );

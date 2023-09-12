@@ -96,7 +96,7 @@ impl Interactor {
             info!("Saying {}", query);
 
             // prepare the interaction
-            let mut interaction = Interaction::create(&pool, &session).await?;
+            let mut interaction = Interaction::create(&pool, &session, query.as_str()).await?;
 
             // start the sniffer
             let file_path = format!("query-{}.pcap", Utc::now().format("%Y-%m-%d-%H-%M-%S-%f"));
@@ -110,7 +110,9 @@ impl Interactor {
                 .record_until_silent(Duration::from_secs(2), self.sensitivity)?;
 
             // recognise the response
-            info!("{}", self.recogniser.recognise(&mut audio)?);
+            let response = self.recogniser.recognise(&mut audio)?;
+            interaction.add_response(&pool, response.as_str()).await?;
+            info!("{response}");
 
             // finish the sniffer
             info!("{}", sniffer_instance.stop()?);
