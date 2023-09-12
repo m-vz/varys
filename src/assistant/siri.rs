@@ -10,10 +10,11 @@ use rand::seq::SliceRandom;
 
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
+use crate::database::session::Session;
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{file, sniff, sniff::Sniffer};
+use crate::{database, file, sniff, sniff::Sniffer};
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}
@@ -105,20 +106,38 @@ impl VoiceAssistant for Siri {
                 .collect();
             queries.shuffle(&mut rand::thread_rng());
 
+            let pool = database::connect().await?;
+            let mut session = Session::new(&pool).await?;
+
             for query in queries {
                 info!("Saying {}", query);
 
+                // prepare the interaction
+                let mut interaction = session.new_interaction(&pool).await?;
+
+                // start the sniffer
                 let file_path =
                     format!("query-{}.pcap", Local::now().format("%Y-%m-%d-%H-%M-%S-%f"));
                 let file_path = Path::new(file_path.as_str());
                 let sniffer_instance = sniffer.start(file_path)?;
+
+                // say the query and record the response
                 speaker.say(&query, true)?;
                 let mut audio =
                     listener.record_until_silent(Duration::from_secs(2), sensitivity)?;
+
+                // recognise the response
                 info!("{}", recogniser.recognise(&mut audio)?);
+
+                // finish the sniffer
                 info!("{}", sniffer_instance.stop()?);
                 file::compress_gzip(file_path, false)?;
+
+                // finish the interaction
+                interaction.complete(&pool).await?;
             }
+
+            session.complete(&pool).await?;
         } else {
             warn!("Could not read queries");
         }
