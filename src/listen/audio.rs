@@ -1,9 +1,13 @@
+use std::cmp::min;
+
 use audiopus::coder::Encoder;
 use audiopus::{Application, Bitrate, Channels, SampleRate};
 use log::{debug, trace};
 
 use crate::error::Error;
 
+/// How many silent samples to keep when trimming silence from the start and end of audio.
+const TRIM_SILENCE_PADDING: usize = 4800; // 0.1s
 const OPUS_FRAME_TIME: usize = 20; // ms (see https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.4)
 const OPUS_FRAME_RATE: usize = 1000 / OPUS_FRAME_TIME; // 1/s
 pub const OPUS_SAMPLE_RATE: usize = 48000; // 1/s (see https://datatracker.ietf.org/doc/html/rfc7845#section-4)
@@ -155,6 +159,12 @@ impl AudioData {
                 .find(|(_, &sample)| sample >= threshold)
                 .map(|(i, _)| i)
                 .unwrap();
+            // add padding
+            let first = first.saturating_sub(TRIM_SILENCE_PADDING);
+            let last = min(
+                last.saturating_add(TRIM_SILENCE_PADDING),
+                self.data.len() - 1,
+            );
             // trim the data
             self.data = self.data[first..=last].to_vec();
         } else {
