@@ -1,5 +1,5 @@
 use std::io::{BufReader, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{fs, fs::File};
 
 use flate2::{Compression, GzBuilder};
@@ -9,7 +9,7 @@ use crate::error::Error;
 
 pub mod audio;
 
-/// Compress a file into a gzip wrapper.
+/// Compress a file into a gzip wrapper. Returns the path to the compressed file.
 ///
 /// The compressed file is written to the same path as the uncompressed one.
 ///
@@ -27,9 +27,9 @@ pub mod audio;
 /// ```no_run
 /// # use std::path::Path;
 /// # use varys::file;
-/// file::compress_gzip(Path::new("text.txt"), true).unwrap();
+/// let file_path_compressed = file::compress_gzip(Path::new("text.txt"), true).unwrap();
 /// ```
-pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<(), Error> {
+pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<PathBuf, Error> {
     let file = File::open(file_path)?;
     let reader = BufReader::with_capacity(100, file);
 
@@ -51,5 +51,5 @@ pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<(), Error> {
         fs::remove_file(file_path)?;
     }
 
-    Ok(())
+    Ok(PathBuf::from(file_path_gz))
 }
