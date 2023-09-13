@@ -15,6 +15,8 @@ use crate::sniff::Sniffer;
 use crate::speak::Speaker;
 use crate::{database, file, sniff};
 
+const SILENCE_DURATION: Duration = Duration::from_secs(2);
+
 pub struct Interactor {
     listener: Listener,
     sniffer: Sniffer,
@@ -124,7 +126,7 @@ impl Interactor {
             // record the response
             let mut audio = self
                 .listener
-                .record_until_silent(Duration::from_secs(2), self.sensitivity)?;
+                .record_until_silent(SILENCE_DURATION, self.sensitivity)?;
             interaction.response_duration = Some(audio.duration());
             let audio_path = session_path.join(audio_file_name(&session, &interaction));
             file::audio::write_audio(&audio_path, &audio)?;
