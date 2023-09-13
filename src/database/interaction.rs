@@ -23,7 +23,7 @@ impl Interaction {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     /// * `session`: The session to associate the interaction with.
     pub async fn create(pool: &PgPool, session: &Session, query: &str) -> Result<Self, Error> {
         let started = Utc::now();
@@ -51,7 +51,7 @@ impl Interaction {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     /// * `id`: The id of the interaction.
     pub async fn get(pool: &PgPool, id: i32) -> Result<Option<Self>, Error> {
         Ok(
@@ -61,38 +61,37 @@ impl Interaction {
         )
     }
 
-    /// Mark an interaction as completed by setting its end time.
+    /// Update all values of an interaction in the database.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
-    pub async fn complete(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
-        let ended = Utc::now();
+    /// * `pool`: The connection pool to use.
+    pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         sqlx::query!(
-            "UPDATE interaction SET ended = $1 WHERE id = $2",
-            ended,
-            self.id,
-        )
-        .execute(pool)
-        .await?;
-        self.ended = Some(ended);
-
-        Ok(self)
-    }
-
-    pub async fn add_response(
-        &mut self,
-        pool: &PgPool,
-        response: &str,
-    ) -> Result<&mut Self, Error> {
-        sqlx::query!(
-            "UPDATE interaction SET response = $1 WHERE id = $2",
-            response,
+            "UPDATE interaction SET (session_id, query, query_duration, response, response_duration, started, ended) = ($1, $2, $3, $4, $5, $6, $7) WHERE id = $8",
+            self.session_id,
+            self.query,
+            self.query_duration,
+            self.response,
+            self.response_duration,
+            self.started,
+            self.ended,
             self.id
         )
         .execute(pool)
         .await?;
-        self.response = Some(response.to_string());
+
+        Ok(self)
+    }
+
+    /// Mark an interaction as completed by setting its end time.
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The connection pool to use.
+    pub async fn complete(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
+        self.ended = Some(Utc::now());
+        self.update(pool).await?;
 
         Ok(self)
     }

@@ -21,7 +21,7 @@ impl InteractorConfig {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     pub async fn get_or_create(&self, pool: &PgPool) -> Result<i32, Error> {
         // first, try to find an existing config with the same values ...
         if let Some(result) = sqlx::query!(
@@ -55,7 +55,7 @@ impl InteractorConfig {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     /// * `id`: The id of the config.
     pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
         if let Some(result) = sqlx::query!("SELECT * FROM interactor_config WHERE id = $1", id)

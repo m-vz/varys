@@ -23,7 +23,7 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     pub async fn create(pool: &PgPool, config: &InteractorConfig) -> Result<Self, Error> {
         let started = Utc::now();
         let version = crate_version!().to_string();
@@ -51,7 +51,7 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     /// * `id`: The id of the session.
     pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
         Ok(
@@ -65,7 +65,7 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The database pool to use.
+    /// * `pool`: The connection pool to use.
     pub async fn complete(&mut self, pool: &PgPool) -> Result<(), Error> {
         let ended = Utc::now();
         sqlx::query!(
