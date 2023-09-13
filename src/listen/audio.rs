@@ -1,3 +1,5 @@
+use std::cmp::min;
+
 use audiopus::coder::Encoder;
 use audiopus::{Application, Bitrate, Channels, SampleRate};
 use log::{debug, trace};
@@ -7,6 +9,8 @@ use crate::error::Error;
 const OPUS_FRAME_TIME: usize = 20; // ms (see https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.4)
 const OPUS_FRAME_RATE: usize = 1000 / OPUS_FRAME_TIME; // 1/s
 pub const OPUS_SAMPLE_RATE: usize = 48000; // 1/s (see https://datatracker.ietf.org/doc/html/rfc7845#section-4)
+/// How many silent samples to keep when trimming silence from the start and end of audio.
+pub const TRIM_SILENCE_PADDING: usize = 4800; // 0.1s
 
 /// Holds interleaved audio data for one or more channels.
 pub struct AudioData {
@@ -126,13 +130,27 @@ impl AudioData {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys::listen::audio::{AudioData, TRIM_SILENCE_PADDING};
+    /// let mut content = vec![1_f32, 2_f32, 3_f32, 4_f32];
+    ///
+    /// // actual
+    /// let mut silence = vec![0_f32; TRIM_SILENCE_PADDING * 2];
+    /// let mut data = silence.clone();
+    /// data.append(&mut content.clone());
+    /// data.append(&mut silence);
+    ///
+    /// // expected
+    /// let mut expected_silence = vec![0_f32; TRIM_SILENCE_PADDING];
+    /// let mut expected_data = expected_silence.clone();
+    /// expected_data.append(&mut content);
+    /// expected_data.append(&mut expected_silence);
+    ///
     /// let mut audio = AudioData {
-    ///     data: vec![0_f32, 1_f32, 2_f32, 3_f32, 4_f32, 0_f32, 0_f32],
+    ///     data,
     ///     channels: 1,
     ///     sample_rate: 48000,
     /// };
-    /// assert_eq!(audio.trim_silence(1_f32).data, vec![1_f32, 2_f32, 3_f32, 4_f32]);
+    /// assert_eq!(audio.trim_silence(1_f32).data, expected_data);
     /// ```
     pub fn trim_silence(&mut self, threshold: f32) -> &mut Self {
         // find the index of the first sample that is above the threshold
@@ -155,6 +173,12 @@ impl AudioData {
                 .find(|(_, &sample)| sample >= threshold)
                 .map(|(i, _)| i)
                 .unwrap();
+            // add padding
+            let first = first.saturating_sub(TRIM_SILENCE_PADDING);
+            let last = min(
+                last.saturating_add(TRIM_SILENCE_PADDING),
+                self.data.len() - 1,
+            );
             // trim the data
             self.data = self.data[first..=last].to_vec();
         } else {
