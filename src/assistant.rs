@@ -45,19 +45,25 @@ pub trait VoiceAssistant {
     /// # Examples
     ///
     /// ```no_run
-    /// # use std::path::Path;
+    /// # use std::path::PathBuf;
     /// # use varys::assistant::{from, VoiceAssistant};
     /// # use varys::assistant::interactor::Interactor;
     /// # use varys::recognise::Model;
     /// let assistant = from("Siri");
-    /// let mut interactor =
-    ///     Interactor::with("ap1".to_string(), "Zoe".to_string(), 0.01, Model::Large).unwrap();
+    /// let mut interactor = Interactor::with(
+    ///     "ap1".to_string(),
+    ///     "Zoe".to_string(),
+    ///     0.01,
+    ///     Model::Large,
+    ///     PathBuf::from("./data")
+    /// )
+    /// .unwrap();
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
     /// #     .build()
     /// #     .unwrap()
     /// #     .block_on(async {
-    /// assistant.interact(&mut interactor, Path::new("data/test_queries.txt")).await.unwrap();
+    /// assistant.interact(&mut interactor, &PathBuf::from("data/test_queries.txt")).await.unwrap();
     /// #     })
     /// ```
     async fn interact(&self, interactor: &mut Interactor, queries: &Path) -> Result<(), Error>;

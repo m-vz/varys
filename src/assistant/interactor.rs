@@ -88,10 +88,17 @@ impl Interactor {
     /// # Examples
     ///
     /// ```no_run
+    /// # use std::path::PathBuf;
     /// # use varys::assistant::interactor::Interactor;
     /// # use varys::recognise::Model;
-    /// let mut interactor =
-    ///     Interactor::with("ap1".to_string(), "Zoe".to_string(), 0.01, Model::Large).unwrap();
+    /// let mut interactor = Interactor::with(
+    ///     "ap1".to_string(),
+    ///     "Zoe".to_string(),
+    ///     0.01,
+    ///     Model::Large,
+    ///     PathBuf::from("./data")
+    /// )
+    /// .unwrap();
     /// let queries = vec!["How are you?".to_string(), "What is your name?".to_string()];
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
