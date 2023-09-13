@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use chrono::Utc;
-use log::info;
+use log::{debug, info};
 
 use crate::database::interaction::Interaction;
 use crate::database::interactor_config::InteractorConfig;
@@ -115,6 +115,9 @@ impl Interactor {
             .data_dir
             .join(Path::new(&format!("sessions/session_{}", session.id)));
         fs::create_dir_all(&session_path)?;
+
+        info!("Starting session {}", session.id);
+        debug!("Storing data files at {}", session_path.display());
 
         for query in queries {
             info!("Starting interaction with \"{}\"", query);

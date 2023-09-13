@@ -61,25 +61,43 @@ impl Session {
         )
     }
 
-    /// Mark an session as completed by setting its end time.
+    /// Update all values of a session in the database.
     ///
     /// # Arguments
     ///
     /// * `pool`: The connection pool to use.
-    pub async fn complete(&mut self, pool: &PgPool) -> Result<(), Error> {
-        let ended = Utc::now();
+    pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         sqlx::query!(
-            "UPDATE session SET ended = $1 WHERE id = $2",
-            ended,
+            "UPDATE session SET (version, interactor_config_id, started, ended) = ($1, $2, $3, $4) WHERE id = $5",
+            self.version,
+            self.interactor_config_id,
+            self.started,
+            self.ended,
             self.id
         )
-        .execute(pool)
-        .await?;
-        self.ended = Some(ended);
+            .execute(pool)
+            .await?;
 
-        Ok(())
+        Ok(self)
     }
 
+    /// Mark a session as completed by setting its end time.
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The connection pool to use.
+    pub async fn complete(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
+        self.ended = Some(Utc::now());
+        self.update(pool).await?;
+
+        Ok(self)
+    }
+
+    /// Get the `InteractorConfig` for this session.
+    ///
+    /// # Arguments
+    ///
+    /// * `pool`: The connection pool to use.
     pub async fn config(&self, pool: &PgPool) -> Result<Option<InteractorConfig>, Error> {
         InteractorConfig::get(self.interactor_config_id, pool).await
     }
