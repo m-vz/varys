@@ -87,4 +87,6 @@ pub struct RunCommand {
     pub assistant: String,
     /// The file with queries to ask the assistant
     pub queries: PathBuf,
+    /// The directory in which to store data files
+    pub data_dir: PathBuf,
 }

@@ -132,8 +132,13 @@ async fn run_command(
     command: arguments::RunCommand,
 ) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
-    let mut interactor =
-        Interactor::with(interface.to_string(), voice.to_string(), sensitivity, model)?;
+    let mut interactor = Interactor::with(
+        interface.to_string(),
+        voice.to_string(),
+        sensitivity,
+        model,
+        command.data_dir,
+    )?;
 
     assistant.interact(&mut interactor, &command.queries).await
 }
