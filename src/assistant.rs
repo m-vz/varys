@@ -109,3 +109,24 @@ pub fn from(name: &str) -> impl VoiceAssistant {
         _ => Siri {},
     }
 }
+
+/// Filter comments from a list of queries.
+///
+/// # Arguments
+///
+/// * `queries`: The queries to filter.
+///
+/// # Examples
+///
+/// ```
+/// # use varys::assistant::prepare_queries;
+/// let unfiltered = vec!["one", "// two", "three"];
+/// assert_eq!(prepare_queries(unfiltered, |q| format!("-{}", q)), vec!["-one".to_string(), "-three".to_string()]);
+/// ```
+pub fn prepare_queries(queries: Vec<&str>, format: fn(String) -> String) -> Vec<String> {
+    queries
+        .into_iter()
+        .filter(|q| !q.starts_with("//"))
+        .map(|q| format(q.to_string()))
+        .collect()
+}

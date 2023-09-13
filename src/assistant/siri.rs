@@ -6,6 +6,7 @@ use colored::Colorize;
 use log::{info, warn};
 use rand::seq::SliceRandom;
 
+use crate::assistant;
 use crate::assistant::interactor::Interactor;
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
@@ -85,10 +86,10 @@ impl VoiceAssistant for Siri {
 
         match queries {
             Ok(queries) => {
-                let mut queries: Vec<String> = queries
-                    .lines()
-                    .map(|q| format!("Hey Siri. {}", q))
-                    .collect();
+                let mut queries: Vec<String> =
+                    assistant::prepare_queries(queries.lines().collect(), |q| {
+                        format!("Hey Siri. {}", q)
+                    });
                 queries.shuffle(&mut rand::thread_rng());
 
                 interactor.start(queries).await
