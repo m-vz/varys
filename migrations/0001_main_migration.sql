@@ -17,6 +17,7 @@ create table session (
     id serial primary key,
     version text not null,
     interactor_config_id int not null,
+    data_dir text,
     started timestamptz not null,
     ended timestamptz,
     
@@ -30,6 +31,8 @@ create table interaction (
     query_duration int,
     response text,
     response_duration int,
+    response_file text,
+    capture_file text,
     started timestamptz not null,
     ended timestamptz,
     

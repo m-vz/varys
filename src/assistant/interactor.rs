@@ -109,15 +109,20 @@ impl Interactor {
     /// #     })
     /// ```
     pub async fn start(&mut self, queries: Vec<String>) -> Result<(), Error> {
+        // connect to database and start session
         let pool = database::connect().await?;
         let mut session = Session::create(&pool, &self.config).await?;
+
+        // create and store session path
         let session_path = self
             .data_dir
             .join(Path::new(&format!("sessions/session_{}", session.id)));
         fs::create_dir_all(&session_path)?;
+        session.data_dir = Some(session_path.to_string_lossy().to_string());
+        session.update(&pool).await?;
 
         info!("Starting session {}", session.id);
-        debug!("Storing data files at {}", session_path.display());
+        debug!("Storing data files at {}", session_path.to_string_lossy());
 
         for query in queries {
             info!("Starting interaction with \"{}\"", query);
@@ -140,6 +145,7 @@ impl Interactor {
             interaction.response_duration = Some(audio.duration());
             let audio_path = session_path.join(audio_file_name(&session, &interaction));
             file::audio::write_audio(&audio_path, &audio)?;
+            interaction.response_file = Some(file::file_name_or_full(&audio_path));
 
             // recognise the response
             interaction.response = Some(self.recogniser.recognise(&mut audio)?);
@@ -147,7 +153,8 @@ impl Interactor {
 
             // finish the sniffer
             info!("{}", sniffer_instance.stop()?);
-            file::compress_gzip(&capture_path, false)?;
+            let file_path_gz = file::compress_gzip(&capture_path, false)?;
+            interaction.capture_file = Some(file::file_name_or_full(&file_path_gz));
 
             // finish the interaction
             interaction.complete(&pool).await?;

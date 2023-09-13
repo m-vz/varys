@@ -32,6 +32,14 @@ pub struct Interaction {
     ///
     /// If this is `None`, the interaction is still running or was aborted.
     pub response_duration: Option<i32>,
+    /// The file with the recorded response.
+    ///
+    /// Stored inside the session `data_dir`.
+    pub response_file: Option<String>,
+    /// The file with the captured traffic.
+    ///
+    /// Stored inside the session `data_dir`.
+    pub capture_file: Option<String>,
     /// When this interaction was started.
     pub started: DateTime<Utc>,
     /// When this interaction was ended.
@@ -67,6 +75,8 @@ impl Interaction {
             query_duration: None,
             response: None,
             response_duration: None,
+            response_file: None,
+            capture_file: None,
             started,
             ended: None,
         })
@@ -93,12 +103,14 @@ impl Interaction {
     /// * `pool`: The connection pool to use.
     pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         sqlx::query!(
-            "UPDATE interaction SET (session_id, query, query_duration, response, response_duration, started, ended) = ($1, $2, $3, $4, $5, $6, $7) WHERE id = $8",
+            "UPDATE interaction SET (session_id, query, query_duration, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9) WHERE id = $10",
             self.session_id,
             self.query,
             self.query_duration,
             self.response,
             self.response_duration,
+            self.response_file,
+            self.capture_file,
             self.started,
             self.ended,
             self.id

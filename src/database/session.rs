@@ -11,11 +11,16 @@ use crate::error::Error;
 #[derive(FromRow, Debug)]
 pub struct Session {
     pub id: i32,
+    /// What version of varys this session was run on.
     pub version: String,
+    interactor_config_id: i32,
+    /// The directory where the session data is stored.
+    pub data_dir: Option<String>,
+    /// When this session was started.
     pub started: DateTime<Utc>,
+    /// When this session was ended.
     #[sqlx(default)]
     pub ended: Option<DateTime<Utc>>,
-    interactor_config_id: i32,
 }
 
 impl Session {
@@ -41,9 +46,10 @@ impl Session {
         Ok(Session {
             id,
             version,
+            interactor_config_id,
+            data_dir: None,
             started,
             ended: None,
-            interactor_config_id,
         })
     }
 
@@ -68,9 +74,10 @@ impl Session {
     /// * `pool`: The connection pool to use.
     pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         sqlx::query!(
-            "UPDATE session SET (version, interactor_config_id, started, ended) = ($1, $2, $3, $4) WHERE id = $5",
+            "UPDATE session SET (version, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5) WHERE id = $6",
             self.version,
             self.interactor_config_id,
+            self.data_dir,
             self.started,
             self.ended,
             self.id

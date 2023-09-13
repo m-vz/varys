@@ -53,3 +53,24 @@ pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<PathBuf, Error> {
 
     Ok(PathBuf::from(file_path_gz))
 }
+
+/// Returns the file name if it exists. Otherwise, returns the full path.
+///
+/// # Arguments
+///
+/// * `file_path`: The path to the file to get the name from.
+///
+/// # Examples
+///
+/// ```
+/// # use std::path::Path;
+/// # use varys::file::file_name_or_full;
+/// assert_eq!(file_name_or_full(Path::new("path/to/text.txt")), "text.txt");
+/// ```
+pub fn file_name_or_full(file_path: &Path) -> String {
+    file_path
+        .file_name()
+        .unwrap_or(file_path.as_os_str())
+        .to_string_lossy()
+        .to_string()
+}
