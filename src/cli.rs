@@ -4,6 +4,7 @@ use clap::Parser;
 use log::{debug, info};
 use pcap::ConnectionStatus;
 
+use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
@@ -21,47 +22,63 @@ pub mod key_type;
 /// Start the cli program.
 ///
 /// This parses the arguments passed in the command line and runs the appropriate command.
-pub fn run() -> Result<(), Error> {
+pub async fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
     let model = Model::from(arguments.model);
 
     match arguments.command {
-        Command::Assistant(command) => assistant_command(
-            &arguments.interface,
-            &arguments.voice,
-            arguments.sensitivity,
-            model,
-            command,
-        ),
+        Command::Assistant(command) => assistant_command(command),
         Command::Listen(command) => {
             listen_command(&arguments.voice, arguments.sensitivity, model, command)
         }
         Command::Sniff(command) => sniff_command(command),
-        Command::Calibrate => calibrate_command(),
+        Command::Run(command) => {
+            run_command(
+                &arguments.interface,
+                &arguments.voice,
+                arguments.sensitivity,
+                model,
+                command,
+            )
+            .await
+        }
     }
 }
 
-fn assistant_command(
-    interface: &str,
-    voice: &str,
-    sensitivity: f32,
-    model: Model,
-    command: AssistantCommand,
-) -> Result<(), Error> {
+fn assistant_command(command: AssistantCommand) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
 
     match command.command {
         AssistantSubcommand::Setup => assistant.setup()?,
         AssistantSubcommand::Test(test) => assistant.test_voices(test.voices)?,
-        AssistantSubcommand::Interact(command) => {
-            assistant.interact(interface, voice, sensitivity, model, &command.queries)?
-        }
     };
 
     Ok(())
 }
 
 fn listen_command(
+    voice: &str,
+    sensitivity: f32,
+    model: Model,
+    command: ListenCommand,
+) -> Result<(), Error> {
+    if command.calibrate {
+        calibrate()
+    } else {
+        listen(voice, sensitivity, model, command)
+    }
+}
+
+fn calibrate() -> Result<(), Error> {
+    interact::user_confirmation("Calibration will record the average ambient noise. Stay quiet for five seconds. To begin, press")?;
+
+    let average = Listener::new()?.calibrate()?;
+    info!("The average ambient noise is {average}");
+
+    Ok(())
+}
+
+fn listen(
     voice: &str,
     sensitivity: f32,
     model: Model,
@@ -75,7 +92,9 @@ fn listen_command(
         listener.record_until_silent(time::Duration::from_secs(2), sensitivity)?
     };
     audio.downsample(16000)?;
-    file::audio::write_audio(&command.file, &audio)?;
+    if let Some(file) = command.file {
+        file::audio::write_audio(&file, &audio)?;
+    }
 
     if command.parrot {
         info!("Recognising...");
@@ -105,11 +124,21 @@ fn sniff_command(command: SniffCommand) -> Result<(), Error> {
     Ok(())
 }
 
-fn calibrate_command() -> Result<(), Error> {
-    interact::user_confirmation("Calibration will record the average ambient noise. Stay quiet for five seconds. To begin, press")?;
+async fn run_command(
+    interface: &str,
+    voice: &str,
+    sensitivity: f32,
+    model: Model,
+    command: arguments::RunCommand,
+) -> Result<(), Error> {
+    let assistant = assistant::from(command.assistant.as_str());
+    let mut interactor = Interactor::with(
+        interface.to_string(),
+        voice.to_string(),
+        sensitivity,
+        model,
+        command.data_dir,
+    )?;
 
-    let average = Listener::new()?.calibrate()?;
-    info!("The average ambient noise is {average}");
-
-    Ok(())
+    assistant.interact(&mut interactor, &command.queries).await
 }

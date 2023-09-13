@@ -6,6 +6,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Value is out of range")]
     OutOfRange,
+    #[error("Unable to read dotenv file: {0}")]
+    Dotenv(String),
 
     // tts
     #[error("Required feature {0} is unsupported")]
@@ -50,16 +52,24 @@ pub enum Error {
     Whisper,
 
     // network
-    #[error("No default network device was found.")]
+    #[error("No default network device was found")]
     DefaultDeviceNotFound,
-    #[error("Could not find device {0}.")]
+    #[error("Could not find device {0}")]
     NetworkDeviceNotFound(String),
-    #[error("Tried to stop sniffer that was not running.")]
+    #[error("Tried to stop sniffer that was not running")]
     CannotStop,
-    #[error("Did not receive sniffer stats.")]
+    #[error("Did not receive sniffer stats")]
     NoStatsReceived,
     #[error("Pcap error")]
     Pcap,
+
+    // database
+    #[error("Database error: {0}")]
+    Database(String),
+    #[error("Database migration error: {0}")]
+    DatabaseMigration(String),
+    #[error("Environment variable DATABASE_URL is missing")]
+    MissingDatabaseUrl,
 }
 
 impl From<tts::Error> for Error {
@@ -144,5 +154,17 @@ impl From<pcap::Error> for Error {
             pcap::Error::IoError(err) => std::io::Error::from(err).into(),
             _ => Error::Pcap,
         }
+    }
+}
+
+impl From<sqlx::Error> for Error {
+    fn from(value: sqlx::Error) -> Self {
+        Error::Database(value.to_string())
+    }
+}
+
+impl From<sqlx::migrate::MigrateError> for Error {
+    fn from(value: sqlx::migrate::MigrateError) -> Self {
+        Error::DatabaseMigration(value.to_string())
     }
 }

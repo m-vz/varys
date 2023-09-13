@@ -9,6 +9,7 @@ use lerp::Lerp;
 use log::debug;
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
+use tokio::time::Instant;
 use tts::{Features, Tts, Voice};
 
 use crate::error::Error;
@@ -32,6 +33,40 @@ impl Speaker {
             available_voices,
         };
 
+        Ok(speaker)
+    }
+
+    /// Create a new speaker and set the voice that should be spoken with.
+    ///
+    /// # Arguments
+    ///
+    /// * `id_or_name`: The id or name of the voice to use.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(target_os = "macos")]
+    /// # {
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
+    /// assert!(Speaker::with_voice("Jamie").is_ok());
+    /// # }
+    /// ```
+    ///
+    /// ```
+    /// # use varys::error::Error;
+    /// # use varys::speak::Speaker;
+    /// let invalid_speaker = Speaker::with_voice("Invalid Name");
+    ///
+    /// if let Err(Error::VoiceNotAvailable(text)) = invalid_speaker {
+    ///     assert_eq!(text, "Invalid Name");
+    /// } else {
+    ///     panic!("Must return `Error::VoiceNotAvailable`");
+    /// }
+    /// ```
+    pub fn with_voice(id_or_name: &str) -> Result<Self, Error> {
+        let mut speaker = Self::new()?;
+        speaker.set_voice(id_or_name)?;
         Ok(speaker)
     }
 
@@ -148,7 +183,8 @@ impl Speaker {
         Ok(())
     }
 
-    /// Say a phrase in the current voice, rate and volume.
+    /// Say a phrase in the current voice, rate and volume. Returns the time in milliseconds it took
+    /// to say the phrase.
     ///
     /// Interrupts any previous speaking if `interrupt` is set.
     ///
@@ -159,15 +195,17 @@ impl Speaker {
     /// ```
     /// # use varys::speak::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
-    /// speaker.say("", false).unwrap();
+    /// let speaking_duration = speaker.say("", false).unwrap();
     /// ```
-    pub fn say(&mut self, text: &str, interrupt: bool) -> Result<(), Error> {
-        debug!("Saying \"{}\"", text);
+    pub fn say(&mut self, text: &str, interrupt: bool) -> Result<i32, Error> {
+        debug!("Saying \"{text}\"");
 
         let (sender, receiver) = channel();
         self.tts.on_utterance_end(Some(Box::new(move |_| {
             let _ = sender.send(());
         })))?;
+
+        let start = Instant::now();
 
         self.tts.speak(text, interrupt)?;
 
@@ -182,7 +220,9 @@ impl Speaker {
             }
         }
 
-        Ok(())
+        let duration = start.elapsed().as_millis() as i32;
+        debug!("Spoke for {duration}ms");
+        Ok(duration)
     }
 }
 

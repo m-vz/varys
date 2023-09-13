@@ -1,5 +1,6 @@
 pub mod assistant;
 pub mod cli;
+pub mod database;
 pub mod error;
 pub mod file;
 pub mod listen;

@@ -1,12 +1,16 @@
 use std::path::Path;
 
+use async_trait::async_trait;
+
+use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
 use crate::error::Error;
-use crate::recognise::Model;
 
+pub mod interactor;
 pub mod siri;
 
 /// This trait is implemented by all voice assistants supported by varys.
+#[async_trait]
 pub trait VoiceAssistant {
     /// The name of the voice assistant.
     ///
@@ -34,27 +38,35 @@ pub trait VoiceAssistant {
     ///
     /// # Arguments
     ///
-    /// * `interface`: The network interface to capture traffic from.
-    /// * `voice`: The system voice to use for the interactions.
-    /// * `queries`: A list of queries to use for the interactions. Each line should contain one query.
+    /// * `interactor`: The interactor to use.
+    /// * `queries`: A list of queries to use for the interactions. Each line should contain one
+    /// query.
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// # use std::path::Path;
+    /// # use std::path::PathBuf;
     /// # use varys::assistant::{from, VoiceAssistant};
+    /// # use varys::assistant::interactor::Interactor;
     /// # use varys::recognise::Model;
-    /// # let assistant = from("Siri");
-    /// assistant.interact("ap1", "Zoe", 0.01, Model::Large, Path::new("data/test_queries.txt")).unwrap();
+    /// let assistant = from("Siri");
+    /// let mut interactor = Interactor::with(
+    ///     "ap1".to_string(),
+    ///     "Zoe".to_string(),
+    ///     0.01,
+    ///     Model::Large,
+    ///     PathBuf::from("./data")
+    /// )
+    /// .unwrap();
+    /// # tokio::runtime::Builder::new_current_thread()
+    /// #     .enable_all()
+    /// #     .build()
+    /// #     .unwrap()
+    /// #     .block_on(async {
+    /// assistant.interact(&mut interactor, &PathBuf::from("data/test_queries.txt")).await.unwrap();
+    /// #     })
     /// ```
-    fn interact(
-        &self,
-        interface: &str,
-        voice: &str,
-        sensitivity: f32,
-        model: Model,
-        queries: &Path,
-    ) -> Result<(), Error>;
+    async fn interact(&self, interactor: &mut Interactor, queries: &Path) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///
@@ -96,4 +108,25 @@ pub fn from(name: &str) -> impl VoiceAssistant {
         "siri" => Siri {},
         _ => Siri {},
     }
+}
+
+/// Filter comments from a list of queries.
+///
+/// # Arguments
+///
+/// * `queries`: The queries to filter.
+///
+/// # Examples
+///
+/// ```
+/// # use varys::assistant::prepare_queries;
+/// let unfiltered = vec!["one", "// two", "three"];
+/// assert_eq!(prepare_queries(unfiltered, |q| format!("-{}", q)), vec!["-one".to_string(), "-three".to_string()]);
+/// ```
+pub fn prepare_queries(queries: Vec<&str>, format: fn(String) -> String) -> Vec<String> {
+    queries
+        .into_iter()
+        .filter(|q| !q.starts_with("//"))
+        .map(|q| format(q.to_string()))
+        .collect()
 }
