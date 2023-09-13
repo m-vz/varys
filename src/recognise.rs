@@ -1,4 +1,4 @@
-use log::trace;
+use log::{debug, trace};
 use std::fmt::Display;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
 
@@ -129,6 +129,7 @@ impl Recogniser {
             trace!("[{} - {}]: {}", timestamps.0, timestamps.1, segment);
         }
 
+        debug!("Recognised: {}", full_text);
         Ok(full_text)
     }
 

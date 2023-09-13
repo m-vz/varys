@@ -93,7 +93,7 @@ impl Interactor {
         let mut session = Session::create(&pool, &self.config).await?;
 
         for query in queries {
-            info!("Saying {}", query);
+            info!("Starting interaction with \"{}\"", query);
 
             // prepare the interaction
             let mut interaction = Interaction::create(&pool, &session, query.as_str()).await?;
@@ -103,16 +103,17 @@ impl Interactor {
             let file_path = Path::new(file_path.as_str());
             let sniffer_instance = self.sniffer.start(file_path)?;
 
-            // say the query and record the response
-            self.speaker.say(&query, true)?;
+            // say the query
+            interaction.query_duration = Some(self.speaker.say(&query, true)?);
+            interaction.update(&pool).await?;
+
+            // record and recognise the response
             let mut audio = self
                 .listener
                 .record_until_silent(Duration::from_secs(2), self.sensitivity)?;
-
-            // recognise the response
-            let response = self.recogniser.recognise(&mut audio)?;
-            interaction.add_response(&pool, response.as_str()).await?;
-            info!("{response}");
+            interaction.response_duration = Some(audio.duration());
+            interaction.response = Some(self.recogniser.recognise(&mut audio)?);
+            interaction.update(&pool).await?;
 
             // finish the sniffer
             info!("{}", sniffer_instance.stop()?);

@@ -27,7 +27,9 @@ create table interaction (
     id serial primary key,
     session_id int not null,
     query text not null,
+    query_duration int,
     response text,
+    response_duration int,
     started timestamptz not null,
     ended timestamptz,
     

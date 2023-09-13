@@ -9,11 +9,34 @@ use crate::error::Error;
 /// Each interaction belongs to a [`Session`].
 #[derive(FromRow, Debug)]
 pub struct Interaction {
+    /// Interaction ids are sequenced.
     pub id: i32,
+    /// The id of the session this interaction was held in.
+    ///
+    /// Session ids are sequenced.
     pub session_id: i32,
+    /// The query that was asked for this interaction.
     pub query: String,
+    /// The duration of the query in milliseconds.
+    ///
+    /// If this is `None`, the interaction is still running or was aborted.
+    pub query_duration: Option<i32>,
+    /// The recorded response from the voice assistant.
+    ///
+    /// Currently, short responses are sometimes not recognised accurately. Watch `response_duration`
+    /// for short times if the response is missing.
+    ///
+    /// If this is `None`, the interaction is still running or was aborted.
     pub response: Option<String>,
+    /// The duration of the response in milliseconds.
+    ///
+    /// If this is `None`, the interaction is still running or was aborted.
+    pub response_duration: Option<i32>,
+    /// When this interaction was started.
     pub started: DateTime<Utc>,
+    /// When this interaction was ended.
+    ///
+    /// If this is `None`, the interaction is still running or was aborted.
     #[sqlx(default)]
     pub ended: Option<DateTime<Utc>>,
 }
@@ -41,7 +64,9 @@ impl Interaction {
             id,
             session_id: session.id,
             query: query.to_string(),
+            query_duration: None,
             response: None,
+            response_duration: None,
             started,
             ended: None,
         })
