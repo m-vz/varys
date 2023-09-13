@@ -258,6 +258,25 @@ impl AudioData {
             sample_rate as usize / OPUS_FRAME_RATE,
         ))
     }
+
+    /// Get the duration of the audio in milliseconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::audio::AudioData;
+    /// let sample_rate = 48000;
+    /// let seconds = 2_i32;
+    /// let mut audio = AudioData {
+    ///     data: vec![0_f32; seconds as usize * sample_rate],
+    ///     channels: 1,
+    ///     sample_rate: sample_rate as u32,
+    /// };
+    /// assert_eq!(audio.duration(), seconds * 1000);
+    /// ```
+    pub fn duration(&self) -> i32 {
+        self.data.len() as i32 * 1000 / self.sample_rate as i32 / self.channels as i32
+    }
 }
 
 impl AsRef<[f32]> for AudioData {
