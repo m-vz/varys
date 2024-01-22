@@ -70,6 +70,12 @@ pub enum Error {
     DatabaseMigration(String),
     #[error("Environment variable DATABASE_URL is missing")]
     MissingDatabaseUrl,
+
+    // monitoring
+    #[error("Connection to monitoring failed: {0}")]
+    MonitoringConnectionFailed(reqwest::Error),
+    #[error("Environment variable VARYS_MONITORING_URL is missing")]
+    MissingMonitoringUrl,
 }
 
 impl From<tts::Error> for Error {
