@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE session SET (version, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5) WHERE id = $6",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ff4d2493261a37ae2a31f23816fac9ab0e97fb4e2209aa374164bc5a8ffba5fd"
+}

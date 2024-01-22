@@ -2,7 +2,7 @@
   <configuration default="false" name="Database" type="docker-deploy" factoryName="docker-image" server-name="Docker">
     <deployment type="docker-image">
       <settings>
-        <option name="imageTag" value="postgres" />
+        <option name="imageTag" value="postgres:15" />
         <option name="containerName" value="varys-postgres" />
         <option name="envVars">
           <list>
