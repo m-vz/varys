@@ -266,7 +266,7 @@ impl AudioData {
     /// ```
     /// # use varys::listen::audio::AudioData;
     /// let sample_rate = 48000;
-    /// let seconds = 2_i32;
+    /// let seconds = 100_i32;
     /// let mut audio = AudioData {
     ///     data: vec![0_f32; seconds as usize * sample_rate],
     ///     channels: 1,
@@ -275,7 +275,7 @@ impl AudioData {
     /// assert_eq!(audio.duration(), seconds * 1000);
     /// ```
     pub fn duration(&self) -> i32 {
-        self.data.len() as i32 * 1000 / self.sample_rate as i32 / self.channels as i32
+        (self.data.len() as i64 * 1000 / self.sample_rate as i64 / self.channels as i64) as i32
     }
 }
 
