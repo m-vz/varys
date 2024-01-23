@@ -1,6 +1,6 @@
 use log::{debug, trace};
 use std::fmt::Display;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::error::Error;
 use crate::listen::audio::AudioData;
@@ -83,8 +83,11 @@ impl Recogniser {
     /// let recogniser = Recogniser::with_model_path(varys::recognise::MODEL_LARGE).unwrap();
     /// ```
     pub fn with_model_path(model_path: &str) -> Result<Recogniser, Error> {
+        let mut params = WhisperContextParameters::default();
+        params.use_gpu(true);
+
         Ok(Recogniser {
-            context: WhisperContext::new(model_path)?,
+            context: WhisperContext::new_with_params(model_path, params)?,
         })
     }
 
