@@ -49,7 +49,7 @@ impl Speaker {
     /// # {
     /// # use varys::error::Error;
     /// # use varys::speak::Speaker;
-    /// assert!(Speaker::with_voice("Jamie").is_ok());
+    /// assert!(Speaker::with_voice("Ava").is_ok());
     /// # }
     /// ```
     ///
@@ -83,8 +83,8 @@ impl Speaker {
     /// # use varys::speak::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     ///
-    /// assert!(speaker.set_voice("Jamie").is_ok());
-    /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Malcolm").is_ok());
+    /// assert!(speaker.set_voice("Ava").is_ok());
+    /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Daniel").is_ok());
     /// # }
     /// ```
     ///

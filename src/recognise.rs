@@ -1,5 +1,6 @@
-use log::{debug, trace};
 use std::fmt::Display;
+
+use log::{debug, trace};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::error::Error;
@@ -8,7 +9,7 @@ use crate::listen::audio::AudioData;
 pub const MODEL_LARGE: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
 pub const MODEL_MEDIUM_EN: &str = "data/models/ggml-model-whisper-medium.en-q5_0.bin";
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone)]
 pub enum Model {
     #[default]
     Large,
