@@ -47,26 +47,27 @@ pub trait VoiceAssistant {
     /// ```no_run
     /// # use std::path::PathBuf;
     /// # use varys::assistant::{from, VoiceAssistant};
-    /// # use varys::assistant::interactor::Interactor;
+    /// # use varys::assistant::interactor::InteractorBuilder;
     /// # use varys::recognise::Model;
     /// let assistant = from("Siri");
-    /// let mut interactor = Interactor::with(
+    /// let mut interactor = InteractorBuilder::new(
     ///     "ap1".to_string(),
     ///     "Zoe".to_string(),
     ///     0.01,
     ///     Model::Large,
     ///     PathBuf::from("./data")
     /// )
+    /// .build()
     /// .unwrap();
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
     /// #     .build()
     /// #     .unwrap()
     /// #     .block_on(async {
-    /// assistant.interact(&mut interactor, &PathBuf::from("data/test_queries.txt")).await.unwrap();
+    /// assistant.interact(interactor, &PathBuf::from("data/test_queries.txt")).await.unwrap();
     /// #     })
     /// ```
-    async fn interact(&self, interactor: &mut Interactor, queries: &Path) -> Result<(), Error>;
+    async fn interact(&self, interactor: Interactor, queries: &Path) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///

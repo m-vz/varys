@@ -79,7 +79,7 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    async fn interact(&self, interactor: &mut Interactor, queries: &Path) -> Result<(), Error> {
+    async fn interact(&self, mut interactor: Interactor, queries: &Path) -> Result<(), Error> {
         info!("Interacting with Siri...");
 
         let queries = fs::read_to_string(queries);
@@ -90,9 +90,11 @@ impl VoiceAssistant for Siri {
                     assistant::prepare_queries(queries.lines().collect(), |q| {
                         format!("Hey Siri. {}", q)
                     });
-                queries.shuffle(&mut rand::thread_rng());
 
-                interactor.start(queries).await
+                loop {
+                    queries.shuffle(&mut rand::thread_rng());
+                    interactor = interactor.begin_session().await?.start(&queries).await?;
+                }
             }
             Err(_) => {
                 warn!("Could not read queries");
