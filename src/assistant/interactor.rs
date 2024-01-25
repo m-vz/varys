@@ -227,8 +227,7 @@ impl RunningInteractor {
 
         // finish the sniffer
         info!("{}", sniffer_instance.stop()?);
-        let file_path_gz = file::compress_gzip(&capture_path, false)?;
-        interaction.capture_file = Some(file::file_name_or_full(&file_path_gz));
+        interaction.capture_file = Some(file::file_name_or_full(&capture_path));
 
         // finish the interaction
         interaction.complete(&self.database_pool).await?;
