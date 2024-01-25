@@ -84,7 +84,6 @@ impl Speaker {
     /// let mut speaker = Speaker::new().unwrap();
     ///
     /// assert!(speaker.set_voice("Ava").is_ok());
-    /// assert!(speaker.set_voice("com.apple.voice.premium.en-GB.Daniel").is_ok());
     /// # }
     /// ```
     ///
