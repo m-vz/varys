@@ -3,7 +3,7 @@
 <plist version="1.0">
     <dict>
         <key>Label</key>
-        <string>wtf.milan.varys</string>
+        <string>local.varys</string>
         <key>Program</key>
         <string>/path/to/varys</string>
         <key>ProgramArguments</key>
@@ -13,7 +13,7 @@
             <string>--voice</string>
             <string>Ava</string>
             <string>Siri</string>
-            <string>data/queries.txt</string>
+            <string>data/queries.toml</string>
             <string>data</string>
         </array>
         <key>WorkingDirectory</key>
