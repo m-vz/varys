@@ -1,0 +1,1 @@
+alter table interaction add column query_category text not null default '';
