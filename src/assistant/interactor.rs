@@ -8,6 +8,7 @@ use sqlx::PgPool;
 
 use crate::database::interaction::Interaction;
 use crate::database::interactor_config::InteractorConfig;
+use crate::database::query::Query;
 use crate::database::session::Session;
 use crate::error::Error;
 use crate::listen::Listener;
@@ -150,6 +151,7 @@ impl RunningInteractor {
     /// ```no_run
     /// # use std::path::PathBuf;
     /// # use varys::assistant::interactor::InteractorBuilder;
+    /// # use varys::database::query::Query;
     /// # use varys::recognise::Model;
     /// let mut interactor = InteractorBuilder::new(
     ///     "ap1".to_string(),
@@ -160,7 +162,16 @@ impl RunningInteractor {
     /// )
     /// .build()
     /// .unwrap();
-    /// let queries = vec!["How are you?".to_string(), "What is your name?".to_string()];
+    /// let queries = vec![
+    ///     Query {
+    ///         text: "How are you?".to_string(),
+    ///         category: "greeting".to_string(),
+    ///     },
+    ///     Query {
+    ///         text: "What is your name?".to_string(),
+    ///         category: "greeting".to_string(),
+    ///     },
+    /// ];
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
     /// #     .build()
@@ -175,7 +186,7 @@ impl RunningInteractor {
     ///     .unwrap();
     /// #     })
     /// ```
-    pub async fn start(mut self, queries: &Vec<String>) -> Result<Interactor, Error> {
+    pub async fn start(mut self, queries: &Vec<Query>) -> Result<Interactor, Error> {
         for query in queries {
             if let Err(error) = self.interaction(query).await {
                 error!("An interaction did not complete successfully: {error}");
@@ -187,8 +198,8 @@ impl RunningInteractor {
         Ok(self.interactor)
     }
 
-    async fn interaction(&mut self, query: &str) -> Result<(), Error> {
-        info!("Starting interaction with \"{}\"", query);
+    async fn interaction(&mut self, query: &Query) -> Result<(), Error> {
+        info!("Starting interaction with \"{query}\"");
 
         // notify monitoring about interaction
         if let Err(error) = monitoring::ping(&format!("Interaction started: {query}")).await {
@@ -206,7 +217,7 @@ impl RunningInteractor {
         let sniffer_instance = self.interactor.sniffer.start(&capture_path)?;
 
         // say the query
-        interaction.query_duration = Some(self.interactor.speaker.say(query, true)?);
+        interaction.query_duration = Some(self.interactor.speaker.say(&query.text, true)?);
         interaction.update(&self.database_pool).await?;
 
         // record the response

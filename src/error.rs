@@ -8,6 +8,10 @@ pub enum Error {
     OutOfRange,
     #[error("Unable to read dotenv file: {0}")]
     Dotenv(String),
+    #[error("Could not serialize toml: {0}")]
+    TomlSerializeFailed(toml::ser::Error),
+    #[error("Could not deserialize toml: {0}")]
+    TomlDeserializeFailed(toml::de::Error),
 
     // tts
     #[error("Required feature {0} is unsupported")]
@@ -172,5 +176,17 @@ impl From<sqlx::Error> for Error {
 impl From<sqlx::migrate::MigrateError> for Error {
     fn from(value: sqlx::migrate::MigrateError) -> Self {
         Error::DatabaseMigration(value.to_string())
+    }
+}
+
+impl From<toml::ser::Error> for Error {
+    fn from(value: toml::ser::Error) -> Self {
+        Error::TomlSerializeFailed(value)
+    }
+}
+
+impl From<toml::de::Error> for Error {
+    fn from(value: toml::de::Error) -> Self {
+        Error::TomlDeserializeFailed(value)
     }
 }

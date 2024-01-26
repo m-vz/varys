@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
 
+use crate::database::query::Query;
 use crate::database::session::Session;
 use crate::error::Error;
 
@@ -17,6 +18,8 @@ pub struct Interaction {
     pub session_id: i32,
     /// The query that was asked for this interaction.
     pub query: String,
+    /// The category of the query.
+    pub query_category: String,
     /// The duration of the query in milliseconds.
     ///
     /// If this is `None`, the interaction is still running or was aborted.
@@ -56,13 +59,14 @@ impl Interaction {
     ///
     /// * `pool`: The connection pool to use.
     /// * `session`: The session to associate the interaction with.
-    pub async fn create(pool: &PgPool, session: &Session, query: &str) -> Result<Self, Error> {
+    pub async fn create(pool: &PgPool, session: &Session, query: &Query) -> Result<Self, Error> {
         let started = Utc::now();
         let id = sqlx::query!(
-            "INSERT INTO interaction (started, session_id, query) VALUES ($1, $2, $3) RETURNING id",
+            "INSERT INTO interaction (started, session_id, query, query_category) VALUES ($1, $2, $3, $4) RETURNING id",
             started,
             session.id,
-            query,
+            query.text,
+            query.category,
         )
         .fetch_one(pool)
         .await?
@@ -71,7 +75,8 @@ impl Interaction {
         Ok(Interaction {
             id,
             session_id: session.id,
-            query: query.to_string(),
+            query: query.text.clone(),
+            query_category: query.category.clone(),
             query_duration: None,
             response: None,
             response_duration: None,
@@ -103,9 +108,10 @@ impl Interaction {
     /// * `pool`: The connection pool to use.
     pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         sqlx::query!(
-            "UPDATE interaction SET (session_id, query, query_duration, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9) WHERE id = $10",
+            "UPDATE interaction SET (session_id, query, query_category, query_duration, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) WHERE id = $11",
             self.session_id,
             self.query,
+            self.query_category,
             self.query_duration,
             self.response,
             self.response_duration,
