@@ -111,14 +111,6 @@ What time is it in Madrid?
 What is the time zone in London?
 What is the time zone in New York?
 What is the time zone in Madrid?
-What is the current volume on my speaker?
-Mute the microphone
-Unmute the microphone
-Turn the volume up
-Turn the volume down
-Set the volume to 50%
-Set the volume to 100%
-Set the volume to 0%
 I’m home
 Dinner party
 Movie night
