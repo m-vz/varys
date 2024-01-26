@@ -1,15 +1,12 @@
-use std::fs;
-use std::path::Path;
-
 use async_trait::async_trait;
 use colored::Colorize;
-use log::{info, warn};
+use log::info;
 use rand::seq::SliceRandom;
 
-use crate::assistant;
 use crate::assistant::interactor::Interactor;
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
+use crate::database::query::Query;
 use crate::speak::Speaker;
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
@@ -79,28 +76,20 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    async fn interact(&self, mut interactor: Interactor, queries: &Path) -> Result<(), Error> {
+    async fn interact(
+        &self,
+        mut interactor: Interactor,
+        mut queries: Vec<Query>,
+    ) -> Result<(), Error> {
         info!("Interacting with Siri...");
 
-        let queries = fs::read_to_string(queries);
+        queries.iter_mut().for_each(|q| {
+            q.text = format!("Hey Siri. {}", q.text);
+        });
 
-        match queries {
-            Ok(queries) => {
-                let mut queries: Vec<String> =
-                    assistant::prepare_queries(queries.lines().collect(), |q| {
-                        format!("Hey Siri. {}", q)
-                    });
-
-                loop {
-                    queries.shuffle(&mut rand::thread_rng());
-                    interactor = interactor.begin_session().await?.start(&queries).await?;
-                }
-            }
-            Err(_) => {
-                warn!("Could not read queries");
-
-                Err(Error::Io(queries.unwrap_err()))
-            }
+        loop {
+            queries.shuffle(&mut rand::thread_rng());
+            interactor = interactor.begin_session().await?.start(&queries).await?;
         }
     }
 

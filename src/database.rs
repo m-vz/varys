@@ -7,6 +7,7 @@ use crate::error::Error;
 
 pub mod interaction;
 pub mod interactor_config;
+pub mod query;
 pub mod session;
 
 /// Connect to the database as specified in the environment variable `DATABASE_URL`.

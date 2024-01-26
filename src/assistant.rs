@@ -1,9 +1,8 @@
-use std::path::Path;
-
 use async_trait::async_trait;
 
 use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
+use crate::database::query::Query;
 use crate::error::Error;
 
 pub mod interactor;
@@ -48,6 +47,7 @@ pub trait VoiceAssistant {
     /// # use std::path::PathBuf;
     /// # use varys::assistant::{from, VoiceAssistant};
     /// # use varys::assistant::interactor::InteractorBuilder;
+    /// # use varys::database::query::Query;
     /// # use varys::recognise::Model;
     /// let assistant = from("Siri");
     /// let mut interactor = InteractorBuilder::new(
@@ -59,15 +59,16 @@ pub trait VoiceAssistant {
     /// )
     /// .build()
     /// .unwrap();
+    /// let queries = Query::read_toml(&PathBuf::from("data/test_queries.txt")).unwrap();
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
     /// #     .build()
     /// #     .unwrap()
     /// #     .block_on(async {
-    /// assistant.interact(interactor, &PathBuf::from("data/test_queries.txt")).await.unwrap();
+    /// assistant.interact(interactor, queries).await.unwrap();
     /// #     })
     /// ```
-    async fn interact(&self, interactor: Interactor, queries: &Path) -> Result<(), Error>;
+    async fn interact(&self, interactor: Interactor, queries: Vec<Query>) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///
@@ -109,25 +110,4 @@ pub fn from(name: &str) -> impl VoiceAssistant {
         "siri" => Siri {},
         _ => Siri {},
     }
-}
-
-/// Filter comments from a list of queries.
-///
-/// # Arguments
-///
-/// * `queries`: The queries to filter.
-///
-/// # Examples
-///
-/// ```
-/// # use varys::assistant::prepare_queries;
-/// let unfiltered = vec!["one", "// two", "three"];
-/// assert_eq!(prepare_queries(unfiltered, |q| format!("-{}", q)), vec!["-one".to_string(), "-three".to_string()]);
-/// ```
-pub fn prepare_queries(queries: Vec<&str>, format: fn(String) -> String) -> Vec<String> {
-    queries
-        .into_iter()
-        .filter(|q| !q.starts_with("//"))
-        .map(|q| format(q.to_string()))
-        .collect()
 }

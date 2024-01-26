@@ -4,16 +4,17 @@ use clap::Parser;
 use log::{debug, info};
 use pcap::ConnectionStatus;
 
+use crate::{assistant, assistant::VoiceAssistant, file};
+use crate::{sniff, sniff::Sniffer};
 use crate::assistant::interactor::InteractorBuilder;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
+use crate::database::query::Query;
 use crate::error::Error;
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
-use crate::{assistant, assistant::VoiceAssistant, file};
-use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
 pub mod interact;
@@ -140,6 +141,7 @@ async fn run_command(
         command.data_dir,
     )
     .build()?;
+    let queries = Query::read_toml(&command.queries)?;
 
-    assistant.interact(interactor, &command.queries).await
+    assistant.interact(interactor, queries).await
 }
