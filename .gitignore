@@ -24,5 +24,7 @@ Icon
 /data/captures/*.pcap.gz
 /data/db
 /data/sessions
+/data/varys.stderr
+/data/varys.stdout
 /*.pcap
 /*.pcap.gz

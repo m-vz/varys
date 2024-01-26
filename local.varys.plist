@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>Label</key>
+        <string>wtf.milan.varys</string>
+        <key>Program</key>
+        <string>/path/to/varys</string>
+        <key>ProgramArguments</key>
+        <array>
+            <string>/path/to/varys</string>
+            <string>run</string>
+            <string>--voice</string>
+            <string>Ava</string>
+            <string>Siri</string>
+            <string>data/queries.txt</string>
+            <string>data</string>
+        </array>
+        <key>WorkingDirectory</key>
+        <string>/path/to/working/dir</string>
+        <key>EnvironmentVariables</key>
+        <dict>
+            <key>RUST_LOG</key>
+            <string>debug</string>
+            <key>VARYS_MONITORING_URL</key>
+            <string>https://monitoring-url</string>
+        </dict>
+        <key>StandardOutPath</key>
+        <string>/tmp/varys.stdout</string>
+        <key>StandardErrorPath</key>
+        <string>/tmp/varys.stderr</string>
+    </dict>
+</plist>
