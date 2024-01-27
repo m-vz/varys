@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run parrot" type="CargoCommandRunConfiguration" factoryName="Cargo Command" focusToolWindowBeforeRun="true">
-    <option name="command" value="run --package varys --bin varys -- listen --voice Zoe --parrot data/recordings/recorded.opus" />
+    <option name="command" value="run --package varys --bin varys -- listen -v Zoe --parrot data/recordings/recorded.opus" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs>
-      <env name="RUST_LOG" value="trace" />
+      <env name="RUST_LOG" value="debug" />
     </envs>
     <option name="emulateTerminal" value="true" />
     <option name="channel" value="DEFAULT" />

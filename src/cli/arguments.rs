@@ -8,16 +8,16 @@ pub struct Arguments {
     #[clap(subcommand)]
     pub command: Command,
     /// The network interface to listen on
-    #[arg(long, global = true, default_value = "en0")]
+    #[arg(short, long, global = true, default_value = "en0")]
     pub interface: String,
-    /// The voice to use for speaking
-    #[arg(long, global = true, default_value = "Zoe")]
-    pub voice: String,
+    /// The voices to use for speaking, one random voice is used per session
+    #[arg(short, long, global = true, default_values_t = vec!["Zoe".to_string()])]
+    pub voices: Vec<String>,
     /// The sensitivity to distinguish ambient noise from speech
-    #[arg(long, global = true, default_value_t = 0.01)]
+    #[arg(short, long, global = true, default_value_t = 0.01)]
     pub sensitivity: f32,
     /// The speech recognition model to use
-    #[arg(long, global = true, default_value = "")]
+    #[arg(short, long, global = true, default_value = "")]
     pub model: String,
 }
 
@@ -61,7 +61,7 @@ pub struct TestCommand {
 pub struct ListenCommand {
     /// Optional duration in seconds to listen for. If omitted, listen until silence is detected
     #[arg(short, long)]
-    pub seconds: Option<u32>,
+    pub duration: Option<u32>,
     /// Calibrate to the current ambient noise
     #[arg(short, long)]
     pub calibrate: bool,
@@ -76,7 +76,7 @@ pub struct ListenCommand {
 pub struct SniffCommand {
     /// The duration in seconds to listen for
     #[arg(short, long, default_value_t = 5)]
-    pub seconds: u32,
+    pub duration: u32,
     /// Where to store the recorded traffic
     pub file: PathBuf,
 }
