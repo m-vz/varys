@@ -1,5 +1,6 @@
 use sqlx::{FromRow, PgPool};
 
+use crate::database;
 use crate::error::Error;
 
 /// The representation of a interactor configuration in the database.
@@ -24,31 +25,30 @@ impl InteractorConfig {
     /// * `pool`: The connection pool to use.
     pub async fn get_or_create(&self, pool: &PgPool) -> Result<i32, Error> {
         // first, try to find an existing config with the same values ...
-        if let Some(result) = sqlx::query!(
+        let query = sqlx::query!(
             "SELECT id FROM interactor_config WHERE interface = $1 AND voice = $2 AND sensitivity = $3 AND model = $4",
             self.interface,
             self.voice,
             self.sensitivity,
             self.model,
-        )
-        .fetch_optional(pool)
-        .await? {
+        );
+
+        database::log_query(&query);
+        if let Some(result) = query.fetch_optional(pool).await? {
             return Ok(result.id);
         }
 
         // ... otherwise, create a new one
-        Ok(
-            sqlx::query!(
+        let query = sqlx::query!(
                 "INSERT INTO interactor_config (interface, voice, sensitivity, model) VALUES ($1, $2, $3, $4) RETURNING id",
                 self.interface,
                 self.voice,
                 self.sensitivity,
                 self.model,
-            )
-            .fetch_one(pool)
-            .await?
-            .id
-        )
+            );
+
+        database::log_query(&query);
+        Ok(query.fetch_one(pool).await?.id)
     }
 
     /// Get an interactor config from the database.
@@ -58,10 +58,10 @@ impl InteractorConfig {
     /// * `pool`: The connection pool to use.
     /// * `id`: The id of the config.
     pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
-        if let Some(result) = sqlx::query!("SELECT * FROM interactor_config WHERE id = $1", id)
-            .fetch_optional(pool)
-            .await?
-        {
+        let query = sqlx::query!("SELECT * FROM interactor_config WHERE id = $1", id);
+
+        database::log_query(&query);
+        if let Some(result) = query.fetch_optional(pool).await? {
             Ok(Some(InteractorConfig {
                 interface: result.interface,
                 voice: result.voice,

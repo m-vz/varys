@@ -1,7 +1,8 @@
 use std::env;
 
+use log::{debug, info, trace};
 use sqlx::postgres::PgPoolOptions;
-use sqlx::PgPool;
+use sqlx::{Database, Execute, PgPool};
 
 use crate::error::Error;
 
@@ -20,7 +21,24 @@ pub async fn connect() -> Result<PgPool, Error> {
         .connect(url.as_str())
         .await?;
 
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    info!("Connected to database at {url}");
+
+    migrate(&pool).await?;
 
     Ok(pool)
+}
+
+pub async fn migrate(pool: &PgPool) -> Result<(), Error> {
+    debug!("Migrating database if necessary");
+
+    sqlx::migrate!("./migrations").run(pool).await?;
+
+    Ok(())
+}
+
+fn log_query<'q, DB>(query: &impl Execute<'q, DB>)
+where
+    DB: Database,
+{
+    trace!("Running SQL: {}", query.sql());
 }

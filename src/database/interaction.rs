@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
 
+use crate::database;
 use crate::database::query::Query;
 use crate::database::session::Session;
 use crate::error::Error;
@@ -61,16 +62,16 @@ impl Interaction {
     /// * `session`: The session to associate the interaction with.
     pub async fn create(pool: &PgPool, session: &Session, query: &Query) -> Result<Self, Error> {
         let started = Utc::now();
-        let id = sqlx::query!(
+        let db_query = sqlx::query!(
             "INSERT INTO interaction (started, session_id, query, query_category) VALUES ($1, $2, $3, $4) RETURNING id",
             started,
             session.id,
             query.text,
             query.category,
-        )
-        .fetch_one(pool)
-        .await?
-        .id;
+        );
+
+        database::log_query(&db_query);
+        let id = db_query.fetch_one(pool).await?.id;
 
         Ok(Interaction {
             id,
@@ -94,11 +95,10 @@ impl Interaction {
     /// * `pool`: The connection pool to use.
     /// * `id`: The id of the interaction.
     pub async fn get(pool: &PgPool, id: i32) -> Result<Option<Self>, Error> {
-        Ok(
-            sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id)
-                .fetch_optional(pool)
-                .await?,
-        )
+        let query = sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id);
+
+        database::log_query(&query);
+        Ok(query.fetch_optional(pool).await?)
     }
 
     /// Update all values of an interaction in the database.
@@ -107,7 +107,7 @@ impl Interaction {
     ///
     /// * `pool`: The connection pool to use.
     pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
-        sqlx::query!(
+        let query = sqlx::query!(
             "UPDATE interaction SET (session_id, query, query_category, query_duration, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) WHERE id = $11",
             self.session_id,
             self.query,
@@ -120,9 +120,10 @@ impl Interaction {
             self.started,
             self.ended,
             self.id
-        )
-        .execute(pool)
-        .await?;
+        );
+
+        database::log_query(&query);
+        query.execute(pool).await?;
 
         Ok(self)
     }

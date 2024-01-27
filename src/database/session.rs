@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use clap::crate_version;
 use sqlx::{FromRow, PgPool};
 
+use crate::database;
 use crate::database::interactor_config::InteractorConfig;
 use crate::error::Error;
 
@@ -33,15 +34,15 @@ impl Session {
         let started = Utc::now();
         let version = crate_version!().to_string();
         let interactor_config_id = config.get_or_create(pool).await?;
-        let id = sqlx::query!(
+        let query = sqlx::query!(
             "INSERT INTO session (started, version, interactor_config_id) VALUES ($1, $2, $3) RETURNING id",
             started,
             version,
             interactor_config_id,
-        )
-        .fetch_one(pool)
-        .await?
-        .id;
+        );
+
+        database::log_query(&query);
+        let id = query.fetch_one(pool).await?.id;
 
         Ok(Session {
             id,
@@ -53,18 +54,17 @@ impl Session {
         })
     }
 
-    /// Get an session from the database.
+    /// Get a session from the database.
     ///
     /// # Arguments
     ///
     /// * `pool`: The connection pool to use.
     /// * `id`: The id of the session.
     pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
-        Ok(
-            sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id)
-                .fetch_optional(pool)
-                .await?,
-        )
+        let query = sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id);
+
+        database::log_query(&query);
+        Ok(query.fetch_optional(pool).await?)
     }
 
     /// Update all values of a session in the database.
@@ -73,7 +73,7 @@ impl Session {
     ///
     /// * `pool`: The connection pool to use.
     pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
-        sqlx::query!(
+        let query = sqlx::query!(
             "UPDATE session SET (version, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5) WHERE id = $6",
             self.version,
             self.interactor_config_id,
@@ -81,9 +81,10 @@ impl Session {
             self.started,
             self.ended,
             self.id
-        )
-            .execute(pool)
-            .await?;
+        );
+
+        database::log_query(&query);
+        query.execute(pool).await?;
 
         Ok(self)
     }
