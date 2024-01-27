@@ -4,8 +4,6 @@ use clap::Parser;
 use log::{debug, info};
 use pcap::ConnectionStatus;
 
-use crate::{assistant, assistant::VoiceAssistant, file};
-use crate::{sniff, sniff::Sniffer};
 use crate::assistant::interactor::InteractorBuilder;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
@@ -15,6 +13,8 @@ use crate::error::Error;
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
+use crate::{assistant, assistant::VoiceAssistant, file};
+use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
 pub mod interact;
@@ -32,7 +32,7 @@ pub async fn run() -> Result<(), Error> {
         Command::Listen(command) => {
             listen_command(&arguments.voice, arguments.sensitivity, model, command)
         }
-        Command::Sniff(command) => sniff_command(command),
+        Command::Sniff(command) => sniff_command(&arguments.interface, command),
         Command::Run(command) => {
             run_command(
                 &arguments.interface,
@@ -111,12 +111,12 @@ fn listen(
     Ok(())
 }
 
-fn sniff_command(command: SniffCommand) -> Result<(), Error> {
+fn sniff_command(interface: &str, command: SniffCommand) -> Result<(), Error> {
     info!("Sniffing...");
     for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
         debug!("{}", Sniffer::from(device));
     }
-    let sniffer = Sniffer::from(sniff::device_by_name("ap1")?);
+    let sniffer = Sniffer::from(sniff::device_by_name(interface)?);
     debug!("Using: {sniffer}");
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {stats}");

@@ -152,7 +152,7 @@ impl RunningInteractor {
     /// # use varys::database::query::Query;
     /// # use varys::recognise::Model;
     /// let mut interactor = InteractorBuilder::new(
-    ///     "ap1".to_string(),
+    ///     "en0".to_string(),
     ///     "Ava".to_string(),
     ///     0.01,
     ///     Model::Large,

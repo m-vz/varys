@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run sniffer" type="CargoCommandRunConfiguration" factoryName="Cargo Command" focusToolWindowBeforeRun="true">
-    <option name="command" value="run --package varys --bin varys -- sniff --interface ap1 data/captures/captured.pcap" />
+    <option name="command" value="run --package varys --bin varys -- sniff data/captures/captured.pcap" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs>
       <env name="RUST_LOG" value="trace" />
@@ -9,7 +9,7 @@
     <option name="channel" value="DEFAULT" />
     <option name="requiredFeatures" value="true" />
     <option name="allFeatures" value="false" />
-    <option name="withSudo" value="true" />
+    <option name="withSudo" value="false" />
     <option name="buildTarget" value="REMOTE" />
     <option name="backtrace" value="SHORT" />
     <option name="isRedirectInput" value="false" />

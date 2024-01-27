@@ -51,7 +51,7 @@ pub trait VoiceAssistant {
     /// # use varys::recognise::Model;
     /// let assistant = from("Siri");
     /// let mut interactor = InteractorBuilder::new(
-    ///     "ap1".to_string(),
+    ///     "en0".to_string(),
     ///     "Zoe".to_string(),
     ///     0.01,
     ///     Model::Large,
