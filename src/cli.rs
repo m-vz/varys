@@ -87,7 +87,7 @@ fn listen(
 ) -> Result<(), Error> {
     info!("Listening...");
     let listener = Listener::new()?;
-    let mut audio = if let Some(seconds) = command.seconds {
+    let mut audio = if let Some(seconds) = command.duration {
         listener.record_for(seconds, sensitivity)?
     } else {
         listener.record_until_silent(time::Duration::from_secs(2), sensitivity)?
