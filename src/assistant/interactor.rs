@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -19,96 +20,88 @@ use crate::{database, file, monitoring, sniff};
 
 const SILENCE_DURATION: Duration = Duration::from_secs(2);
 
-#[derive(Clone)]
-pub struct InteractorBuilder {
-    pub interface: String,
-    pub voice: String,
-    pub sensitivity: f32,
-    pub model: Model,
-    pub data_dir: PathBuf,
+pub struct Interactor {
+    recogniser: Recogniser,
+    listener: Listener,
+    sniffer: Sniffer,
+    interface: String,
+    speaker: Speaker,
+    voices: VecDeque<String>,
+    sensitivity: f32,
+    model: Model,
+    data_dir: PathBuf,
 }
 
-impl InteractorBuilder {
-    /// Create an interactor builder to build an interactor and all it's components.
+impl Interactor {
+    /// Create an interactor.
+    ///
+    /// This will create a [`Recogniser`].
     ///
     /// # Arguments
     ///
     /// * `interface`: The interface to create the sniffer on.
-    /// * `voice`: The voice to use for the speaker.
+    /// * `voices`: The voices to use for the speaker.
     /// * `sensitivity`: The sensitivity of the listener.
     /// * `model`: The model to use for the recogniser.
-    pub fn new(
-        interface: String,
-        voice: String,
-        sensitivity: f32,
-        model: Model,
-        data_dir: PathBuf,
-    ) -> InteractorBuilder {
-        InteractorBuilder {
-            interface,
-            voice,
-            sensitivity,
-            model,
-            data_dir,
-        }
-    }
-
-    /// Build an interactor.
-    ///
-    /// This will create a [`Listener`], a [`Sniffer`], a [`Speaker`] and a [`Recogniser`].
+    /// * `data_dir`: The path to the data directory.
     ///
     /// # Examples
     ///
     /// ```
     /// # use std::path::PathBuf;
-    /// # use varys::assistant::interactor::InteractorBuilder;
+    /// # use varys::assistant::interactor::Interactor;
     /// # use varys::recognise::Model;
-    /// let mut interactor = InteractorBuilder::new(
+    /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
-    ///     "Ava".to_string(),
+    ///     vec!["Ava".to_string()],
     ///     0.01,
     ///     Model::Large,
     ///     PathBuf::from("./data")
-    /// ).build().unwrap();
+    /// ).unwrap();
     /// ```
-    pub fn build(self) -> Result<Interactor, Error> {
-        let config = InteractorConfig {
-            interface: self.interface.clone(),
-            voice: self.voice.clone(),
-            sensitivity: self.sensitivity.to_string(),
-            model: self.model.to_string(),
-        };
-
+    pub fn new(
+        interface: String,
+        voices: Vec<String>,
+        sensitivity: f32,
+        model: Model,
+        data_dir: PathBuf,
+    ) -> Result<Interactor, Error> {
         Ok(Interactor {
+            recogniser: Recogniser::with_model(model)?,
             listener: Listener::new()?,
-            sniffer: Sniffer::from(sniff::device_by_name(self.interface.as_str())?),
-            speaker: Speaker::with_voice(self.voice.as_str())?,
-            sensitivity: self.sensitivity,
-            recogniser: Recogniser::with_model(self.model)?,
-            config,
-            data_dir: self.data_dir,
+            sniffer: Sniffer::from(sniff::device_by_name(interface.as_str())?),
+            interface,
+            speaker: Speaker::new()?,
+            voices: voices.into(),
+            sensitivity,
+            model,
+            data_dir,
         })
     }
-}
 
-pub struct Interactor {
-    listener: Listener,
-    sniffer: Sniffer,
-    speaker: Speaker,
-    sensitivity: f32,
-    recogniser: Recogniser,
-    config: InteractorConfig,
-    data_dir: PathBuf,
-}
-
-impl Interactor {
     /// Set up a database connection and begin a new session of interactions.
     ///
-    /// Returns a [`RunningInteractor`] that can be started.
-    pub async fn begin_session(self) -> Result<RunningInteractor, Error> {
+    /// This will create a [`Listener`], a [`Sniffer`], a [`Speaker`] and use the existing [`Recogniser`].
+    ///
+    /// Returns a [`InteractorInstance`] that can be started.
+    pub async fn begin_session(mut self) -> Result<InteractorInstance, Error> {
+        // choose next voice and re-queue it
+        let voice = self.voices.pop_front().ok_or(Error::NoVoiceProvided)?;
+        self.voices.push_back(voice.clone());
+        self.speaker.set_voice(&voice)?;
+
         // connect to database and start session
         let database_pool = database::connect().await?;
-        let mut session = Session::create(&database_pool, &self.config).await?;
+        let mut session = Session::create(
+            &database_pool,
+            &InteractorConfig {
+                interface: self.interface.to_string(),
+                voice: voice.clone(),
+                sensitivity: self.sensitivity.to_string(),
+                model: self.model.to_string(),
+            },
+        )
+        .await?;
 
         // create and store session path
         let session_path = self
@@ -119,7 +112,7 @@ impl Interactor {
         session.update(&database_pool).await?;
         debug!("Storing data files at {}", session_path.to_string_lossy());
 
-        Ok(RunningInteractor {
+        Ok(InteractorInstance {
             interactor: self,
             database_pool,
             session,
@@ -128,14 +121,14 @@ impl Interactor {
     }
 }
 
-pub struct RunningInteractor {
+pub struct InteractorInstance {
     interactor: Interactor,
     database_pool: PgPool,
     session: Session,
     session_path: PathBuf,
 }
 
-impl RunningInteractor {
+impl InteractorInstance {
     /// Start the prepared session with a list of queries.
     ///
     /// # Arguments
@@ -148,17 +141,16 @@ impl RunningInteractor {
     ///
     /// ```no_run
     /// # use std::path::PathBuf;
-    /// # use varys::assistant::interactor::InteractorBuilder;
+    /// # use varys::assistant::interactor::Interactor;
     /// # use varys::database::query::Query;
     /// # use varys::recognise::Model;
-    /// let mut interactor = InteractorBuilder::new(
+    /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
-    ///     "Ava".to_string(),
+    ///     vec!["Ava".to_string()],
     ///     0.01,
     ///     Model::Large,
     ///     PathBuf::from("./data")
     /// )
-    /// .build()
     /// .unwrap();
     /// let queries = vec![
     ///     Query {

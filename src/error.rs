@@ -18,6 +18,8 @@ pub enum Error {
     UnsupportedFeature(String),
     #[error("Voice {0} is not available or does not exist")]
     VoiceNotAvailable(String),
+    #[error("At least one voice is required")]
+    NoVoiceProvided,
     #[error("Tts error")]
     Tts,
 
@@ -47,7 +49,7 @@ pub enum Error {
     #[error("Hound error")]
     Hound,
 
-    // sst
+    // stt
     #[error("Failed to create new whisper context")]
     WhisperContext,
     #[error("An error occurred during recognition")]

@@ -10,9 +10,9 @@ pub struct Arguments {
     /// The network interface to listen on
     #[arg(short, long, global = true, default_value = "en0")]
     pub interface: String,
-    /// The voice to use for speaking
-    #[arg(short, long, global = true, default_value = "Zoe")]
-    pub voice: String,
+    /// The voices to use for speaking, one random voice is used per session
+    #[arg(short, long, global = true, default_values_t = vec!["Zoe".to_string()])]
+    pub voices: Vec<String>,
     /// The sensitivity to distinguish ambient noise from speech
     #[arg(short, long, global = true, default_value_t = 0.01)]
     pub sensitivity: f32,

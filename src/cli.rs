@@ -4,7 +4,7 @@ use clap::Parser;
 use log::{debug, info};
 use pcap::ConnectionStatus;
 
-use crate::assistant::interactor::InteractorBuilder;
+use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
@@ -29,14 +29,17 @@ pub async fn run() -> Result<(), Error> {
 
     match arguments.command {
         Command::Assistant(command) => assistant_command(command),
-        Command::Listen(command) => {
-            listen_command(&arguments.voice, arguments.sensitivity, model, command)
-        }
+        Command::Listen(command) => listen_command(
+            arguments.voices.first().ok_or(Error::NoVoiceProvided)?,
+            arguments.sensitivity,
+            model,
+            command,
+        ),
         Command::Sniff(command) => sniff_command(&arguments.interface, command),
         Command::Run(command) => {
             run_command(
                 &arguments.interface,
-                &arguments.voice,
+                arguments.voices,
                 arguments.sensitivity,
                 model,
                 command,
@@ -127,20 +130,19 @@ fn sniff_command(interface: &str, command: SniffCommand) -> Result<(), Error> {
 
 async fn run_command(
     interface: &str,
-    voice: &str,
+    voices: Vec<String>,
     sensitivity: f32,
     model: Model,
     command: arguments::RunCommand,
 ) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
-    let interactor = InteractorBuilder::new(
+    let interactor = Interactor::new(
         interface.to_string(),
-        voice.to_string(),
+        voices,
         sensitivity,
         model,
         command.data_dir,
-    )
-    .build()?;
+    )?;
     let queries = Query::read_toml(&command.queries)?;
 
     assistant.interact(interactor, queries).await

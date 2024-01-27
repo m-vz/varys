@@ -46,18 +46,17 @@ pub trait VoiceAssistant {
     /// ```no_run
     /// # use std::path::PathBuf;
     /// # use varys::assistant::{from, VoiceAssistant};
-    /// # use varys::assistant::interactor::InteractorBuilder;
+    /// # use varys::assistant::interactor::Interactor;
     /// # use varys::database::query::Query;
     /// # use varys::recognise::Model;
     /// let assistant = from("Siri");
-    /// let mut interactor = InteractorBuilder::new(
+    /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
-    ///     "Zoe".to_string(),
+    ///     vec!["Zoe".to_string()],
     ///     0.01,
     ///     Model::Large,
     ///     PathBuf::from("./data")
     /// )
-    /// .build()
     /// .unwrap();
     /// let queries = Query::read_toml(&PathBuf::from("data/test_queries.txt")).unwrap();
     /// # tokio::runtime::Builder::new_current_thread()
