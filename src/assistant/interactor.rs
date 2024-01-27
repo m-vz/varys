@@ -224,13 +224,13 @@ impl InteractorInstance {
         file::audio::write_audio(&audio_path, &audio)?;
         interaction.response_file = Some(file::file_name_or_full(&audio_path));
 
-        // recognise the response
-        interaction.response = Some(self.interactor.recogniser.recognise(&mut audio)?);
-        interaction.update(&self.database_pool).await?;
-
         // finish the sniffer
         info!("{}", sniffer_instance.stop()?);
         interaction.capture_file = Some(file::file_name_or_full(&capture_path));
+
+        // recognise the response
+        interaction.response = Some(self.interactor.recogniser.recognise(&mut audio)?);
+        interaction.update(&self.database_pool).await?;
 
         // finish the interaction
         interaction.complete(&self.database_pool).await?;
