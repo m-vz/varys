@@ -225,7 +225,7 @@ impl RunningInteractor {
             .interactor
             .listener
             .record_until_silent(SILENCE_DURATION, self.interactor.sensitivity)?;
-        interaction.response_duration = Some(audio.duration());
+        interaction.response_duration = Some(audio.duration_ms());
         let audio_path = self
             .session_path
             .join(audio_file_name(&self.session, &interaction));

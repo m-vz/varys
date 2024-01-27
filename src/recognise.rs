@@ -118,6 +118,8 @@ impl Recogniser {
     /// recogniser.recognise(&mut audio).unwrap();
     /// ```
     pub fn recognise(&self, audio: &mut AudioData) -> Result<String, Error> {
+        info!("Recognising {:.2} seconds of audio...", audio.duration_s());
+
         Recogniser::preprocess(audio)?;
 
         let mut state = self.context.create_state()?;

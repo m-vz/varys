@@ -272,10 +272,29 @@ impl AudioData {
     ///     channels: 1,
     ///     sample_rate: sample_rate as u32,
     /// };
-    /// assert_eq!(audio.duration(), seconds * 1000);
+    /// assert_eq!(audio.duration_ms(), seconds * 1000);
     /// ```
-    pub fn duration(&self) -> i32 {
+    pub fn duration_ms(&self) -> i32 {
         (self.data.len() as i64 * 1000 / self.sample_rate as i64 / self.channels as i64) as i32
+    }
+
+    /// Get the duration of the audio in seconds.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::audio::AudioData;
+    /// let sample_rate = 48000;
+    /// let seconds = 100_i32;
+    /// let mut audio = AudioData {
+    ///     data: vec![0_f32; seconds as usize * sample_rate],
+    ///     channels: 1,
+    ///     sample_rate: sample_rate as u32,
+    /// };
+    /// assert!((audio.duration_s() - seconds as f32) < 0.0001);
+    /// ```
+    pub fn duration_s(&self) -> f32 {
+        self.data.len() as f32 / (self.sample_rate * self.channels as u32) as f32
     }
 }
 
