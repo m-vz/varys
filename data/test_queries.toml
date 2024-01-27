@@ -1,0 +1,10 @@
+test_category_jokes = [
+    "Tell me a machine learning joke.",
+    "How smart are you?",
+]
+
+test_category_serious = [
+    "What is five divided by zero?",
+    "Are you spying on me?",
+    "Does Apple know what I say?",
+]

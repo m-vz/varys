@@ -14,6 +14,31 @@ pub struct Query {
 }
 
 impl Query {
+    /// Read queries from a TOML file.
+    ///
+    /// The TOML file should have the following format:
+    ///
+    /// ```toml
+    /// category_1 = ["query_1", "query_2"]
+    /// category_2 = ["query_3"]
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `path`: The path to the TOML file.
+    ///
+    /// Returns a vec of the [`Query`]s found in the file.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::database::query::Query;
+    /// let queries = Query::read_toml("data/test_queries.toml").unwrap();
+    /// assert!(queries
+    ///     .first()
+    ///     .is_some_and(|query| query.category == "test_category_jokes"
+    ///         && query.text == "Tell me a machine learning joke."));
+    /// ```
     pub fn read_toml<P: AsRef<Path>>(path: P) -> Result<Vec<Self>, Error> {
         let mut queries = Vec::new();
         let toml = fs::read_to_string(path)
