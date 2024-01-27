@@ -80,6 +80,8 @@ pub enum Error {
     MonitoringConnectionFailed(reqwest::Error),
     #[error("Environment variable VARYS_MONITORING_URL is missing")]
     MissingMonitoringUrl,
+    #[error("The monitoring url {0} is invalid")]
+    InvalidMonitoringUrl(String),
 }
 
 impl From<tts::Error> for Error {

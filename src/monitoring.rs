@@ -1,4 +1,5 @@
-use log::debug;
+use log::info;
+use reqwest::Url;
 
 use crate::error::Error;
 
@@ -14,13 +15,17 @@ use crate::error::Error;
 /// Returns an error if the request failed.
 pub async fn ping(message: &str) -> Result<(), Error> {
     let url = dotenvy::var("VARYS_MONITORING_URL").map_err(|_| Error::MissingMonitoringUrl)?;
-    let url_with_message = url.replace("{varys_message}", message);
+    let url = url.replace("{varys_message}", message);
+    let url = Url::parse(&url).map_err(|_| Error::InvalidMonitoringUrl(url))?;
 
-    reqwest::get(url_with_message)
+    info!(
+        "Pinging monitoring at {} with message: {message}",
+        url.domain().unwrap_or(url.as_str())
+    );
+
+    reqwest::get(url)
         .await
         .map_err(Error::MonitoringConnectionFailed)?;
-
-    debug!("Pinged monitoring at {url} with message: {message}");
 
     Ok(())
 }
