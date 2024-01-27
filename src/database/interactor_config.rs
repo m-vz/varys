@@ -3,7 +3,7 @@ use sqlx::{FromRow, PgPool};
 use crate::database;
 use crate::error::Error;
 
-/// The representation of a interactor configuration in the database.
+/// The representation of an interactor configuration in the database.
 ///
 /// Each config is uniquely represented in the database.
 #[derive(FromRow, Debug)]

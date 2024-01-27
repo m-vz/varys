@@ -55,7 +55,7 @@ impl AudioData {
     /// ```
     pub fn convert_to_mono(&mut self) -> &mut Self {
         if self.channels != 1 {
-            debug!("Converting from {} channels to mono", self.channels);
+            debug!("Converting from {} channels to mono...", self.channels);
 
             self.data = self
                 .data
@@ -83,7 +83,7 @@ impl AudioData {
     ///
     /// # Examples
     ///
-    /// This examples samples from 48kHz to 16kHz by a factor of 3. Therefore every third element is
+    /// This examples samples from 48kHz to 16kHz by a factor of 3. Therefore, every third element is
     /// kept when creating the downsampled data.
     ///
     /// ```
@@ -104,7 +104,7 @@ impl AudioData {
             return Ok(self);
         }
 
-        debug!("Resampling {}Hz to {}Hz", self.sample_rate, sample_rate);
+        debug!("Resampling {}Hz to {}Hz...", self.sample_rate, sample_rate);
 
         let sample_ratio = (self.sample_rate / sample_rate) as usize;
         let resampled_length = self.data.len() / sample_ratio + 1; // add 1 to make sure the array doesn't need to grow
@@ -153,6 +153,8 @@ impl AudioData {
     /// assert_eq!(audio.trim_silence(1_f32).data, expected_data);
     /// ```
     pub fn trim_silence(&mut self, threshold: f32) -> &mut Self {
+        debug!("Trimming silence above a threshold of {}...", threshold);
+
         // find the index of the first sample that is above the threshold
         let from = self
             .data
@@ -212,6 +214,8 @@ impl AudioData {
             return Ok((vec![], 0, 0));
         }
 
+        debug!("Encoding audio data as OPUS...");
+
         let sample_rate = i32::try_from(self.sample_rate).map_err(|_| Error::OutOfRange)?;
         let channels: i32 = self.channels.into();
         let mut encoder = Encoder::new(
@@ -232,6 +236,11 @@ impl AudioData {
             let end = start + frame_size;
             if end >= padded_data.len() {
                 // drop the last packet if it doesn't fit – opus only supports specific frame sizes
+                trace!(
+                    "Dropping last {} bytes of audio that don't fill a full frame",
+                    padded_data.len() - start
+                );
+
                 break;
             }
             let mut encoded_frame = vec![0; frame_size];

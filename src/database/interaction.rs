@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use log::info;
 use sqlx::{FromRow, PgPool};
 
 use crate::database;
@@ -136,6 +137,8 @@ impl Interaction {
     pub async fn complete(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         self.ended = Some(Utc::now());
         self.update(pool).await?;
+
+        info!("Completed interaction {} at {}", self.id, Utc::now());
 
         Ok(self)
     }

@@ -109,7 +109,7 @@ impl Listener {
                         if sample_count >= MOVING_AVERAGE_WINDOW_SIZE as u32 {
                             trace!("{}", running_average.get_average());
                             if average_sender.send(running_average.get_average()).is_err() {
-                                warn!("Unable to send recording average.");
+                                warn!("Unable to send recording average");
                             }
                             sample_count = 0;
                         }
@@ -225,7 +225,7 @@ impl Listener {
     /// Returns an error if the audio stream could not be built or played. This can happen if the
     /// device is no longer available.
     pub fn calibrate(&self) -> Result<f32, Error> {
-        info!("Calibrating ambient noise...");
+        info!("Recording ambient noise...");
 
         let instance = self.start()?;
         let started = Instant::now();
@@ -264,7 +264,7 @@ impl ListenerInstance {
     /// let audio_data = instance.stop().unwrap();
     /// ```
     pub fn stop(self) -> Result<AudioData, Error> {
-        info!("Stopping recording...");
+        info!("Recording stopped");
 
         drop(self.stream);
         let data = Arc::try_unwrap(self.writer)

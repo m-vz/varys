@@ -145,10 +145,12 @@ impl Sniffer {
     /// let stats = sniffer.run_for(5, Path::new("capture.pcap")).unwrap();
     /// ```
     pub fn run_for(&self, seconds: u64, file_path: &Path) -> Result<SnifferStats, Error> {
-        info!("Running sniffer for {} seconds", seconds);
+        info!("Running sniffer for {seconds} seconds...");
 
         let instance = self.start(file_path)?;
+
         thread::sleep(Duration::from_secs(seconds));
+
         instance.stop()
     }
 }
@@ -192,7 +194,7 @@ impl SnifferInstance {
     /// let stats = instance.stop().unwrap();
     /// ```
     pub fn stop(self) -> Result<SnifferStats, Error> {
-        info!("Sniffer stopping...");
+        info!("Sniffer stopping");
 
         self.shutdown_channel
             .send(())
@@ -313,10 +315,10 @@ pub fn default_device() -> Result<Device, Error> {
 ///     if name.as_str() == "Invalid device name" {
 ///         return;
 ///     } else {
-///         panic!("Wrong error format.");
+///         panic!("Wrong error format");
 ///     }
 /// } else {
-///     panic!("Error expected.");
+///     panic!("Error expected");
 /// }
 /// ```
 pub fn device_by_name(name: &str) -> Result<Device, Error> {

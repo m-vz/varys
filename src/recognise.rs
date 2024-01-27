@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use log::{debug, trace};
+use log::{debug, info, trace};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::error::Error;
@@ -87,6 +87,8 @@ impl Recogniser {
         let mut params = WhisperContextParameters::default();
         params.use_gpu(true);
 
+        debug!("Using model: {}", model_path);
+
         Ok(Recogniser {
             context: WhisperContext::new_with_params(model_path, params)?,
         })
@@ -132,14 +134,22 @@ impl Recogniser {
             let segment = state.full_get_segment_text(i)?;
             full_text.push_str(&segment);
             let timestamps = (state.full_get_segment_t0(i)?, state.full_get_segment_t1(i)?);
-            trace!("[{} - {}]: {}", timestamps.0, timestamps.1, segment);
+            trace!(
+                "Recognised segment [{} - {}]: {}",
+                timestamps.0,
+                timestamps.1,
+                segment
+            );
         }
 
-        debug!("Recognised: {}", full_text);
+        info!("Recognised: {}", full_text);
+
         Ok(full_text)
     }
 
     fn preprocess(audio: &mut AudioData) -> Result<(), Error> {
+        debug!("Preprocessing audio for recognition...");
+
         audio
             .convert_to_mono()
             .downsample(Recogniser::SAMPLE_RATE)?;

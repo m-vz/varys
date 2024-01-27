@@ -3,22 +3,24 @@ use std::path::{Path, PathBuf};
 use std::{fs, fs::File};
 
 use flate2::{Compression, GzBuilder};
-use log::debug;
+use log::info;
 
 use crate::error::Error;
 
 pub mod audio;
 
-/// Compress a file into a gzip wrapper. Returns the path to the compressed file.
+/// Compress a file into a gzip wrapper.
 ///
 /// The compressed file is written to the same path as the uncompressed one.
 ///
-/// This returns an error if the compressed file could not be created or written.
+/// Returns an error if the compressed file could not be created or written.
 ///
 /// # Arguments
 ///
 /// * `file_path`: The path to the file to compress.
 /// * `keep`: Whether to keep the uncompressed file.
+///
+/// Returns the path to the compressed file.
 ///
 /// # Examples
 ///
@@ -33,7 +35,7 @@ pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<PathBuf, Error> {
     let file = File::open(file_path)?;
     let reader = BufReader::with_capacity(100, file);
 
-    debug!("Compressing {:?} using gzip.", file_path);
+    info!("Compressing {:?} using gzip", file_path);
 
     let mut file_path_gz = file_path.to_owned().into_os_string();
     file_path_gz.push(".gz");

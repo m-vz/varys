@@ -1,5 +1,8 @@
+use std::fmt::{Display, Formatter};
+
 use chrono::{DateTime, Utc};
 use clap::crate_version;
+use log::info;
 use sqlx::{FromRow, PgPool};
 
 use crate::database;
@@ -98,6 +101,8 @@ impl Session {
         self.ended = Some(Utc::now());
         self.update(pool).await?;
 
+        info!("Completed {self} at {}", Utc::now());
+
         Ok(self)
     }
 
@@ -108,5 +113,11 @@ impl Session {
     /// * `pool`: The connection pool to use.
     pub async fn config(&self, pool: &PgPool) -> Result<Option<InteractorConfig>, Error> {
         InteractorConfig::get(self.interactor_config_id, pool).await
+    }
+}
+
+impl Display for Session {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Session {} (started {})", self.id, self.started)
     }
 }

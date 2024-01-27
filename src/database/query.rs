@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
 
-use log::warn;
+use log::{debug, info, warn};
 use toml::Table;
 
 use crate::error::Error;
@@ -40,10 +40,12 @@ impl Query {
     ///         && query.text == "Tell me a machine learning joke."));
     /// ```
     pub fn read_toml<P: AsRef<Path>>(path: P) -> Result<Vec<Self>, Error> {
+        info!("Reading queries from {}", path.as_ref().display());
+
         let mut queries = Vec::new();
         let toml = fs::read_to_string(path)
             .map_err(|e| {
-                warn!("Could not read queries.");
+                warn!("Could not read queries file");
 
                 Error::Io(e)
             })?
@@ -61,6 +63,8 @@ impl Query {
                 }
             }
         }
+
+        debug!("Found {} queries", queries.len());
 
         Ok(queries)
     }

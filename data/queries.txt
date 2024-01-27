@@ -75,9 +75,9 @@ Find the greatest common divisor of 48 and 36.
 Find the least common multiple of 12 and 18.
 Calculate the sine of 45 degrees.
 Calculate the tangent of 30 degrees.
-What is the arccosine of 0.5?
-What is the arcsine of 0.8?
-What is the arctangent of 1?
+What is the arc-cosine of 0.5?
+What is the arc-sine of 0.8?
+What is the arc-tangent of 1?
 Calculate the hypotenuse of a right triangle with legs 3 and 4.
 Find the area of a rectangle with length 10 and width 7.
 What date is 90 days before the December 17?
@@ -292,7 +292,7 @@ Remind me to wash the car when I leave home today
 Remind me to message my sister when I come home today
 Remind me to buy milk when I get to work today
 Remind me to go to the store when I get in the car today
-Remind me to buy diswasher detergent when I arrive at Costco Fenton Parkway today
+Remind me to buy dishwasher detergent when I arrive at Costco Fenton Parkway today
 Remind me to buy milk next time I’m here
 Remind me to close the door next time I’m here
 Remind me to wash the car every second week
@@ -677,5 +677,5 @@ Purr
 I’m sleepy
 I’m not a cat person
 I’m not a dog person
-How many labs does it take to screw in a lightbulb?
+How many labs does it take to screw in a light bulb?
 How many languages do you speak?

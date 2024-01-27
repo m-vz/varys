@@ -117,8 +117,6 @@ impl Interactor {
         fs::create_dir_all(&session_path)?;
         session.data_dir = Some(session_path.to_string_lossy().to_string());
         session.update(&database_pool).await?;
-
-        info!("Starting session {}", session.id);
         debug!("Storing data files at {}", session_path.to_string_lossy());
 
         Ok(RunningInteractor {
@@ -187,6 +185,8 @@ impl RunningInteractor {
     /// #     })
     /// ```
     pub async fn start(mut self, queries: &Vec<Query>) -> Result<Interactor, Error> {
+        info!("Starting {}", self.session);
+
         for query in queries {
             if let Err(error) = self.interaction(query).await {
                 error!("An interaction did not complete successfully: {error}");

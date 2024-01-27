@@ -6,7 +6,7 @@ use cocoa_foundation::{
     foundation::{NSDefaultRunLoopMode, NSRunLoop},
 };
 use lerp::Lerp;
-use log::debug;
+use log::{debug, info, trace};
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
 use tokio::time::Instant;
@@ -32,6 +32,16 @@ impl Speaker {
             tts,
             available_voices,
         };
+
+        debug!(
+            "Available voices: {}",
+            speaker
+                .available_voices
+                .iter()
+                .map(|voice| voice.name())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
 
         Ok(speaker)
     }
@@ -66,7 +76,9 @@ impl Speaker {
     /// ```
     pub fn with_voice(id_or_name: &str) -> Result<Self, Error> {
         let mut speaker = Self::new()?;
+
         speaker.set_voice(id_or_name)?;
+
         Ok(speaker)
     }
 
@@ -108,6 +120,8 @@ impl Speaker {
         if let Some(voice) = voice {
             self.tts.set_voice(voice)?;
 
+            info!("Using voice {}", id_or_name);
+
             Ok(())
         } else {
             Err(Error::VoiceNotAvailable(id_or_name.to_string()))
@@ -129,6 +143,8 @@ impl Speaker {
         let min = self.tts.min_volume();
         let max = self.tts.max_volume();
         self.tts.set_volume(min.lerp_bounded(max, volume))?;
+
+        info!("Volume set to {:.2}", volume);
 
         Ok(())
     }
@@ -164,6 +180,8 @@ impl Speaker {
         let max = self.tts.max_rate();
         self.tts.set_rate(min.lerp_bounded(max, rate))?;
 
+        info!("Speaking rate set to {:.2}", rate);
+
         Ok(())
     }
 
@@ -197,7 +215,7 @@ impl Speaker {
     /// let speaking_duration = speaker.say("", false).unwrap();
     /// ```
     pub fn say(&mut self, text: &str, interrupt: bool) -> Result<i32, Error> {
-        debug!("Saying \"{text}\"");
+        info!("Saying \"{text}\"");
 
         let (sender, receiver) = channel();
         self.tts.on_utterance_end(Some(Box::new(move |_| {
@@ -220,7 +238,7 @@ impl Speaker {
         }
 
         let duration = start.elapsed().as_millis() as i32;
-        debug!("Spoke for {duration}ms");
+        trace!("Spoke for {duration}ms");
         Ok(duration)
     }
 }
