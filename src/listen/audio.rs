@@ -213,7 +213,7 @@ impl AudioData {
         }
 
         let sample_rate = i32::try_from(self.sample_rate).map_err(|_| Error::OutOfRange)?;
-        let channels = i32::try_from(self.channels).map_err(|_| Error::OutOfRange)?;
+        let channels: i32 = self.channels.into();
         let mut encoder = Encoder::new(
             SampleRate::try_from(sample_rate)?,
             Channels::try_from(channels)?,
