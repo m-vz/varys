@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+  <configuration default="false" name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command" focusToolWindowBeforeRun="true">
     <option name="command" value="run --package varys --bin varys -- run Siri data/queries.toml data" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs>
