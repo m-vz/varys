@@ -1,0 +1,1 @@
+alter table interaction add column query_file text;
