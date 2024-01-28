@@ -32,6 +32,8 @@ pub enum Error {
     StillRecording,
     #[error("Could not access recorded audio data")]
     RecordingFailed,
+    #[error("Encountered timeout while recording audio")]
+    RecordingTimeout,
     #[error(
         "Downsampling requires the target sample rate to be a divisor of the current sample rate"
     )]

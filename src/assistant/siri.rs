@@ -4,7 +4,7 @@ use log::info;
 use rand::seq::SliceRandom;
 
 use crate::assistant::interactor::Interactor;
-use crate::assistant::{Error, VoiceAssistant};
+use crate::assistant::{interactor, Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
 use crate::database::query::Query;
 use crate::speak::Speaker;
@@ -89,8 +89,45 @@ impl VoiceAssistant for Siri {
 
         loop {
             queries.shuffle(&mut rand::thread_rng());
-            interactor = interactor.begin_session().await?.start(&queries).await?;
+            interactor = interactor
+                .begin_session(self)
+                .await?
+                .start(&queries)
+                .await?;
         }
+    }
+
+    fn reset_assistant(&self, interactor: &mut Interactor) -> Result<(), Error> {
+        info!("Resetting Siri...");
+
+        let wait = || {
+            interactor.listener.wait_until_silent(
+                interactor::MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+                interactor.sensitivity,
+            )
+        };
+
+        wait()?;
+        interactor
+            .speaker
+            .say("Hey Siri, turn off the music.", true)?;
+        wait()?;
+        interactor
+            .speaker
+            .say("Hey Siri, cancel all timers.", true)?;
+        wait()?;
+        interactor
+            .speaker
+            .say("Hey Siri, disable all alarms.", true)?;
+        wait()?;
+        interactor
+            .speaker
+            .say("Hey Siri, delete all reminders.", true)?;
+        wait()?;
+
+        info!("Siri reset");
+
+        Ok(())
     }
 
     fn test_voices(&self, voices: Vec<String>) -> Result<(), Error> {

@@ -19,7 +19,7 @@ use crate::recognise::Recogniser;
 pub mod audio;
 
 const CALIBRATION_TIMEOUT: Duration = Duration::from_secs(5);
-const RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(60));
+const RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5 * 60));
 const MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
 /// How many seconds of audio data should be expected by default when starting a recording.
 const RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
@@ -298,7 +298,7 @@ impl Listener {
             }
             if let Some(timeout) = self.recording_timeout {
                 if started < now - timeout {
-                    break;
+                    return Err(Error::RecordingTimeout);
                 }
             }
         }
