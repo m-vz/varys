@@ -239,6 +239,7 @@ impl InteractorInstance {
         // finish the sniffer
         info!("{}", sniffer_instance.stop()?);
         interaction.capture_file = Some(file::file_name_or_full(&capture_path));
+        interaction.update(&self.database_pool).await?;
 
         // recognise the response
         interaction.response = Some(self.interactor.recogniser.recognise(&mut response_audio)?);
