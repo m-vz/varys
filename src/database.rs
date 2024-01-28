@@ -29,7 +29,7 @@ pub async fn connect() -> Result<PgPool, Error> {
 }
 
 pub async fn migrate(pool: &PgPool) -> Result<(), Error> {
-    debug!("Migrating database if necessary");
+    debug!("Migrating database if necessary...");
 
     sqlx::migrate!("./migrations").run(pool).await?;
 
