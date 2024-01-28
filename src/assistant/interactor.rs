@@ -18,7 +18,10 @@ use crate::sniff::Sniffer;
 use crate::speak::Speaker;
 use crate::{database, file, monitoring, sniff};
 
-const SILENCE_DURATION: Duration = Duration::from_secs(2);
+/// How long there must be silence for the recording to be stopped.
+const SILENCE_AFTER_RECORDING: Duration = Duration::from_secs(2);
+/// How long there must be silence before the next interaction is begun
+const MINIMUM_SILENCE_BETWEEN_INTERACTIONS: Duration = Duration::from_secs(4);
 
 pub struct Interactor {
     recogniser: Recogniser,
@@ -185,6 +188,12 @@ impl InteractorInstance {
                 warn!("Failed to notify monitoring about interaction: {}", error);
             }
 
+            // wait for silence to begin the interaction
+            self.interactor.listener.wait_until_silent(
+                MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+                self.interactor.sensitivity,
+            )?;
+
             // start the interaction
             if let Err(error) = self.interaction(query).await {
                 error!("An interaction did not complete successfully: {error}");
@@ -232,7 +241,7 @@ impl InteractorInstance {
         let mut response_audio = self
             .interactor
             .listener
-            .record_until_silent(SILENCE_DURATION, self.interactor.sensitivity)?;
+            .record_until_silent(SILENCE_AFTER_RECORDING, self.interactor.sensitivity)?;
 
         interaction.response_duration = Some(response_audio.duration_ms());
         file::audio::write_audio(&response_audio_path, &response_audio)?;
@@ -247,7 +256,8 @@ impl InteractorInstance {
         interaction.update(&self.database_pool).await?;
 
         // recognise the response
-        interaction.response = Some(self.interactor.recogniser.recognise(&mut response_audio)?);
+        let response = self.interactor.recogniser.recognise(&mut response_audio)?;
+        interaction.response = Some(response.clone());
         interaction.update(&self.database_pool).await?;
 
         // finish the interaction

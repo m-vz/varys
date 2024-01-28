@@ -29,7 +29,9 @@ pub struct Listener {
     device: Device,
     device_config: StreamConfig,
     /// The optional maximum duration to record for.
+    ///
     /// Use this to stop any recording longer than the specified duration.
+    ///
     /// This ensures the listener does not record forever if there is interference or noise.
     ///
     /// Defaults to [`Listener::DEFAULT_RECORDING_TIMEOUT`].
@@ -39,8 +41,7 @@ pub struct Listener {
 impl Listener {
     /// Create a new listener using the system default input device.
     ///
-    /// Returns an error if no input device was found or if it doesn't support the required sample
-    /// rate and format.
+    /// Returns an error if no input device was found or if it doesn't support the required sample rate and format.
     ///
     /// # Examples
     ///
@@ -76,8 +77,8 @@ impl Listener {
 
     /// Start recording audio data.
     ///
-    /// Returns an error if the audio stream could not be built or played. This can happen if the
-    /// device is no longer available.
+    /// Returns an error if the audio stream could not be built or played. This can happen if the device is no longer
+    /// available.
     ///
     /// # Examples
     ///
@@ -88,7 +89,7 @@ impl Listener {
     /// # instance.stop().unwrap();
     /// ```
     pub fn start(&self) -> Result<ListenerInstance, Error> {
-        info!("Starting recording...");
+        info!("Listening has begun");
 
         let writer = Arc::new(Mutex::new(Vec::with_capacity(
             self.device_config.sample_rate.0 as usize * RECORDING_BUFFER_CAPACITY_SECONDS,
@@ -130,11 +131,46 @@ impl Listener {
         })
     }
 
-    /// Record until silence is detected for a certain amount of time. The current thread is blocked
-    /// until recording is done.
+    /// Record for a specified amount of seconds.
     ///
-    /// Returns an error if the audio stream could not be built or played. This can happen if the
-    /// device is no longer available.
+    /// This blocks until it is done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the device is no longer
+    /// available.
+    ///
+    /// # Arguments
+    ///
+    /// * `seconds`: How many seconds to record for.
+    ///
+    /// Returns the recorded [`AudioData`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys::listen::Listener;
+    /// let listener = Listener::new().unwrap();
+    /// let audio_data = listener.record_for(0, 0.01);
+    /// ```
+    pub fn record_for(&self, seconds: u32, silence_threshold: f32) -> Result<AudioData, Error> {
+        info!("Listening for {} seconds", seconds);
+
+        let instance = self.start()?;
+        for second in (1..=seconds).rev() {
+            debug!("{}...", second);
+            thread::sleep(Duration::from_secs(1));
+        }
+
+        let mut audio = instance.stop()?;
+        audio.trim_silence(silence_threshold);
+
+        Ok(audio)
+    }
+
+    /// Record until silence is detected for a certain amount of time. The current thread is blocked until recording is
+    /// done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the device is no longer
+    /// available.
     ///
     /// # Arguments
     ///
@@ -157,70 +193,59 @@ impl Listener {
         silence_threshold: f32,
     ) -> Result<AudioData, Error> {
         info!(
-            "Recording audio until silent for {} seconds...",
+            "Listening until silent for {} seconds...",
             silence_duration.as_secs()
         );
 
         let instance = self.start()?;
-        let started = Instant::now();
-        let mut last_audio_detected = None;
-        while let Ok(average) = instance.average.recv() {
-            let now = Instant::now();
-            if average > silence_threshold {
-                last_audio_detected = Some(now);
-            }
-            if let Some(last_audio_detected) = last_audio_detected {
-                if last_audio_detected < now - silence_duration {
-                    break;
-                }
-            }
-            if let Some(timeout) = self.recording_timeout {
-                if started < now - timeout {
-                    break;
-                }
-            }
-        }
-
+        self.run_instance_until_silent(&instance, silence_duration, silence_threshold, true)?;
         let mut audio = instance.stop()?;
         audio.trim_silence(silence_threshold);
+
         Ok(audio)
     }
 
-    /// Record for a specified amount of seconds. The current thread is blocked until recording is
-    /// done.
+    /// Wait until silence is detected for a certain amount of time.
     ///
-    /// Returns an error if the audio stream could not be built or played. This can happen if the
-    /// device is no longer available.
+    /// This blocks until it is done.
+    ///
+    /// Returns an error if the audio stream could not be built or played. This can happen if the device is no longer
+    /// available.
     ///
     /// # Arguments
     ///
-    /// * `seconds`: How many seconds to record for.
-    ///
-    /// Returns the recorded [`AudioData`].
+    /// * `silence_duration`: How long a silence must be for the recording to be stopped.
+    /// * `silence_threshold`: The highest frequency that is considered silence.
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
+    /// # use std::time;
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// let audio_data = listener.record_for(0, 0.01);
+    /// listener.wait_until_silent(time::Duration::from_secs(0), 0.01).unwrap();
     /// ```
-    pub fn record_for(&self, seconds: u32, silence_threshold: f32) -> Result<AudioData, Error> {
-        info!("Recording audio for {} seconds", seconds);
+    pub fn wait_until_silent(
+        &self,
+        silence_duration: Duration,
+        silence_threshold: f32,
+    ) -> Result<(), Error> {
+        info!(
+            "Waiting until silent for {} seconds...",
+            silence_duration.as_secs()
+        );
 
         let instance = self.start()?;
-        for second in (1..=seconds).rev() {
-            debug!("{}...", second);
-            thread::sleep(Duration::from_secs(1));
-        }
+        self.run_instance_until_silent(&instance, silence_duration, silence_threshold, false)?;
+        let _ = instance.stop()?;
 
-        let mut audio = instance.stop()?;
-        audio.trim_silence(silence_threshold);
-        Ok(audio)
+        Ok(())
     }
 
     /// Listen for a specified amount of seconds to find the ambient noise threshold to use as
-    /// sensitivity. The current thread is blocked until recording is done.
+    /// sensitivity.
+    ///
+    /// This blocks until it is done.
     ///
     /// Returns an error if the audio stream could not be built or played. This can happen if the
     /// device is no longer available.
@@ -239,6 +264,46 @@ impl Listener {
         instance.stop()?;
 
         Ok(averages.iter().sum::<f32>() / averages.len() as f32)
+    }
+
+    /// Run a [`ListenerInstance`] until silence is detected for a certain amount of time.
+    ///
+    /// This blocks until it is done.
+    ///
+    /// # Arguments
+    ///
+    /// * `instance`: The [`ListenerInstance`] to listen on.
+    /// * `silence_duration`: How long of a silence to wait for.
+    /// * `silence_threshold`: The highest frequency that is considered silence.
+    /// * `require_sound`: Whether to require sound to be detected before starting to listen for silence.
+    fn run_instance_until_silent(
+        &self,
+        instance: &ListenerInstance,
+        silence_duration: Duration,
+        silence_threshold: f32,
+        require_sound: bool,
+    ) -> Result<(), Error> {
+        let started = Instant::now();
+        let mut last_audio_detected = if require_sound { None } else { Some(started) };
+
+        while let Ok(average) = instance.average.recv() {
+            let now = Instant::now();
+            if average > silence_threshold {
+                last_audio_detected = Some(now);
+            }
+            if let Some(last_audio_detected) = last_audio_detected {
+                if last_audio_detected < now - silence_duration {
+                    break;
+                }
+            }
+            if let Some(timeout) = self.recording_timeout {
+                if started < now - timeout {
+                    break;
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -264,7 +329,7 @@ impl ListenerInstance {
     /// let audio_data = instance.stop().unwrap();
     /// ```
     pub fn stop(self) -> Result<AudioData, Error> {
-        info!("Recording stopped");
+        info!("Stopped listening");
 
         drop(self.stream);
         let data = Arc::try_unwrap(self.writer)
