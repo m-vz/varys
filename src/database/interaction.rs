@@ -26,6 +26,10 @@ pub struct Interaction {
     ///
     /// If this is `None`, the interaction is still running or was aborted.
     pub query_duration: Option<i32>,
+    /// The file with the recorded query.
+    ///
+    /// Stored inside the session `data_dir`.
+    pub query_file: Option<String>,
     /// The recorded response from the voice assistant.
     ///
     /// Currently, short responses are sometimes not recognised accurately. Watch `response_duration`
@@ -80,6 +84,7 @@ impl Interaction {
             query: query.text.clone(),
             query_category: query.category.clone(),
             query_duration: None,
+            query_file: None,
             response: None,
             response_duration: None,
             response_file: None,
@@ -109,11 +114,12 @@ impl Interaction {
     /// * `pool`: The connection pool to use.
     pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
         let query = sqlx::query!(
-            "UPDATE interaction SET (session_id, query, query_category, query_duration, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) WHERE id = $11",
+            "UPDATE interaction SET (session_id, query, query_category, query_duration, query_file, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) WHERE id = $12",
             self.session_id,
             self.query,
             self.query_category,
             self.query_duration,
+            self.query_file,
             self.response,
             self.response_duration,
             self.response_file,
