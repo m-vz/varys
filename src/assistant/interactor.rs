@@ -208,28 +208,40 @@ impl InteractorInstance {
             .join(capture_file_name(&self.session, &interaction));
         let sniffer_instance = self.interactor.sniffer.start(&capture_path)?;
 
+        // begin recording the query
+        let query_instance = self.interactor.listener.start()?;
+
         // say the query
         interaction.query_duration = Some(self.interactor.speaker.say(&query.text, true)?);
+
+        // stop recording the query
+        let query_audio = query_instance.stop()?;
+        let query_audio_path =
+            self.session_path
+                .join(audio_file_name(&self.session, &interaction, "query"));
+        file::audio::write_audio(&query_audio_path, &query_audio)?;
+        interaction.query_file = Some(file::file_name_or_full(&query_audio_path));
         interaction.update(&self.database_pool).await?;
 
         // record the response
-        let mut audio = self
+        let mut response_audio = self
             .interactor
             .listener
             .record_until_silent(SILENCE_DURATION, self.interactor.sensitivity)?;
-        interaction.response_duration = Some(audio.duration_ms());
-        let audio_path = self
-            .session_path
-            .join(audio_file_name(&self.session, &interaction));
-        file::audio::write_audio(&audio_path, &audio)?;
-        interaction.response_file = Some(file::file_name_or_full(&audio_path));
+        interaction.response_duration = Some(response_audio.duration_ms());
+        let response_audio_path =
+            self.session_path
+                .join(audio_file_name(&self.session, &interaction, "response"));
+        file::audio::write_audio(&response_audio_path, &response_audio)?;
+        interaction.response_file = Some(file::file_name_or_full(&response_audio_path));
+        interaction.update(&self.database_pool).await?;
 
         // finish the sniffer
         info!("{}", sniffer_instance.stop()?);
         interaction.capture_file = Some(file::file_name_or_full(&capture_path));
 
         // recognise the response
-        interaction.response = Some(self.interactor.recogniser.recognise(&mut audio)?);
+        interaction.response = Some(self.interactor.recogniser.recognise(&mut response_audio)?);
         interaction.update(&self.database_pool).await?;
 
         // finish the interaction
@@ -239,8 +251,8 @@ impl InteractorInstance {
     }
 }
 
-fn audio_file_name(session: &Session, interaction: &Interaction) -> PathBuf {
-    data_file_name(session, interaction, "audio", "opus")
+fn audio_file_name(session: &Session, interaction: &Interaction, prefix: &str) -> PathBuf {
+    data_file_name(session, interaction, &format!("{prefix}-audio"), "opus")
 }
 
 fn capture_file_name(session: &Session, interaction: &Interaction) -> PathBuf {
