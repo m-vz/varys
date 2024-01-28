@@ -7,6 +7,7 @@ use chrono::Utc;
 use log::{debug, error, info, warn};
 use sqlx::PgPool;
 
+use crate::assistant::VoiceAssistant;
 use crate::database::interaction::Interaction;
 use crate::database::interactor_config::InteractorConfig;
 use crate::database::query::Query;
@@ -18,18 +19,21 @@ use crate::sniff::Sniffer;
 use crate::speak::Speaker;
 use crate::{database, file, monitoring, sniff};
 
-const SILENCE_DURATION: Duration = Duration::from_secs(2);
+/// How long there must be silence for the recording to be stopped.
+const SILENCE_AFTER_RECORDING: Duration = Duration::from_secs(2);
+/// How long there must be silence before the next interaction is begun
+pub const MINIMUM_SILENCE_BETWEEN_INTERACTIONS: Duration = Duration::from_secs(4);
 
 pub struct Interactor {
-    recogniser: Recogniser,
-    listener: Listener,
-    sniffer: Sniffer,
+    pub recogniser: Recogniser,
+    pub listener: Listener,
+    pub sniffer: Sniffer,
     interface: String,
-    speaker: Speaker,
-    voices: VecDeque<String>,
-    sensitivity: f32,
+    pub speaker: Speaker,
+    pub voices: VecDeque<String>,
+    pub sensitivity: f32,
     model: Model,
-    data_dir: PathBuf,
+    pub data_dir: PathBuf,
 }
 
 impl Interactor {
@@ -84,7 +88,10 @@ impl Interactor {
     /// This will create a [`Listener`], a [`Sniffer`], a [`Speaker`] and use the existing [`Recogniser`].
     ///
     /// Returns a [`InteractorInstance`] that can be started.
-    pub async fn begin_session(mut self) -> Result<InteractorInstance, Error> {
+    pub async fn begin_session<A: VoiceAssistant>(
+        mut self,
+        assistant: &A,
+    ) -> Result<InteractorInstance<A>, Error> {
         // choose next voice and re-queue it
         let voice = self.voices.pop_front().ok_or(Error::NoVoiceProvided)?;
         self.voices.push_back(voice.clone());
@@ -114,6 +121,7 @@ impl Interactor {
 
         Ok(InteractorInstance {
             interactor: self,
+            assistant,
             database_pool,
             session,
             session_path,
@@ -121,14 +129,15 @@ impl Interactor {
     }
 }
 
-pub struct InteractorInstance {
+pub struct InteractorInstance<'a, A: VoiceAssistant> {
     interactor: Interactor,
+    assistant: &'a A,
     database_pool: PgPool,
     session: Session,
     session_path: PathBuf,
 }
 
-impl InteractorInstance {
+impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
     /// Start the prepared session with a list of queries.
     ///
     /// # Arguments
@@ -141,6 +150,7 @@ impl InteractorInstance {
     ///
     /// ```no_run
     /// # use std::path::PathBuf;
+    /// # use varys::assistant;
     /// # use varys::assistant::interactor::Interactor;
     /// # use varys::database::query::Query;
     /// # use varys::recognise::Model;
@@ -168,7 +178,7 @@ impl InteractorInstance {
     /// #     .unwrap()
     /// #     .block_on(async {
     /// interactor
-    ///     .begin_session()
+    ///     .begin_session(&assistant::from("Siri"))
     ///     .await
     ///     .unwrap()
     ///     .start(&queries)
@@ -180,8 +190,24 @@ impl InteractorInstance {
         info!("Starting {}", self.session);
 
         for query in queries {
+            // notify monitoring about interaction
+            if let Err(error) = monitoring::ping(&format!("Interaction started: {query}")).await {
+                warn!("Failed to notify monitoring about interaction: {}", error);
+            }
+
+            // wait for silence to begin the interaction
+            self.interactor.listener.wait_until_silent(
+                MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+                self.interactor.sensitivity,
+            )?;
+
+            // start the interaction
             if let Err(error) = self.interaction(query).await {
                 error!("An interaction did not complete successfully: {error}");
+
+                if let Error::RecordingTimeout = error {
+                    self.assistant.reset_assistant(&mut self.interactor)?;
+                }
             }
         }
 
@@ -193,19 +219,20 @@ impl InteractorInstance {
     async fn interaction(&mut self, query: &Query) -> Result<(), Error> {
         info!("Starting interaction with \"{query}\"");
 
-        // notify monitoring about interaction
-        if let Err(error) = monitoring::ping(&format!("Interaction started: {query}")).await {
-            warn!("Failed to notify monitoring about interaction: {}", error);
-        }
-
         // prepare the interaction
         let mut interaction =
             Interaction::create(&self.database_pool, &self.session, query).await?;
-
-        // start the sniffer
         let capture_path = self
             .session_path
             .join(capture_file_name(&self.session, &interaction));
+        let query_audio_path =
+            self.session_path
+                .join(audio_file_name(&self.session, &interaction, "query"));
+        let response_audio_path =
+            self.session_path
+                .join(audio_file_name(&self.session, &interaction, "response"));
+
+        // start the sniffer
         let sniffer_instance = self.interactor.sniffer.start(&capture_path)?;
 
         // begin recording the query
@@ -216,9 +243,7 @@ impl InteractorInstance {
 
         // stop recording the query
         let query_audio = query_instance.stop()?;
-        let query_audio_path =
-            self.session_path
-                .join(audio_file_name(&self.session, &interaction, "query"));
+
         file::audio::write_audio(&query_audio_path, &query_audio)?;
         interaction.query_file = Some(file::file_name_or_full(&query_audio_path));
         interaction.update(&self.database_pool).await?;
@@ -227,22 +252,23 @@ impl InteractorInstance {
         let mut response_audio = self
             .interactor
             .listener
-            .record_until_silent(SILENCE_DURATION, self.interactor.sensitivity)?;
+            .record_until_silent(SILENCE_AFTER_RECORDING, self.interactor.sensitivity)?;
+
         interaction.response_duration = Some(response_audio.duration_ms());
-        let response_audio_path =
-            self.session_path
-                .join(audio_file_name(&self.session, &interaction, "response"));
         file::audio::write_audio(&response_audio_path, &response_audio)?;
         interaction.response_file = Some(file::file_name_or_full(&response_audio_path));
         interaction.update(&self.database_pool).await?;
 
         // finish the sniffer
-        info!("{}", sniffer_instance.stop()?);
+        let stats = sniffer_instance.stop()?;
+
+        info!("{stats}");
         interaction.capture_file = Some(file::file_name_or_full(&capture_path));
         interaction.update(&self.database_pool).await?;
 
         // recognise the response
-        interaction.response = Some(self.interactor.recogniser.recognise(&mut response_audio)?);
+        let response = self.interactor.recogniser.recognise(&mut response_audio)?;
+        interaction.response = Some(response.clone());
         interaction.update(&self.database_pool).await?;
 
         // finish the interaction

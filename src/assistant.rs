@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::warn;
 
 use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
@@ -69,6 +70,13 @@ pub trait VoiceAssistant {
     /// ```
     async fn interact(&self, interactor: Interactor, queries: Vec<Query>) -> Result<(), Error>;
 
+    /// Reset the voice assistant to a state in which it can be used again. (E.g. tell it to stop playing music, etc.)
+    ///
+    /// # Arguments
+    ///
+    /// * `interactor`: The interactor to use to reset the assistant.
+    fn reset_assistant(&self, interactor: &mut Interactor) -> Result<(), Error>;
+
     /// Test a number of voices by saying an example sentence for each one.
     ///
     /// The voices are tested in the order they are passed in.
@@ -107,6 +115,10 @@ pub trait VoiceAssistant {
 pub fn from(name: &str) -> impl VoiceAssistant {
     match name.to_lowercase().as_str() {
         "siri" => Siri {},
-        _ => Siri {},
+        _ => {
+            warn!("Unknown voice assistant: {name}, assuming default");
+
+            Siri {}
+        }
     }
 }
