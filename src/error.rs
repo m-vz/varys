@@ -52,6 +52,8 @@ pub enum Error {
     Hound,
 
     // stt
+    #[error("Recording is too short to be processed by whisper")]
+    RecordingTooShort,
     #[error("Failed to create new whisper context")]
     WhisperContext,
     #[error("An error occurred during recognition")]

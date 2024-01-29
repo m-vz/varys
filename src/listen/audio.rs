@@ -10,7 +10,7 @@ const OPUS_FRAME_TIME: usize = 20; // ms (see https://datatracker.ietf.org/doc/h
 const OPUS_FRAME_RATE: usize = 1000 / OPUS_FRAME_TIME; // 1/s
 pub const OPUS_SAMPLE_RATE: usize = 48000; // 1/s (see https://datatracker.ietf.org/doc/html/rfc7845#section-4)
 /// How many silent samples to keep when trimming silence from the start and end of audio.
-pub const TRIM_SILENCE_PADDING: usize = 4800; // 0.1s
+pub const TRIM_SILENCE_PADDING: usize = OPUS_SAMPLE_RATE / 10; // 0.1s
 
 /// Holds interleaved audio data for one or more channels.
 pub struct AudioData {
@@ -150,6 +150,7 @@ impl AudioData {
     ///     channels: 1,
     ///     sample_rate: 48000,
     /// };
+    ///
     /// assert_eq!(audio.trim_silence(1_f32).data, expected_data);
     /// ```
     pub fn trim_silence(&mut self, threshold: f32) -> &mut Self {
