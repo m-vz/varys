@@ -110,6 +110,9 @@ pub trait VoiceAssistant {
 
     /// The amount of time to wait between interactions to make sure the voice assistant is ready.
     fn silence_between_interactions(&self) -> Duration;
+
+    /// The maximum time to record for before cancelling an interaction.
+    fn recording_timeout(&self) -> Duration;
 }
 
 /// Create a voice assistant from its name. Currently, only Siri is supported.

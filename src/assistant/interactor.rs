@@ -91,6 +91,9 @@ impl Interactor {
         self.voices.push_back(voice.clone());
         self.speaker.set_voice(&voice)?;
 
+        // set recording timeout
+        self.listener.recording_timeout = Some(assistant.recording_timeout());
+
         // connect to database and start session
         let database_pool = database::connect().await?;
         let mut session = Session::create(

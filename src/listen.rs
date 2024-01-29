@@ -19,7 +19,6 @@ use crate::recognise::Recogniser;
 pub mod audio;
 
 const CALIBRATION_TIMEOUT: Duration = Duration::from_secs(5);
-const RECORDING_TIMEOUT: Option<Duration> = Some(Duration::from_secs(5 * 60));
 const MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
 /// How many seconds of audio data should be expected by default when starting a recording.
 const RECORDING_BUFFER_CAPACITY_SECONDS: usize = 10;
@@ -71,7 +70,7 @@ impl Listener {
         Ok(Listener {
             device,
             device_config,
-            recording_timeout: RECORDING_TIMEOUT,
+            recording_timeout: None,
         })
     }
 
@@ -290,6 +289,10 @@ impl Listener {
         silence_threshold: f32,
         require_sound: bool,
     ) -> Result<(), Error> {
+        if self.recording_timeout.is_none() {
+            warn!("No recording timeout set. Recording will continue until silence is detected.");
+        }
+
         let started = Instant::now();
         let mut last_audio_detected = if require_sound { None } else { Some(started) };
 
