@@ -104,7 +104,7 @@ impl VoiceAssistant for Siri {
 
         interactor.speaker.say("Hey Siri, stop.", true)?;
         interactor.listener.wait_until_silent(
-            self.silence_after_talking(),
+            self.silence_between_interactions(),
             interactor.sensitivity,
             false,
         )?;
@@ -158,7 +158,7 @@ impl VoiceAssistant for Siri {
     }
 
     fn silence_between_interactions(&self) -> Duration {
-        Duration::from_secs(10)
+        Duration::from_secs(5)
     }
 
     fn recording_timeout(&self) -> Duration {
