@@ -216,6 +216,7 @@ impl Listener {
     ///
     /// * `silence_duration`: How long a silence must be for the recording to be stopped.
     /// * `silence_threshold`: The highest frequency that is considered silence.
+    /// * `require_sound`: Whether to require sound to be detected before starting to waiting for silence.
     ///
     /// # Examples
     ///
@@ -223,12 +224,13 @@ impl Listener {
     /// # use std::time;
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// listener.wait_until_silent(time::Duration::from_secs(0), 0.01).unwrap();
+    /// listener.wait_until_silent(time::Duration::from_secs(0), 0.01, false).unwrap();
     /// ```
     pub fn wait_until_silent(
         &self,
         silence_duration: Duration,
         silence_threshold: f32,
+        require_sound: bool,
     ) -> Result<(), Error> {
         info!(
             "Waiting until silent for {} seconds...",
@@ -236,7 +238,12 @@ impl Listener {
         );
 
         let instance = self.start()?;
-        self.run_instance_until_silent(&instance, silence_duration, silence_threshold, false)?;
+        self.run_instance_until_silent(
+            &instance,
+            silence_duration,
+            silence_threshold,
+            require_sound,
+        )?;
         let _ = instance.stop()?;
 
         Ok(())

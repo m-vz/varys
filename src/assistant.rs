@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use log::warn;
 
@@ -102,6 +104,12 @@ pub trait VoiceAssistant {
     /// assistant.test_voices(voices).unwrap();
     /// ```
     fn test_voices(&self, voices: Vec<String>) -> Result<(), Error>;
+
+    /// The length of silence indicating that the assistant is done talking.
+    fn silence_after_talking(&self) -> Duration;
+
+    /// The amount of time to wait between interactions to make sure the voice assistant is ready.
+    fn silence_between_interactions(&self) -> Duration;
 }
 
 /// Create a voice assistant from its name. Currently, only Siri is supported.

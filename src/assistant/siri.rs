@@ -1,10 +1,12 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use colored::Colorize;
 use log::info;
 use rand::seq::SliceRandom;
 
 use crate::assistant::interactor::Interactor;
-use crate::assistant::{interactor, Error, VoiceAssistant};
+use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
 use crate::database::query::Query;
 use crate::speak::Speaker;
@@ -102,8 +104,9 @@ impl VoiceAssistant for Siri {
 
         interactor.speaker.say("Hey Siri, stop.", true)?;
         interactor.listener.wait_until_silent(
-            interactor::MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+            self.silence_after_talking(),
             interactor.sensitivity,
+            true,
         )?;
 
         Ok(())
@@ -114,8 +117,9 @@ impl VoiceAssistant for Siri {
 
         let wait = || {
             interactor.listener.wait_until_silent(
-                interactor::MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+                self.silence_after_talking(),
                 interactor.sensitivity,
+                true,
             )
         };
 
@@ -155,5 +159,13 @@ impl VoiceAssistant for Siri {
         }
 
         Ok(())
+    }
+
+    fn silence_after_talking(&self) -> Duration {
+        Duration::from_secs(2)
+    }
+
+    fn silence_between_interactions(&self) -> Duration {
+        Duration::from_secs(4)
     }
 }

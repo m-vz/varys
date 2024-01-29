@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use chrono::Utc;
 use log::{debug, error, info, warn};
@@ -18,11 +17,6 @@ use crate::recognise::{Model, Recogniser};
 use crate::sniff::Sniffer;
 use crate::speak::Speaker;
 use crate::{database, file, monitoring, sniff};
-
-/// How long there must be silence for the recording to be stopped.
-const SILENCE_AFTER_RECORDING: Duration = Duration::from_secs(2);
-/// How long there must be silence before the next interaction is begun
-pub const MINIMUM_SILENCE_BETWEEN_INTERACTIONS: Duration = Duration::from_secs(4);
 
 pub struct Interactor {
     pub recogniser: Recogniser,
@@ -206,8 +200,9 @@ impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
 
             // wait for silence to finish the interaction
             self.interactor.listener.wait_until_silent(
-                MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+                self.assistant.silence_between_interactions(),
                 self.interactor.sensitivity,
+                false,
             )?;
 
             // make sure the assistant is not waiting for an answer currently
@@ -252,10 +247,10 @@ impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
         interaction.update(&self.database_pool).await?;
 
         // record the response
-        let mut response_audio = self
-            .interactor
-            .listener
-            .record_until_silent(SILENCE_AFTER_RECORDING, self.interactor.sensitivity)?;
+        let mut response_audio = self.interactor.listener.record_until_silent(
+            self.assistant.silence_after_talking(),
+            self.interactor.sensitivity,
+        )?;
 
         interaction.response_duration = Some(response_audio.duration_ms());
         file::audio::write_audio(&response_audio_path, &response_audio)?;
