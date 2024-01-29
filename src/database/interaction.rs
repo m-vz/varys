@@ -54,7 +54,6 @@ pub struct Interaction {
     /// When this interaction was ended.
     ///
     /// If this is `None`, the interaction is still running or was aborted.
-    #[sqlx(default)]
     pub ended: Option<DateTime<Utc>>,
 }
 

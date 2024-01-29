@@ -23,7 +23,8 @@ pub struct Session {
     /// When this session was started.
     pub started: DateTime<Utc>,
     /// When this session was ended.
-    #[sqlx(default)]
+    ///
+    /// If this is `None`, the interaction is still running or was aborted.
     pub ended: Option<DateTime<Utc>>,
 }
 
