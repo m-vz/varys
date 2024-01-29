@@ -166,6 +166,6 @@ impl VoiceAssistant for Siri {
     }
 
     fn silence_between_interactions(&self) -> Duration {
-        Duration::from_secs(4)
+        Duration::from_secs(10)
     }
 }
