@@ -195,12 +195,6 @@ impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
                 warn!("Failed to notify monitoring about interaction: {}", error);
             }
 
-            // wait for silence to begin the interaction
-            self.interactor.listener.wait_until_silent(
-                MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
-                self.interactor.sensitivity,
-            )?;
-
             // start the interaction
             if let Err(error) = self.interaction(query).await {
                 error!("An interaction did not complete successfully: {error}");
@@ -209,6 +203,15 @@ impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
                     self.assistant.reset_assistant(&mut self.interactor)?;
                 }
             }
+
+            // wait for silence to finish the interaction
+            self.interactor.listener.wait_until_silent(
+                MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+                self.interactor.sensitivity,
+            )?;
+
+            // make sure the assistant is not waiting for an answer currently
+            self.assistant.stop_assistant(&mut self.interactor)?;
         }
 
         self.session.complete(&self.database_pool).await?;

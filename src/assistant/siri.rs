@@ -97,8 +97,20 @@ impl VoiceAssistant for Siri {
         }
     }
 
+    fn stop_assistant(&self, interactor: &mut Interactor) -> Result<(), Error> {
+        info!("Telling Siri to stop...");
+
+        interactor.speaker.say("Hey Siri, stop.", true)?;
+        interactor.listener.wait_until_silent(
+            interactor::MINIMUM_SILENCE_BETWEEN_INTERACTIONS,
+            interactor.sensitivity,
+        )?;
+
+        Ok(())
+    }
+
     fn reset_assistant(&self, interactor: &mut Interactor) -> Result<(), Error> {
-        info!("Resetting Siri...");
+        info!("Telling Siri to stop everything...");
 
         let wait = || {
             interactor.listener.wait_until_silent(
@@ -107,7 +119,7 @@ impl VoiceAssistant for Siri {
             )
         };
 
-        wait()?;
+        self.stop_assistant(interactor)?;
         interactor
             .speaker
             .say("Hey Siri, turn off the music.", true)?;
@@ -125,7 +137,7 @@ impl VoiceAssistant for Siri {
             .say("Hey Siri, delete all reminders.", true)?;
         wait()?;
 
-        info!("Siri reset");
+        info!("Siri has been told to stop everything");
 
         Ok(())
     }

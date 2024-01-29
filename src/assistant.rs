@@ -70,7 +70,15 @@ pub trait VoiceAssistant {
     /// ```
     async fn interact(&self, interactor: Interactor, queries: Vec<Query>) -> Result<(), Error>;
 
-    /// Reset the voice assistant to a state in which it can be used again. (E.g. tell it to stop playing music, etc.)
+    /// Stop the current interaction with the voice assistant.
+    ///
+    /// # Arguments
+    ///
+    /// * `interactor`: The interactor to use to reset the assistant.
+    fn stop_assistant(&self, interactor: &mut Interactor) -> Result<(), Error>;
+
+    /// Reset the voice assistant to a state in which it can be used again. This is used when there are timeouts that
+    /// might come from music playing or alarms ringing.
     ///
     /// # Arguments
     ///
