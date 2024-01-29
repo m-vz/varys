@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::error::Error;
@@ -117,9 +117,15 @@ impl Recogniser {
     /// };
     /// let recogniser =
     ///     Recogniser::with_model(Model::Medium).unwrap();
-    /// recogniser.recognise(&mut audio).unwrap();
+    /// let _ = recogniser.recognise(&mut audio);
     /// ```
     pub fn recognise(&self, audio: &mut AudioData) -> Result<String, Error> {
+        if audio.duration_s() < 1.0 {
+            warn!("Whisper cannot recognise audio shorter than one second");
+
+            return Err(Error::RecordingTooShort);
+        }
+
         info!("Recognising {:.2} seconds of audio...", audio.duration_s());
 
         Recogniser::preprocess(audio)?;
