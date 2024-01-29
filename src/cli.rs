@@ -77,7 +77,7 @@ fn calibrate() -> Result<(), Error> {
     interact::user_confirmation("Calibration will record the average ambient noise. Stay quiet for five seconds. To begin, press")?;
 
     let average = Listener::new()?.calibrate()?;
-    info!("The average ambient noise is {average}");
+    println!("The average ambient noise is {average}");
 
     Ok(())
 }
