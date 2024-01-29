@@ -10,7 +10,7 @@
         <array>
             <string>/path/to/varys</string>
             <string>run</string>
-            <string>--voice</string>
+            <string>-v</string>
             <string>Ava</string>
             <string>Siri</string>
             <string>data/queries.toml</string>
