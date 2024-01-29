@@ -131,15 +131,7 @@ impl VoiceAssistant for Siri {
         wait()?;
         interactor
             .speaker
-            .say("Hey Siri, cancel all timers.", true)?;
-        wait()?;
-        interactor
-            .speaker
             .say("Hey Siri, disable all alarms.", true)?;
-        wait()?;
-        interactor
-            .speaker
-            .say("Hey Siri, delete all reminders.", true)?;
         wait()?;
 
         info!("Siri has been told to stop everything");
