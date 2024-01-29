@@ -119,7 +119,8 @@ impl VoiceAssistant for Siri {
             )
         };
 
-        self.stop_assistant(interactor)?;
+        interactor.speaker.say("Hey Siri, stop.", true)?;
+        wait()?;
         interactor
             .speaker
             .say("Hey Siri, turn off the music.", true)?;
