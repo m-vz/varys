@@ -119,7 +119,7 @@ impl VoiceAssistant for Siri {
             interactor.listener.wait_until_silent(
                 self.silence_after_talking(),
                 interactor.sensitivity,
-                true,
+                false,
             )
         };
 
