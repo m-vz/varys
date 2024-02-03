@@ -5,9 +5,9 @@ use std::time::Duration;
 
 use chrono::Utc;
 use log::{debug, error, info, warn};
+use rand::prelude::SliceRandom;
 use sqlx::PgPool;
 
-use crate::{database, file, monitoring, sniff};
 use crate::assistant::VoiceAssistant;
 use crate::database::interaction::Interaction;
 use crate::database::interactor_config::InteractorConfig;
@@ -16,10 +16,11 @@ use crate::database::session::Session;
 use crate::error::Error;
 use crate::listen::audio::AudioData;
 use crate::listen::Listener;
-use crate::recognise::Model;
 use crate::recognise::transcriber::{TranscriberHandle, TranscriberReceiver, TranscriberSender};
+use crate::recognise::Model;
 use crate::sniff::Sniffer;
 use crate::speak::Speaker;
+use crate::{database, file, monitoring, sniff};
 
 pub struct Interactor {
     pub listener: Listener,
@@ -123,20 +124,21 @@ impl Interactor {
     /// #     .unwrap()
     /// #     .block_on(async {
     /// interactor
-    ///     .start(&queries, &assistant::from("Siri"), transcriber_handle)
+    ///     .start(queries, &assistant::from("Siri"), transcriber_handle)
     ///     .await
     ///     .unwrap();
     /// #     })
     /// ```
     pub async fn start<A: VoiceAssistant>(
         &mut self,
-        queries: &Vec<Query>,
+        mut queries: Vec<Query>,
         assistant: &A,
         mut transcriber_handle: TranscriberHandle<Interaction>,
     ) -> Result<(), Error> {
         let voice = self.next_voice()?;
         let (mut session, session_path, database_pool) = self.create_session(voice.clone()).await?;
         self.listener.recording_timeout = Some(assistant.recording_timeout());
+        queries.shuffle(&mut rand::thread_rng());
 
         info!("Starting {}", session);
 
@@ -147,7 +149,7 @@ impl Interactor {
 
             match self
                 .interaction(
-                    query,
+                    &query,
                     &session,
                     &session_path,
                     &database_pool,

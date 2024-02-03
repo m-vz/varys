@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use colored::Colorize;
 use log::info;
 
-use crate::assistant::{Error, VoiceAssistant};
 use crate::assistant::interactor::Interactor;
+use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
 use crate::database::interaction::Interaction;
 use crate::database::query::Query;
@@ -90,7 +90,7 @@ impl VoiceAssistant for Siri {
         queries.iter_mut().for_each(|q| {
             q.text = format!("Hey Siri. {}", q.text);
         });
-        interactor.start(&queries, self, transcriber_handle).await
+        interactor.start(queries, self, transcriber_handle).await
     }
 
     fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error> {
