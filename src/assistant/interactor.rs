@@ -1,33 +1,35 @@
 use std::collections::VecDeque;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use chrono::Utc;
 use log::{debug, error, info, warn};
 use sqlx::PgPool;
 
+use crate::{database, file, monitoring, sniff};
 use crate::assistant::VoiceAssistant;
 use crate::database::interaction::Interaction;
 use crate::database::interactor_config::InteractorConfig;
 use crate::database::query::Query;
 use crate::database::session::Session;
 use crate::error::Error;
+use crate::listen::audio::AudioData;
 use crate::listen::Listener;
-use crate::recognise::{Model, Recogniser};
+use crate::recognise::Model;
+use crate::recognise::transcriber::{TranscriberHandle, TranscriberReceiver, TranscriberSender};
 use crate::sniff::Sniffer;
 use crate::speak::Speaker;
-use crate::{database, file, monitoring, sniff};
 
 pub struct Interactor {
-    pub recogniser: Recogniser,
     pub listener: Listener,
-    pub sniffer: Sniffer,
+    sniffer: Sniffer,
     interface: String,
     pub speaker: Speaker,
-    pub voices: VecDeque<String>,
+    voices: VecDeque<String>,
     pub sensitivity: f32,
     model: Model,
-    pub data_dir: PathBuf,
+    data_dir: PathBuf,
 }
 
 impl Interactor {
@@ -65,7 +67,6 @@ impl Interactor {
         data_dir: PathBuf,
     ) -> Result<Interactor, Error> {
         Ok(Interactor {
-            recogniser: Recogniser::with_model(model)?,
             listener: Listener::new()?,
             sniffer: Sniffer::from(sniff::device_by_name(interface.as_str())?),
             interface,
@@ -77,65 +78,10 @@ impl Interactor {
         })
     }
 
-    /// Set up a database connection and begin a new session of interactions.
+    /// Set up a database connection and begin a new session of interactions with a list of queries.
     ///
-    /// This will create a [`Listener`], a [`Sniffer`], a [`Speaker`] and use the existing [`Recogniser`].
-    ///
-    /// Returns a [`InteractorInstance`] that can be started.
-    pub async fn begin_session<A: VoiceAssistant>(
-        mut self,
-        assistant: &A,
-    ) -> Result<InteractorInstance<A>, Error> {
-        // choose next voice and re-queue it
-        let voice = self.voices.pop_front().ok_or(Error::NoVoiceProvided)?;
-        self.voices.push_back(voice.clone());
-        self.speaker.set_voice(&voice)?;
-
-        // set recording timeout
-        self.listener.recording_timeout = Some(assistant.recording_timeout());
-
-        // connect to database and start session
-        let database_pool = database::connect().await?;
-        let mut session = Session::create(
-            &database_pool,
-            &InteractorConfig {
-                interface: self.interface.to_string(),
-                voice: voice.clone(),
-                sensitivity: self.sensitivity.to_string(),
-                model: self.model.to_string(),
-            },
-        )
-        .await?;
-
-        // create and store session path
-        let session_path = self
-            .data_dir
-            .join(Path::new(&format!("sessions/session_{}", session.id)));
-        fs::create_dir_all(&session_path)?;
-        session.data_dir = Some(session_path.to_string_lossy().to_string());
-        session.update(&database_pool).await?;
-        debug!("Storing data files at {}", session_path.to_string_lossy());
-
-        Ok(InteractorInstance {
-            interactor: self,
-            assistant,
-            database_pool,
-            session,
-            session_path,
-        })
-    }
-}
-
-pub struct InteractorInstance<'a, A: VoiceAssistant> {
-    interactor: Interactor,
-    assistant: &'a A,
-    database_pool: PgPool,
-    session: Session,
-    session_path: PathBuf,
-}
-
-impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
-    /// Start the prepared session with a list of queries.
+    /// This will create a [`Listener`], a [`Sniffer`], a [`Speaker`] and use the existing [`TranscriberHandle`] for
+    /// transcription.
     ///
     /// # Arguments
     ///
@@ -150,7 +96,9 @@ impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
     /// # use varys::assistant;
     /// # use varys::assistant::interactor::Interactor;
     /// # use varys::database::query::Query;
-    /// # use varys::recognise::Model;
+    /// # use varys::recognise::{Model, Recogniser};
+    /// # use varys::recognise::transcriber::Transcriber;
+    /// let (_, transcriber_handle) = Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
     /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
     ///     vec!["Ava".to_string()],
@@ -175,107 +123,173 @@ impl<'a, A: VoiceAssistant> InteractorInstance<'a, A> {
     /// #     .unwrap()
     /// #     .block_on(async {
     /// interactor
-    ///     .begin_session(&assistant::from("Siri"))
-    ///     .await
-    ///     .unwrap()
-    ///     .start(&queries)
+    ///     .start(&queries, &assistant::from("Siri"), transcriber_handle)
     ///     .await
     ///     .unwrap();
     /// #     })
     /// ```
-    pub async fn start(mut self, queries: &Vec<Query>) -> Result<Interactor, Error> {
-        info!("Starting {}", self.session);
+    pub async fn start<A: VoiceAssistant>(
+        &mut self,
+        queries: &Vec<Query>,
+        assistant: &A,
+        mut transcriber_handle: TranscriberHandle<Interaction>,
+    ) -> Result<(), Error> {
+        let voice = self.next_voice()?;
+        let (mut session, session_path, database_pool) = self.create_session(voice.clone()).await?;
+        self.listener.recording_timeout = Some(assistant.recording_timeout());
+
+        info!("Starting {}", session);
 
         for query in queries {
-            // notify monitoring about interaction
             if let Err(error) = monitoring::ping(&format!("Interaction started: {query}")).await {
                 warn!("Failed to notify monitoring about interaction: {}", error);
             }
 
-            // start the interaction
-            if let Err(error) = self.interaction(query).await {
-                error!("An interaction did not complete successfully: {error}");
+            match self
+                .interaction(
+                    query,
+                    &session,
+                    &session_path,
+                    &database_pool,
+                    assistant.silence_after_talking(),
+                )
+                .await
+            {
+                Ok((interaction, audio)) => {
+                    transcriber_handle = match transcriber_handle {
+                        TranscriberHandle::Sender(sender) => sender,
+                        TranscriberHandle::Receiver(receiver) => {
+                            Self::complete_interaction(receiver, &database_pool).await?
+                        }
+                    }
+                    .transcribe(interaction, audio)
+                    .into();
+                }
+                Err(error) => {
+                    error!("An interaction did not complete successfully: {error}");
 
-                if let Error::RecordingTimeout = error {
-                    self.assistant.reset_assistant(&mut self.interactor)?;
+                    if let Error::RecordingTimeout = error {
+                        assistant.reset_assistant(self)?;
+                    }
                 }
             }
 
-            // wait for silence to finish the interaction
-            self.interactor.listener.wait_until_silent(
-                self.assistant.silence_between_interactions(),
-                self.interactor.sensitivity,
-                false,
-            )?;
-
-            // make sure the assistant is not waiting for an answer currently
-            self.assistant.stop_assistant(&mut self.interactor)?;
+            assistant.stop_assistant(self)?;
         }
 
-        self.session.complete(&self.database_pool).await?;
+        // complete the last interaction and stop the transcriber
+        match transcriber_handle {
+            TranscriberHandle::Sender(sender) => sender,
+            TranscriberHandle::Receiver(receiver) => {
+                Self::complete_interaction(receiver, &database_pool).await?
+            }
+        }
+        .stop();
 
-        Ok(self.interactor)
+        // complete the session
+        session.complete(&database_pool).await?;
+
+        Ok(())
     }
 
-    async fn interaction(&mut self, query: &Query) -> Result<(), Error> {
+    fn next_voice(&mut self) -> Result<String, Error> {
+        let voice = self.voices.pop_front().ok_or(Error::NoVoiceProvided)?;
+
+        self.voices.push_back(voice.clone());
+        self.speaker.set_voice(&voice)?;
+        Ok(voice)
+    }
+
+    async fn create_session(&self, voice: String) -> Result<(Session, PathBuf, PgPool), Error> {
+        let database_pool = database::connect().await?;
+        let mut session = Session::create(
+            &database_pool,
+            &InteractorConfig {
+                interface: self.interface.to_string(),
+                voice,
+                sensitivity: self.sensitivity.to_string(),
+                model: self.model.to_string(),
+            },
+        )
+        .await?;
+        let session_path = self
+            .data_dir
+            .join(Path::new(&format!("sessions/session_{}", session.id)));
+
+        fs::create_dir_all(&session_path)?;
+        debug!("Storing data files at {}", session_path.to_string_lossy());
+        session.data_dir = Some(session_path.to_string_lossy().to_string());
+        session.update(&database_pool).await?;
+
+        Ok((session, session_path, database_pool))
+    }
+
+    async fn interaction(
+        &mut self,
+        query: &Query,
+        session: &Session,
+        session_path: &Path,
+        pool: &PgPool,
+        silence_after_talking: Duration,
+    ) -> Result<(Interaction, AudioData), Error> {
         info!("Starting interaction with \"{query}\"");
 
         // prepare the interaction
-        let mut interaction =
-            Interaction::create(&self.database_pool, &self.session, query).await?;
-        let capture_path = self
-            .session_path
-            .join(capture_file_name(&self.session, &interaction));
-        let query_audio_path =
-            self.session_path
-                .join(audio_file_name(&self.session, &interaction, "query"));
+        let mut interaction = Interaction::create(pool, session, query).await?;
+        let capture_path = session_path.join(capture_file_name(session, &interaction));
+        let query_audio_path = session_path.join(audio_file_name(session, &interaction, "query"));
         let response_audio_path =
-            self.session_path
-                .join(audio_file_name(&self.session, &interaction, "response"));
+            session_path.join(audio_file_name(session, &interaction, "response"));
 
         // start the sniffer
-        let sniffer_instance = self.interactor.sniffer.start(&capture_path)?;
+        let sniffer_instance = self.sniffer.start(&capture_path)?;
 
         // begin recording the query
-        let query_instance = self.interactor.listener.start()?;
+        let query_instance = self.listener.start()?;
 
         // say the query
-        interaction.query_duration = Some(self.interactor.speaker.say(&query.text, true)?);
+        interaction.query_duration = Some(self.speaker.say(&query.text, true)?);
 
         // stop recording the query
         let query_audio = query_instance.stop()?;
 
         file::audio::write_audio(&query_audio_path, &query_audio)?;
         interaction.query_file = Some(file::file_name_or_full(&query_audio_path));
-        interaction.update(&self.database_pool).await?;
+        interaction.update(pool).await?;
 
         // record the response
-        let mut response_audio = self.interactor.listener.record_until_silent(
-            self.assistant.silence_after_talking(),
-            self.interactor.sensitivity,
-        )?;
+        let response_audio = self
+            .listener
+            .record_until_silent(silence_after_talking, self.sensitivity)?;
 
         interaction.response_duration = Some(response_audio.duration_ms());
         file::audio::write_audio(&response_audio_path, &response_audio)?;
         interaction.response_file = Some(file::file_name_or_full(&response_audio_path));
-        interaction.update(&self.database_pool).await?;
+        interaction.update(pool).await?;
 
         // finish the sniffer
         let stats = sniffer_instance.stop()?;
 
         info!("{stats}");
         interaction.capture_file = Some(file::file_name_or_full(&capture_path));
-        interaction.update(&self.database_pool).await?;
+        interaction.update(pool).await?;
 
-        // recognise the response
-        let response = self.interactor.recogniser.recognise(&mut response_audio)?;
-        interaction.response = Some(response.clone());
-        interaction.update(&self.database_pool).await?;
+        // at this point, the interaction is not yet complete because the response will later be
+        // transcribed in a separate thread
+        Ok((interaction, response_audio))
+    }
 
-        // finish the interaction
-        interaction.complete(&self.database_pool).await?;
+    async fn complete_interaction(
+        receiver: TranscriberReceiver<Interaction>,
+        database_pool: &PgPool,
+    ) -> Result<TranscriberSender<Interaction>, Error> {
+        let (sender, interaction) = receiver.receive();
+        let mut interaction = interaction?;
 
-        Ok(())
+        info!("Transcription of {interaction} done, completing it...");
+
+        interaction.complete(database_pool).await?;
+        Ok(sender)
     }
 }
 
