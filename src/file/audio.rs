@@ -46,13 +46,13 @@ impl From<&Path> for AudioFileType {
 /// # use std::path::Path;
 /// # use varys::file::audio::write_audio;
 /// # use varys::listen::audio::AudioData;
-/// let audio_data = AudioData {
+/// let audio = AudioData {
 ///     data: vec![0_f32, 1_f32, 2_f32],
 ///     channels: 1,
 ///     sample_rate: 44100,
 /// };
-/// write_audio(Path::new("audio.wav"), &audio_data).unwrap();
-/// write_audio(Path::new("audio.opus"), &audio_data).unwrap();
+/// write_audio(Path::new("audio.wav"), &audio).unwrap();
+/// write_audio(Path::new("audio.opus"), &audio).unwrap();
 /// ```
 pub fn write_audio(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
     match AudioFileType::from(file_path) {
@@ -77,12 +77,12 @@ pub fn write_audio(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
 /// # use std::path::Path;
 /// # use varys::file::audio::write_wav;
 /// # use varys::listen::audio::AudioData;
-/// let audio_data = AudioData {
+/// let audio = AudioData {
 ///     data: vec![0_f32, 1_f32, 2_f32],
 ///     channels: 1,
 ///     sample_rate: 48000,
 /// };
-/// write_wav(Path::new("audio.wav"), &audio_data).unwrap();
+/// write_wav(Path::new("audio.wav"), &audio).unwrap();
 /// ```
 pub fn write_wav(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
     let wav_config = WavSpec {
@@ -128,12 +128,12 @@ pub fn write_wav(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
 /// # use std::path::Path;
 /// # use varys::file::audio::write_opus;
 /// # use varys::listen::audio::AudioData;
-/// let audio_data = AudioData {
+/// let audio = AudioData {
 ///     data: vec![0_f32, 1_f32, 2_f32],
 ///     channels: 1,
 ///     sample_rate: 48000,
 /// };
-/// write_opus(Path::new("audio.opus"), &audio_data).unwrap();
+/// write_opus(Path::new("audio.opus"), &audio).unwrap();
 /// ```
 pub fn write_opus(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
     let mut file_path = file_path.to_owned();

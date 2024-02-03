@@ -1,9 +1,11 @@
-use std::time;
+use std::{thread, time};
 
 use clap::Parser;
-use log::{debug, info};
+use log::{debug, error, info};
 use pcap::ConnectionStatus;
 
+use crate::{assistant, assistant::VoiceAssistant, file};
+use crate::{sniff, sniff::Sniffer};
 use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
@@ -12,9 +14,8 @@ use crate::database::query::Query;
 use crate::error::Error;
 use crate::listen::Listener;
 use crate::recognise::{Model, Recogniser};
+use crate::recognise::transcriber::Transcriber;
 use crate::speak::Speaker;
-use crate::{assistant, assistant::VoiceAssistant, file};
-use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
 pub mod interact;
@@ -106,8 +107,7 @@ fn listen(
         let text = recogniser.recognise(&mut audio)?;
 
         info!("Speaking...");
-        let mut speaker = Speaker::new()?;
-        speaker.set_voice(voice)?;
+        let speaker = Speaker::with_voice(voice)?;
         speaker.say(&text, false)?;
     }
 
@@ -136,7 +136,7 @@ async fn run_command(
     command: arguments::RunCommand,
 ) -> Result<(), Error> {
     let assistant = assistant::from(command.assistant.as_str());
-    let interactor = Interactor::new(
+    let mut interactor = Interactor::new(
         interface.to_string(),
         voices,
         sensitivity,
@@ -145,5 +145,16 @@ async fn run_command(
     )?;
     let queries = Query::read_toml(&command.queries)?;
 
-    assistant.interact(interactor, queries).await
+    loop {
+        let (transcriber, transcriber_handle) = Transcriber::new(Recogniser::with_model(model)?);
+
+        let _ = thread::spawn(move || transcriber.start());
+
+        if let Err(error) = assistant
+            .interact(&mut interactor, queries.clone(), transcriber_handle)
+            .await
+        {
+            error!("A session did not complete successfully: {error}");
+        }
+    }
 }

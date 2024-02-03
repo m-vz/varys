@@ -5,8 +5,10 @@ use log::warn;
 
 use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
+use crate::database::interaction::Interaction;
 use crate::database::query::Query;
 use crate::error::Error;
+use crate::recognise::transcriber::TranscriberHandle;
 
 pub mod interactor;
 pub mod siri;
@@ -51,7 +53,9 @@ pub trait VoiceAssistant {
     /// # use varys::assistant::{from, VoiceAssistant};
     /// # use varys::assistant::interactor::Interactor;
     /// # use varys::database::query::Query;
-    /// # use varys::recognise::Model;
+    /// # use varys::recognise::{Model, Recogniser};
+    /// # use varys::recognise::transcriber::Transcriber;
+    /// let (_, transcriber_handle) = Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
     /// let assistant = from("Siri");
     /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
@@ -61,23 +65,29 @@ pub trait VoiceAssistant {
     ///     PathBuf::from("./data")
     /// )
     /// .unwrap();
+    /// let recogniser = Recogniser::with_model(Model::default()).unwrap();
     /// let queries = Query::read_toml(&PathBuf::from("data/test_queries.txt")).unwrap();
     /// # tokio::runtime::Builder::new_current_thread()
     /// #     .enable_all()
     /// #     .build()
     /// #     .unwrap()
     /// #     .block_on(async {
-    /// assistant.interact(interactor, queries).await.unwrap();
+    /// assistant.interact(&mut interactor, queries, transcriber_handle).await.unwrap();
     /// #     })
     /// ```
-    async fn interact(&self, interactor: Interactor, queries: Vec<Query>) -> Result<(), Error>;
+    async fn interact(
+        &self,
+        interactor: &mut Interactor,
+        queries: Vec<Query>,
+        transcriber_handle: TranscriberHandle<Interaction>,
+    ) -> Result<(), Error>;
 
     /// Stop the current interaction with the voice assistant.
     ///
     /// # Arguments
     ///
     /// * `interactor`: The interactor to use to reset the assistant.
-    fn stop_assistant(&self, interactor: &mut Interactor) -> Result<(), Error>;
+    fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error>;
 
     /// Reset the voice assistant to a state in which it can be used again. This is used when there are timeouts that
     /// might come from music playing or alarms ringing.
@@ -85,7 +95,7 @@ pub trait VoiceAssistant {
     /// # Arguments
     ///
     /// * `interactor`: The interactor to use to reset the assistant.
-    fn reset_assistant(&self, interactor: &mut Interactor) -> Result<(), Error>;
+    fn reset_assistant(&self, interactor: &Interactor) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///

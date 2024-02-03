@@ -6,6 +6,9 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 use crate::error::Error;
 use crate::listen::audio::AudioData;
 
+pub mod transcribe;
+pub mod transcriber;
+
 pub const MODEL_LARGE: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
 pub const MODEL_MEDIUM_EN: &str = "data/models/ggml-model-whisper-medium.en-q5_0.bin";
 
@@ -87,7 +90,7 @@ impl Recogniser {
         let mut params = WhisperContextParameters::default();
         params.use_gpu(true);
 
-        debug!("Using model: {}", model_path);
+        info!("Using model: {}", model_path);
 
         Ok(Recogniser {
             context: WhisperContext::new_with_params(model_path, params)?,
@@ -126,7 +129,7 @@ impl Recogniser {
             return Err(Error::RecordingTooShort);
         }
 
-        info!("Recognising {:.2} seconds of audio...", audio.duration_s());
+        debug!("Recognising {:.2} seconds of audio...", audio.duration_s());
 
         Recogniser::preprocess(audio)?;
 
@@ -148,7 +151,7 @@ impl Recogniser {
             );
         }
 
-        info!("Recognised: {}", full_text);
+        debug!("Recognised: {}", full_text);
 
         Ok(full_text)
     }

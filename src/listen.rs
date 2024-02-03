@@ -148,7 +148,7 @@ impl Listener {
     /// ```
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// let audio_data = listener.record_for(0, 0.01);
+    /// let audio = listener.record_for(0, 0.01);
     /// ```
     pub fn record_for(&self, seconds: u32, silence_threshold: f32) -> Result<AudioData, Error> {
         info!("Listening for {} seconds", seconds);
@@ -184,7 +184,7 @@ impl Listener {
     /// # use std::time;
     /// # use varys::listen::Listener;
     /// let listener = Listener::new().unwrap();
-    /// let audio_data = listener.record_until_silent(time::Duration::from_secs(0), 0.01);
+    /// let audio = listener.record_until_silent(time::Duration::from_secs(0), 0.01);
     /// ```
     pub fn record_until_silent(
         &self,
@@ -336,7 +336,7 @@ impl ListenerInstance {
     /// ```
     /// # use varys::listen::Listener;
     /// let instance = Listener::new().unwrap().start().unwrap();
-    /// let audio_data = instance.stop().unwrap();
+    /// let audio = instance.stop().unwrap();
     /// ```
     pub fn stop(self) -> Result<AudioData, Error> {
         info!("Stopped listening");

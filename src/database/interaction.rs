@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{DateTime, Utc};
 use log::info;
 use sqlx::{FromRow, PgPool};
@@ -6,6 +8,7 @@ use crate::database;
 use crate::database::query::Query;
 use crate::database::session::Session;
 use crate::error::Error;
+use crate::recognise::transcribe::Transcribe;
 
 /// The representation of an interaction in the database.
 ///
@@ -143,8 +146,20 @@ impl Interaction {
         self.ended = Some(Utc::now());
         self.update(pool).await?;
 
-        info!("Completed interaction {} at {}", self.id, Utc::now());
+        info!("Completed {self} at {}", Utc::now());
 
         Ok(self)
+    }
+}
+
+impl Display for Interaction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Interaction {} ({})", self.id, self.query)
+    }
+}
+
+impl Transcribe for Interaction {
+    fn transcribed(&mut self, text: String) {
+        self.response = Some(text);
     }
 }
