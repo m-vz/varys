@@ -54,6 +54,8 @@ pub enum Error {
     // stt
     #[error("Recording is too short to be processed by whisper")]
     RecordingTooShort,
+    #[error("The transcriber has stopped")]
+    TranscriberStopped,
     #[error("Failed to create new whisper context")]
     WhisperContext,
     #[error("An error occurred during recognition")]

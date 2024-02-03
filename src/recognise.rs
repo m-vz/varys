@@ -6,6 +6,9 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 use crate::error::Error;
 use crate::listen::audio::AudioData;
 
+pub mod transcribe;
+pub mod transcriber;
+
 pub const MODEL_LARGE: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
 pub const MODEL_MEDIUM_EN: &str = "data/models/ggml-model-whisper-medium.en-q5_0.bin";
 
