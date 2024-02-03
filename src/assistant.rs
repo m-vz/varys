@@ -77,7 +77,7 @@ pub trait VoiceAssistant {
     /// # Arguments
     ///
     /// * `interactor`: The interactor to use to reset the assistant.
-    fn stop_assistant(&self, interactor: &mut Interactor) -> Result<(), Error>;
+    fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error>;
 
     /// Reset the voice assistant to a state in which it can be used again. This is used when there are timeouts that
     /// might come from music playing or alarms ringing.
@@ -85,7 +85,7 @@ pub trait VoiceAssistant {
     /// # Arguments
     ///
     /// * `interactor`: The interactor to use to reset the assistant.
-    fn reset_assistant(&self, interactor: &mut Interactor) -> Result<(), Error>;
+    fn reset_assistant(&self, interactor: &Interactor) -> Result<(), Error>;
 
     /// Test a number of voices by saying an example sentence for each one.
     ///

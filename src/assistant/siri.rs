@@ -80,7 +80,7 @@ impl VoiceAssistant for Siri {
 
     async fn interact(
         &self,
-        mut interactor: Interactor,
+        interactor: &mut Interactor,
         mut queries: Vec<Query>,
     ) -> Result<(), Error> {
         info!("Interacting with Siri...");
@@ -99,7 +99,7 @@ impl VoiceAssistant for Siri {
         }
     }
 
-    fn stop_assistant(&self, interactor: &mut Interactor) -> Result<(), Error> {
+    fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error> {
         info!("Telling Siri to stop...");
 
         interactor.speaker.say("Hey Siri, stop.", true)?;
@@ -112,7 +112,7 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    fn reset_assistant(&self, interactor: &mut Interactor) -> Result<(), Error> {
+    fn reset_assistant(&self, interactor: &Interactor) -> Result<(), Error> {
         info!("Telling Siri to stop everything...");
 
         let wait = || {

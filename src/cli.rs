@@ -106,8 +106,7 @@ fn listen(
         let text = recogniser.recognise(&mut audio)?;
 
         info!("Speaking...");
-        let mut speaker = Speaker::new()?;
-        speaker.set_voice(voice)?;
+        let speaker = Speaker::with_voice(voice)?;
         speaker.say(&text, false)?;
     }
 

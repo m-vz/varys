@@ -211,10 +211,10 @@ impl Speaker {
     ///
     /// ```
     /// # use varys::speak::Speaker;
-    /// let mut speaker = Speaker::new().unwrap();
+    /// let speaker = Speaker::new().unwrap();
     /// let speaking_duration = speaker.say("", false).unwrap();
     /// ```
-    pub fn say(&mut self, text: &str, interrupt: bool) -> Result<i32, Error> {
+    pub fn say(&self, text: &str, interrupt: bool) -> Result<i32, Error> {
         info!("Saying \"{text}\"");
 
         let (sender, receiver) = channel();
@@ -224,7 +224,7 @@ impl Speaker {
 
         let start = Instant::now();
 
-        self.tts.speak(text, interrupt)?;
+        self.tts.clone().speak(text, interrupt)?;
 
         #[cfg(target_os = "macos")]
         {
