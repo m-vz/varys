@@ -1,15 +1,12 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
 use colored::Colorize;
 use log::info;
 
-use crate::assistant::interactor::Interactor;
 use crate::assistant::{Error, VoiceAssistant};
+use crate::assistant::interactor::Interactor;
 use crate::cli::{interact, key_type::KeyType};
-use crate::database::interaction::Interaction;
 use crate::database::query::Query;
-use crate::recognise::transcriber::TranscriberHandle;
 use crate::speak::Speaker;
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
@@ -20,7 +17,6 @@ impl Siri {
         &["Ava", "Karen", "Jamie", "Matilda", "Serena", "Zoe"];
 }
 
-#[async_trait]
 impl VoiceAssistant for Siri {
     fn name(&self) -> String {
         "Siri".to_string()
@@ -79,18 +75,12 @@ impl VoiceAssistant for Siri {
         Ok(())
     }
 
-    async fn interact(
-        &self,
-        interactor: &mut Interactor,
-        mut queries: Vec<Query>,
-        transcriber_handle: TranscriberHandle<Interaction>,
-    ) -> Result<(), Error> {
-        info!("Interacting with Siri...");
+    fn prepare_queries(&self, queries: &mut Vec<Query>) {
+        info!("Preparing queries for Siri...");
 
         queries.iter_mut().for_each(|q| {
             q.text = format!("Hey Siri. {}", q.text);
         });
-        interactor.start(queries, self, transcriber_handle).await
     }
 
     fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error> {

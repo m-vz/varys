@@ -36,7 +36,6 @@ flate2 = "1.0.28"
 # database
 sqlx = { version = "0.7.3", features = ["postgres", "runtime-tokio", "time", "chrono"] }
 tokio = { version = "1.35.1", features = ["full"] }
-async-trait = "0.1.77"
 dotenvy = "0.15.7"
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]

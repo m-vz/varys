@@ -108,7 +108,7 @@ impl Interactor {
     ///     PathBuf::from("./data")
     /// )
     /// .unwrap();
-    /// let queries = vec![
+    /// let mut queries = vec![
     ///     Query {
     ///         text: "How are you?".to_string(),
     ///         category: "greeting".to_string(),
@@ -124,15 +124,15 @@ impl Interactor {
     /// #     .unwrap()
     /// #     .block_on(async {
     /// interactor
-    ///     .start(queries, &assistant::from("Siri"), transcriber_handle)
+    ///     .start(&mut queries, &assistant::from("Siri"), transcriber_handle)
     ///     .await
     ///     .unwrap();
     /// #     })
     /// ```
-    pub async fn start<A: VoiceAssistant>(
+    pub async fn start(
         &mut self,
-        mut queries: Vec<Query>,
-        assistant: &A,
+        queries: &mut Vec<Query>,
+        assistant: &Box<dyn VoiceAssistant>,
         mut transcriber_handle: TranscriberHandle<Interaction>,
     ) -> Result<(), Error> {
         let voice = self.next_voice()?;

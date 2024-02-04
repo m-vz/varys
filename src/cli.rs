@@ -4,8 +4,6 @@ use clap::Parser;
 use log::{debug, error, info};
 use pcap::ConnectionStatus;
 
-use crate::{assistant, assistant::VoiceAssistant, file};
-use crate::{sniff, sniff::Sniffer};
 use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
@@ -13,9 +11,11 @@ use crate::cli::arguments::{
 use crate::database::query::Query;
 use crate::error::Error;
 use crate::listen::Listener;
-use crate::recognise::{Model, Recogniser};
 use crate::recognise::transcriber::Transcriber;
+use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;
+use crate::{assistant, file};
+use crate::{sniff, sniff::Sniffer};
 
 pub mod arguments;
 pub mod interact;
@@ -135,7 +135,6 @@ async fn run_command(
     model: Model,
     command: arguments::RunCommand,
 ) -> Result<(), Error> {
-    let assistant = assistant::from(command.assistant.as_str());
     let mut interactor = Interactor::new(
         interface.to_string(),
         voices,
@@ -143,15 +142,17 @@ async fn run_command(
         model,
         command.data_dir,
     )?;
-    let queries = Query::read_toml(&command.queries)?;
+    let assistant = assistant::from(command.assistant.as_str());
+    let mut queries = Query::read_toml(&command.queries)?;
+    assistant.prepare_queries(&mut queries);
 
     loop {
         let (transcriber, transcriber_handle) = Transcriber::new(Recogniser::with_model(model)?);
 
         let _ = thread::spawn(move || transcriber.start());
 
-        if let Err(error) = assistant
-            .interact(&mut interactor, queries.clone(), transcriber_handle)
+        if let Err(error) = interactor
+            .start(&mut queries, &assistant, transcriber_handle)
             .await
         {
             error!("A session did not complete successfully: {error}");
