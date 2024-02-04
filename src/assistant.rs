@@ -1,20 +1,18 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
 use log::warn;
 
+use crate::assistant::alexa::Alexa;
 use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
-use crate::database::interaction::Interaction;
 use crate::database::query::Query;
 use crate::error::Error;
-use crate::recognise::transcriber::TranscriberHandle;
 
+pub mod alexa;
 pub mod interactor;
 pub mod siri;
 
 /// This trait is implemented by all voice assistants supported by varys.
-#[async_trait]
 pub trait VoiceAssistant {
     /// The name of the voice assistant.
     ///
@@ -38,49 +36,7 @@ pub trait VoiceAssistant {
     /// ```
     fn setup(&self) -> Result<(), Error>;
 
-    /// Start running interactions until all `queries` have been used up.
-    ///
-    /// # Arguments
-    ///
-    /// * `interactor`: The interactor to use.
-    /// * `queries`: A list of queries to use for the interactions. Each line should contain one
-    /// query.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use std::path::PathBuf;
-    /// # use varys::assistant::{from, VoiceAssistant};
-    /// # use varys::assistant::interactor::Interactor;
-    /// # use varys::database::query::Query;
-    /// # use varys::recognise::{Model, Recogniser};
-    /// # use varys::recognise::transcriber::Transcriber;
-    /// let (_, transcriber_handle) = Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
-    /// let assistant = from("Siri");
-    /// let mut interactor = Interactor::new(
-    ///     "en0".to_string(),
-    ///     vec!["Zoe".to_string()],
-    ///     0.01,
-    ///     Model::Large,
-    ///     PathBuf::from("./data")
-    /// )
-    /// .unwrap();
-    /// let recogniser = Recogniser::with_model(Model::default()).unwrap();
-    /// let queries = Query::read_toml(&PathBuf::from("data/test_queries.txt")).unwrap();
-    /// # tokio::runtime::Builder::new_current_thread()
-    /// #     .enable_all()
-    /// #     .build()
-    /// #     .unwrap()
-    /// #     .block_on(async {
-    /// assistant.interact(&mut interactor, queries, transcriber_handle).await.unwrap();
-    /// #     })
-    /// ```
-    async fn interact(
-        &self,
-        interactor: &mut Interactor,
-        queries: Vec<Query>,
-        transcriber_handle: TranscriberHandle<Interaction>,
-    ) -> Result<(), Error>;
+    fn prepare_queries(&self, queries: &mut Vec<Query>);
 
     /// Stop the current interaction with the voice assistant.
     ///
@@ -125,7 +81,7 @@ pub trait VoiceAssistant {
     fn recording_timeout(&self) -> Duration;
 }
 
-/// Create a voice assistant from its name. Currently, only Siri is supported.
+/// Create a voice assistant from its name.
 ///
 /// Pass `None` to get the default assistant.
 ///
@@ -140,14 +96,17 @@ pub trait VoiceAssistant {
 /// assert_eq!(from("").name().as_str(), "Siri");
 /// assert_eq!(from("Siri").name().as_str(), "Siri");
 /// assert_eq!(from("siri").name().as_str(), "Siri");
+/// assert_eq!(from("Alexa").name().as_str(), "Alexa");
+/// assert_eq!(from("alexa").name().as_str(), "Alexa");
 /// ```
-pub fn from(name: &str) -> impl VoiceAssistant {
+pub fn from(name: &str) -> Box<dyn VoiceAssistant> {
     match name.to_lowercase().as_str() {
-        "siri" => Siri {},
+        "siri" => Box::new(Siri {}),
+        "alexa" => Box::new(Alexa {}),
         _ => {
             warn!("Unknown voice assistant: {name}, assuming default");
 
-            Siri {}
+            Box::new(Siri {})
         }
     }
 }
