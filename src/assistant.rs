@@ -2,11 +2,13 @@ use std::time::Duration;
 
 use log::warn;
 
+use crate::assistant::alexa::Alexa;
 use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
 use crate::database::query::Query;
 use crate::error::Error;
 
+pub mod alexa;
 pub mod interactor;
 pub mod siri;
 
@@ -94,10 +96,13 @@ pub trait VoiceAssistant {
 /// assert_eq!(from("").name().as_str(), "Siri");
 /// assert_eq!(from("Siri").name().as_str(), "Siri");
 /// assert_eq!(from("siri").name().as_str(), "Siri");
+/// assert_eq!(from("Alexa").name().as_str(), "Alexa");
+/// assert_eq!(from("alexa").name().as_str(), "Alexa");
 /// ```
 pub fn from(name: &str) -> Box<dyn VoiceAssistant> {
     match name.to_lowercase().as_str() {
         "siri" => Box::new(Siri {}),
+        "alexa" => Box::new(Alexa {}),
         _ => {
             warn!("Unknown voice assistant: {name}, assuming default");
 
