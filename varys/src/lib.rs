@@ -1,10 +1,10 @@
 pub mod assistant;
 pub mod cli;
-pub mod database;
 pub mod error;
 pub mod file;
 pub mod listen;
 pub mod monitoring;
+pub mod query;
 pub mod recognise;
 pub mod sniff;
 pub mod speak;

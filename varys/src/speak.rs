@@ -1,4 +1,5 @@
 use std::sync::mpsc::{channel, TryRecvError};
+use std::time::Instant;
 
 #[cfg(target_os = "macos")]
 use cocoa_foundation::{
@@ -9,7 +10,6 @@ use lerp::Lerp;
 use log::{debug, info, trace};
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
-use tokio::time::Instant;
 use tts::{Features, Tts, Voice};
 
 use crate::error::Error;

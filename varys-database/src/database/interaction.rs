@@ -2,13 +2,12 @@ use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
 use log::info;
-use sqlx::{FromRow, PgPool};
+use sqlx::FromRow;
 
+use crate::connection::DatabaseConnection;
 use crate::database;
-use crate::database::query::Query;
 use crate::database::session::Session;
-use crate::error::Error;
-use crate::recognise::transcribe::Transcribe;
+use crate::error::DatabaseError;
 
 /// The representation of an interaction in the database.
 ///
@@ -65,26 +64,31 @@ impl Interaction {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
+    /// * `connection`: The connection to use.
     /// * `session`: The session to associate the interaction with.
-    pub async fn create(pool: &PgPool, session: &Session, query: &Query) -> Result<Self, Error> {
+    pub async fn create(
+        connection: &DatabaseConnection,
+        session: &Session,
+        text: &str,
+        category: &str,
+    ) -> Result<Self, DatabaseError> {
         let started = Utc::now();
-        let db_query = sqlx::query!(
+        let query = sqlx::query!(
             "INSERT INTO interaction (started, session_id, query, query_category) VALUES ($1, $2, $3, $4) RETURNING id",
             started,
             session.id,
-            query.text,
-            query.category,
+            text,
+            category,
         );
 
-        database::log_query(&db_query);
-        let id = db_query.fetch_one(pool).await?.id;
+        database::log_query(&query);
+        let id = query.fetch_one(&connection.pool).await?.id;
 
         Ok(Interaction {
             id,
             session_id: session.id,
-            query: query.text.clone(),
-            query_category: query.category.clone(),
+            query: text.to_string(),
+            query_category: category.to_string(),
             query_duration: None,
             query_file: None,
             response: None,
@@ -100,21 +104,27 @@ impl Interaction {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
+    /// * `connection`: The connection to use.
     /// * `id`: The id of the interaction.
-    pub async fn get(pool: &PgPool, id: i32) -> Result<Option<Self>, Error> {
+    pub async fn get(
+        connection: &DatabaseConnection,
+        id: i32,
+    ) -> Result<Option<Self>, DatabaseError> {
         let query = sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id);
 
         database::log_query(&query);
-        Ok(query.fetch_optional(pool).await?)
+        Ok(query.fetch_optional(&connection.pool).await?)
     }
 
     /// Update all values of an interaction in the database.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
+    /// * `connection`: The connection to use.
+    pub async fn update(
+        &mut self,
+        connection: &DatabaseConnection,
+    ) -> Result<&mut Self, DatabaseError> {
         let query = sqlx::query!(
             "UPDATE interaction SET (session_id, query, query_category, query_duration, query_file, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) WHERE id = $12",
             self.session_id,
@@ -132,7 +142,7 @@ impl Interaction {
         );
 
         database::log_query(&query);
-        query.execute(pool).await?;
+        query.execute(&connection.pool).await?;
 
         Ok(self)
     }
@@ -141,10 +151,13 @@ impl Interaction {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn complete(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
+    /// * `connection`: The connection to use.
+    pub async fn complete(
+        &mut self,
+        connection: &DatabaseConnection,
+    ) -> Result<&mut Self, DatabaseError> {
         self.ended = Some(Utc::now());
-        self.update(pool).await?;
+        self.update(connection).await?;
 
         info!("Completed {self} at {}", Utc::now());
 
@@ -155,11 +168,5 @@ impl Interaction {
 impl Display for Interaction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Interaction {} ({})", self.id, self.query)
-    }
-}
-
-impl Transcribe for Interaction {
-    fn transcribed(&mut self, text: String) {
-        self.response = Some(text);
     }
 }

@@ -1,7 +1,12 @@
 use thiserror::Error;
 
+use varys_database::error::DatabaseError;
+
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error(transparent)]
+    DatabaseError(#[from] DatabaseError),
+
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Value is out of range")]
@@ -74,14 +79,6 @@ pub enum Error {
     NoStatsReceived,
     #[error("Pcap error")]
     Pcap,
-
-    // database
-    #[error("Database error: {0}")]
-    Database(String),
-    #[error("Database migration error: {0}")]
-    DatabaseMigration(String),
-    #[error("Environment variable DATABASE_URL is missing")]
-    MissingDatabaseUrl,
 
     // monitoring
     #[error("Connection to monitoring failed: {0}")]
@@ -174,18 +171,6 @@ impl From<pcap::Error> for Error {
             pcap::Error::IoError(err) => std::io::Error::from(err).into(),
             _ => Error::Pcap,
         }
-    }
-}
-
-impl From<sqlx::Error> for Error {
-    fn from(value: sqlx::Error) -> Self {
-        Error::Database(value.to_string())
-    }
-}
-
-impl From<sqlx::migrate::MigrateError> for Error {
-    fn from(value: sqlx::migrate::MigrateError) -> Self {
-        Error::DatabaseMigration(value.to_string())
     }
 }
 

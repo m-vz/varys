@@ -4,23 +4,26 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use chrono::Utc;
+use clap::crate_version;
 use log::{debug, error, info, warn};
 use rand::prelude::SliceRandom;
-use sqlx::PgPool;
+
+use varys_database::connection::DatabaseConnection;
+use varys_database::database;
+use varys_database::database::interaction::Interaction;
+use varys_database::database::interactor_config::InteractorConfig;
+use varys_database::database::session::Session;
 
 use crate::assistant::VoiceAssistant;
-use crate::database::interaction::Interaction;
-use crate::database::interactor_config::InteractorConfig;
-use crate::database::query::Query;
-use crate::database::session::Session;
 use crate::error::Error;
 use crate::listen::audio::AudioData;
 use crate::listen::Listener;
+use crate::query::Query;
 use crate::recognise::transcriber::{TranscriberHandle, TranscriberReceiver, TranscriberSender};
 use crate::recognise::Model;
 use crate::sniff::Sniffer;
 use crate::speak::Speaker;
-use crate::{database, file, monitoring, sniff};
+use crate::{file, monitoring, sniff};
 
 pub struct Interactor {
     pub listener: Listener,
@@ -202,16 +205,20 @@ impl Interactor {
         Ok(voice)
     }
 
-    async fn create_session(&self, voice: String) -> Result<(Session, PathBuf, PgPool), Error> {
-        let database_pool = database::connect().await?;
+    async fn create_session(
+        &self,
+        voice: String,
+    ) -> Result<(Session, PathBuf, DatabaseConnection), Error> {
+        let database_connection = database::connect().await?;
         let mut session = Session::create(
-            &database_pool,
+            &database_connection,
             &InteractorConfig {
                 interface: self.interface.to_string(),
                 voice,
                 sensitivity: self.sensitivity.to_string(),
                 model: self.model.to_string(),
             },
+            crate_version!().to_string(),
         )
         .await?;
         let session_path = self
@@ -221,9 +228,9 @@ impl Interactor {
         fs::create_dir_all(&session_path)?;
         debug!("Storing data files at {}", session_path.to_string_lossy());
         session.data_dir = Some(session_path.to_string_lossy().to_string());
-        session.update(&database_pool).await?;
+        session.update(&database_connection).await?;
 
-        Ok((session, session_path, database_pool))
+        Ok((session, session_path, database_connection))
     }
 
     async fn interaction(
@@ -231,13 +238,14 @@ impl Interactor {
         query: &Query,
         session: &Session,
         session_path: &Path,
-        pool: &PgPool,
+        connection: &DatabaseConnection,
         silence_after_talking: Duration,
     ) -> Result<(Interaction, AudioData), Error> {
         info!("Starting interaction with \"{query}\"");
 
         // prepare the interaction
-        let mut interaction = Interaction::create(pool, session, query).await?;
+        let mut interaction =
+            Interaction::create(connection, session, &query.text, &query.category).await?;
         let capture_path = session_path.join(capture_file_name(session, &interaction));
         let query_audio_path = session_path.join(audio_file_name(session, &interaction, "query"));
         let response_audio_path =
@@ -257,7 +265,7 @@ impl Interactor {
 
         file::audio::write_audio(&query_audio_path, &query_audio)?;
         interaction.query_file = Some(file::file_name_or_full(&query_audio_path));
-        interaction.update(pool).await?;
+        interaction.update(connection).await?;
 
         // record the response
         let response_audio = self
@@ -267,14 +275,14 @@ impl Interactor {
         interaction.response_duration = Some(response_audio.duration_ms());
         file::audio::write_audio(&response_audio_path, &response_audio)?;
         interaction.response_file = Some(file::file_name_or_full(&response_audio_path));
-        interaction.update(pool).await?;
+        interaction.update(connection).await?;
 
         // finish the sniffer
         let stats = sniffer_instance.stop()?;
 
         info!("{stats}");
         interaction.capture_file = Some(file::file_name_or_full(&capture_path));
-        interaction.update(pool).await?;
+        interaction.update(connection).await?;
 
         // at this point, the interaction is not yet complete because the response will later be
         // transcribed in a separate thread
@@ -283,14 +291,14 @@ impl Interactor {
 
     async fn complete_interaction(
         receiver: TranscriberReceiver<Interaction>,
-        database_pool: &PgPool,
+        database_connection: &DatabaseConnection,
     ) -> Result<TranscriberSender<Interaction>, Error> {
         let (sender, interaction) = receiver.receive();
         let mut interaction = interaction?;
 
         info!("Transcription of {interaction} done, completing it...");
 
-        interaction.complete(database_pool).await?;
+        interaction.complete(database_connection).await?;
         Ok(sender)
     }
 }

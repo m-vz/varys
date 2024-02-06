@@ -8,9 +8,9 @@ use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
-use crate::database::query::Query;
 use crate::error::Error;
 use crate::listen::Listener;
+use crate::query::Query;
 use crate::recognise::transcriber::Transcriber;
 use crate::recognise::{Model, Recogniser};
 use crate::speak::Speaker;

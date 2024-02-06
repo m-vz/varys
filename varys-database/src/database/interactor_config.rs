@@ -1,7 +1,8 @@
-use sqlx::{FromRow, PgPool};
+use sqlx::FromRow;
 
+use crate::connection::DatabaseConnection;
 use crate::database;
-use crate::error::Error;
+use crate::error::DatabaseError;
 
 /// The representation of an interactor configuration in the database.
 ///
@@ -22,8 +23,11 @@ impl InteractorConfig {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn get_or_create(&self, pool: &PgPool) -> Result<i32, Error> {
+    /// * `connection`: The connection to use.
+    pub async fn get_or_create(
+        &self,
+        connection: &DatabaseConnection,
+    ) -> Result<i32, DatabaseError> {
         // first, try to find an existing config with the same values ...
         let query = sqlx::query!(
             "SELECT id FROM interactor_config WHERE interface = $1 AND voice = $2 AND sensitivity = $3 AND model = $4",
@@ -34,7 +38,7 @@ impl InteractorConfig {
         );
 
         database::log_query(&query);
-        if let Some(result) = query.fetch_optional(pool).await? {
+        if let Some(result) = query.fetch_optional(&connection.pool).await? {
             return Ok(result.id);
         }
 
@@ -48,20 +52,23 @@ impl InteractorConfig {
             );
 
         database::log_query(&query);
-        Ok(query.fetch_one(pool).await?.id)
+        Ok(query.fetch_one(&connection.pool).await?.id)
     }
 
     /// Get an interactor config from the database.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
+    /// * `connection`: The connection to use.
     /// * `id`: The id of the config.
-    pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
+    pub async fn get(
+        id: i32,
+        connection: &DatabaseConnection,
+    ) -> Result<Option<Self>, DatabaseError> {
         let query = sqlx::query!("SELECT * FROM interactor_config WHERE id = $1", id);
 
         database::log_query(&query);
-        if let Some(result) = query.fetch_optional(pool).await? {
+        if let Some(result) = query.fetch_optional(&connection.pool).await? {
             Ok(Some(InteractorConfig {
                 interface: result.interface,
                 voice: result.voice,

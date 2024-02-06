@@ -6,7 +6,7 @@ use log::info;
 use crate::assistant::interactor::Interactor;
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
-use crate::database::query::Query;
+use crate::query::Query;
 use crate::speak::Speaker;
 
 /// The [`VoiceAssistant`] implementation for Alexa. Tested with the Echo Dot.

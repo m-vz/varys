@@ -5,8 +5,8 @@ use log::warn;
 use crate::assistant::alexa::Alexa;
 use crate::assistant::interactor::Interactor;
 use crate::assistant::siri::Siri;
-use crate::database::query::Query;
 use crate::error::Error;
+use crate::query::Query;
 
 pub mod alexa;
 pub mod interactor;

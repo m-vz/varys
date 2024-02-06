@@ -1,13 +1,13 @@
 use std::fmt::{Display, Formatter};
 
 use chrono::{DateTime, Utc};
-use clap::crate_version;
 use log::info;
-use sqlx::{FromRow, PgPool};
+use sqlx::FromRow;
 
+use crate::connection::DatabaseConnection;
 use crate::database;
 use crate::database::interactor_config::InteractorConfig;
-use crate::error::Error;
+use crate::error::DatabaseError;
 
 /// The representation of a session in the database.
 ///
@@ -33,11 +33,14 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn create(pool: &PgPool, config: &InteractorConfig) -> Result<Self, Error> {
+    /// * `connection`: The connection to use.
+    pub async fn create(
+        connection: &DatabaseConnection,
+        config: &InteractorConfig,
+        version: String,
+    ) -> Result<Self, DatabaseError> {
         let started = Utc::now();
-        let version = crate_version!().to_string();
-        let interactor_config_id = config.get_or_create(pool).await?;
+        let interactor_config_id = config.get_or_create(connection).await?;
         let query = sqlx::query!(
             "INSERT INTO session (started, version, interactor_config_id) VALUES ($1, $2, $3) RETURNING id",
             started,
@@ -46,7 +49,7 @@ impl Session {
         );
 
         database::log_query(&query);
-        let id = query.fetch_one(pool).await?.id;
+        let id = query.fetch_one(&connection.pool).await?.id;
 
         Ok(Session {
             id,
@@ -62,21 +65,27 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
+    /// * `connection`: The connection to use.
     /// * `id`: The id of the session.
-    pub async fn get(id: i32, pool: &PgPool) -> Result<Option<Self>, Error> {
+    pub async fn get(
+        id: i32,
+        connection: &DatabaseConnection,
+    ) -> Result<Option<Self>, DatabaseError> {
         let query = sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id);
 
         database::log_query(&query);
-        Ok(query.fetch_optional(pool).await?)
+        Ok(query.fetch_optional(&connection.pool).await?)
     }
 
     /// Update all values of a session in the database.
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn update(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
+    /// * `connection`: The connection to use.
+    pub async fn update(
+        &mut self,
+        connection: &DatabaseConnection,
+    ) -> Result<&mut Self, DatabaseError> {
         let query = sqlx::query!(
             "UPDATE session SET (version, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5) WHERE id = $6",
             self.version,
@@ -88,7 +97,7 @@ impl Session {
         );
 
         database::log_query(&query);
-        query.execute(pool).await?;
+        query.execute(&connection.pool).await?;
 
         Ok(self)
     }
@@ -97,10 +106,13 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn complete(&mut self, pool: &PgPool) -> Result<&mut Self, Error> {
+    /// * `connection`: The connection to use.
+    pub async fn complete(
+        &mut self,
+        connection: &DatabaseConnection,
+    ) -> Result<&mut Self, DatabaseError> {
         self.ended = Some(Utc::now());
-        self.update(pool).await?;
+        self.update(connection).await?;
 
         info!("Completed {self} at {}", Utc::now());
 
@@ -111,9 +123,12 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `pool`: The connection pool to use.
-    pub async fn config(&self, pool: &PgPool) -> Result<Option<InteractorConfig>, Error> {
-        InteractorConfig::get(self.interactor_config_id, pool).await
+    /// * `connection`: The connection to use.
+    pub async fn config(
+        &self,
+        connection: &DatabaseConnection,
+    ) -> Result<Option<InteractorConfig>, DatabaseError> {
+        InteractorConfig::get(self.interactor_config_id, connection).await
     }
 }
 

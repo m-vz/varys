@@ -32,7 +32,7 @@ impl Query {
     /// # Examples
     ///
     /// ```
-    /// # use varys::database::query::Query;
+    /// # use varys::query::Query;
     /// let queries = Query::read_toml("../data/test_queries.toml").unwrap();
     /// assert!(queries
     ///     .first()
