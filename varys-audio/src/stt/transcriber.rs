@@ -26,17 +26,6 @@ impl<T: Transcribe> Transcriber<T> {
     /// # Arguments
     ///
     /// * `recogniser`: The recogniser to use for audio transcription.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use varys_audio::stt::{ MODEL_LARGE, Recogniser};
-    /// # use varys_audio::stt::transcribe::Transcribe;
-    /// # use varys_audio::stt::transcriber::Transcriber;
-    /// # let path = format!("../{}", MODEL_LARGE);
-    /// let (transcriber, transcriber_handle): (Transcriber<dyn Transcribe>, _) =
-    ///     Transcriber::new(Recogniser::with_model_path(&path).unwrap());
-    /// ```
     pub fn new(recogniser: Recogniser) -> (Self, TranscriberHandle<T>) {
         let (audio_sender, audio_receiver) = std::sync::mpsc::channel();
         let (result_sender, result_receiver) = std::sync::mpsc::channel();
@@ -69,7 +58,7 @@ impl<T: Transcribe> Transcriber<T> {
     /// # use varys_audio::stt::{Model, Recogniser};
     /// # use varys_audio::stt::transcribe::Transcribe;
     /// # use varys_audio::stt::transcriber::Transcriber;
-    /// let (transcriber, transcriber_handle): (Transcriber<dyn Transcribe>, _) =
+    /// let (transcriber, transcriber_handle): (Transcriber<Option<String>>, _) =
     ///     Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
     /// let join_handle = thread::spawn(move || transcriber.start());
     /// ```

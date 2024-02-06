@@ -57,7 +57,6 @@ impl Speaker {
     /// ```
     /// # #[cfg(target_os = "macos")]
     /// # {
-    /// # use varys::error::Error;
     /// # use varys_audio::tts::Speaker;
     /// assert!(Speaker::with_voice("Ava").is_ok());
     /// # }
@@ -91,7 +90,6 @@ impl Speaker {
     /// ```
     /// # #[cfg(target_os = "macos")]
     /// # {
-    /// # use varys::error::Error;
     /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     ///
