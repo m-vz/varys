@@ -7,8 +7,6 @@ use log::info;
 
 use crate::error::Error;
 
-pub mod audio;
-
 /// Compress a file into a gzip wrapper.
 ///
 /// The compressed file is written to the same path as the uncompressed one.

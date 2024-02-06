@@ -4,10 +4,10 @@ use std::time::Duration;
 
 use log::{debug, error};
 
+use crate::audio::AudioData;
 use crate::error::Error;
-use crate::listen::audio::AudioData;
-use crate::recognise::transcribe::Transcribe;
-use crate::recognise::Recogniser;
+use crate::stt::transcribe::Transcribe;
+use crate::stt::Recogniser;
 
 /// A transcriber that can run in the background to transcribe audio.
 ///
@@ -30,11 +30,11 @@ impl<T: Transcribe> Transcriber<T> {
     /// # Examples
     ///
     /// ```
-    /// # use varys::database::interaction::Interaction;
-    /// # use varys::recognise::{Model, MODEL_LARGE, Recogniser};
-    /// # use varys::recognise::transcriber::Transcriber;
+    /// # use varys_audio::stt::{ MODEL_LARGE, Recogniser};
+    /// # use varys_audio::stt::transcribe::Transcribe;
+    /// # use varys_audio::stt::transcriber::Transcriber;
     /// # let path = format!("../{}", MODEL_LARGE);
-    /// let (transcriber, transcriber_handle): (Transcriber<Interaction>, _) =
+    /// let (transcriber, transcriber_handle): (Transcriber<dyn Transcribe>, _) =
     ///     Transcriber::new(Recogniser::with_model_path(&path).unwrap());
     /// ```
     pub fn new(recogniser: Recogniser) -> (Self, TranscriberHandle<T>) {
@@ -65,11 +65,11 @@ impl<T: Transcribe> Transcriber<T> {
     ///
     /// ```no_run
     /// # use std::thread;
-    /// # use varys::database::interaction::Interaction;
-    /// # use varys::error::Error;
-    /// # use varys::recognise::{Model, Recogniser};
-    /// # use varys::recognise::transcriber::Transcriber;
-    /// let (transcriber, transcriber_handle): (Transcriber<Interaction>, _) =
+    /// # use varys_audio::error::Error;
+    /// # use varys_audio::stt::{Model, Recogniser};
+    /// # use varys_audio::stt::transcribe::Transcribe;
+    /// # use varys_audio::stt::transcriber::Transcriber;
+    /// let (transcriber, transcriber_handle): (Transcriber<dyn Transcribe>, _) =
     ///     Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
     /// let join_handle = thread::spawn(move || transcriber.start());
     /// ```

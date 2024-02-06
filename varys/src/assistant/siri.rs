@@ -3,11 +3,12 @@ use std::time::Duration;
 use colored::Colorize;
 use log::info;
 
+use varys_audio::tts::Speaker;
+
 use crate::assistant::interactor::Interactor;
 use crate::assistant::{Error, VoiceAssistant};
 use crate::cli::{interact, key_type::KeyType};
 use crate::query::Query;
-use crate::speak::Speaker;
 
 /// The [`VoiceAssistant`] implementation for Siri. Tested with the HomePod.
 pub struct Siri {}

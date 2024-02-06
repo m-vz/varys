@@ -7,9 +7,9 @@ use log::debug;
 use ogg::{PacketWriteEndInfo, PacketWriter};
 use rand::RngCore;
 
+use crate::audio;
+use crate::audio::AudioData;
 use crate::error::Error;
-use crate::listen::audio;
-use crate::listen::audio::AudioData;
 
 #[derive(Default)]
 pub enum AudioFileType {
@@ -44,8 +44,8 @@ impl From<&Path> for AudioFileType {
 ///
 /// ```no_run
 /// # use std::path::Path;
-/// # use varys::file::audio::write_audio;
-/// # use varys::listen::audio::AudioData;
+/// # use varys_audio::file::write_audio;
+/// # use varys_audio::audio::AudioData;
 /// let audio = AudioData {
 ///     data: vec![0_f32, 1_f32, 2_f32],
 ///     channels: 1,
@@ -75,8 +75,8 @@ pub fn write_audio(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
 ///
 /// ```no_run
 /// # use std::path::Path;
-/// # use varys::file::audio::write_wav;
-/// # use varys::listen::audio::AudioData;
+/// # use varys_audio::file::write_wav;
+/// # use varys_audio::audio::AudioData;
 /// let audio = AudioData {
 ///     data: vec![0_f32, 1_f32, 2_f32],
 ///     channels: 1,
@@ -126,8 +126,8 @@ pub fn write_wav(file_path: &Path, audio: &AudioData) -> Result<(), Error> {
 ///
 /// ```no_run
 /// # use std::path::Path;
-/// # use varys::file::audio::write_opus;
-/// # use varys::listen::audio::AudioData;
+/// # use varys_audio::file::write_opus;
+/// # use varys_audio::audio::AudioData;
 /// let audio = AudioData {
 ///     data: vec![0_f32, 1_f32, 2_f32],
 ///     channels: 1,

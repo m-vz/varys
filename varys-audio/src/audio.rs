@@ -33,7 +33,7 @@ impl AudioData {
     /// If the audio is already mono, this is essentially a no-op:
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys_audio::audio::AudioData;
     /// let mut audio = AudioData {
     ///     data: vec![0_f32, 1_f32, 2_f32],
     ///     channels: 1,
@@ -45,7 +45,7 @@ impl AudioData {
     /// Otherwise, the channels are combined into their average:
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys_audio::audio::AudioData;
     /// let mut audio = AudioData {
     ///     data: vec![0_f32, 1_f32, 2_f32, 3_f32],
     ///     channels: 2,
@@ -87,7 +87,7 @@ impl AudioData {
     /// kept when creating the downsampled data.
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys_audio::audio::AudioData;
     /// let mut audio = AudioData {
     ///     data: vec![0_f32, 1_f32, 2_f32, 3_f32, 4_f32],
     ///     channels: 1,
@@ -130,7 +130,7 @@ impl AudioData {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::audio::{AudioData, TRIM_SILENCE_PADDING};
+    /// # use varys_audio::audio::{AudioData, TRIM_SILENCE_PADDING};
     /// let mut content = vec![1_f32, 2_f32, 3_f32, 4_f32];
     ///
     /// // actual
@@ -202,7 +202,7 @@ impl AudioData {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys_audio::audio::AudioData;
     /// let mut audio = AudioData {
     ///     data: vec![0_f32, 1_f32, 2_f32, 3_f32, 4_f32],
     ///     channels: 1,
@@ -274,7 +274,7 @@ impl AudioData {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys_audio::audio::AudioData;
     /// let sample_rate = 48000;
     /// let seconds = 100_i32;
     /// let mut audio = AudioData {
@@ -293,7 +293,7 @@ impl AudioData {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
+    /// # use varys_audio::audio::AudioData;
     /// let sample_rate = 48000;
     /// let seconds = 100_i32;
     /// let mut audio = AudioData {

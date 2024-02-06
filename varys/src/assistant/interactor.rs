@@ -8,6 +8,12 @@ use clap::crate_version;
 use log::{debug, error, info, warn};
 use rand::prelude::SliceRandom;
 
+use varys_audio::audio::AudioData;
+use varys_audio::listen::Listener;
+use varys_audio::stt::transcribe::Transcribe;
+use varys_audio::stt::transcriber::{TranscriberHandle, TranscriberReceiver, TranscriberSender};
+use varys_audio::stt::Model;
+use varys_audio::tts::Speaker;
 use varys_database::connection::DatabaseConnection;
 use varys_database::database;
 use varys_database::database::interaction::Interaction;
@@ -16,14 +22,23 @@ use varys_database::database::session::Session;
 
 use crate::assistant::VoiceAssistant;
 use crate::error::Error;
-use crate::listen::audio::AudioData;
-use crate::listen::Listener;
 use crate::query::Query;
-use crate::recognise::transcriber::{TranscriberHandle, TranscriberReceiver, TranscriberSender};
-use crate::recognise::Model;
 use crate::sniff::Sniffer;
-use crate::speak::Speaker;
 use crate::{file, monitoring, sniff};
+
+pub struct TranscribeInteraction(Interaction);
+
+impl Transcribe for TranscribeInteraction {
+    fn transcribed(&mut self, text: String) {
+        self.0.response = Some(text);
+    }
+}
+
+impl From<Interaction> for TranscribeInteraction {
+    fn from(interaction: Interaction) -> Self {
+        Self(interaction)
+    }
+}
 
 pub struct Interactor {
     pub listener: Listener,
@@ -54,7 +69,7 @@ impl Interactor {
     /// ```
     /// # use std::path::PathBuf;
     /// # use varys::assistant::interactor::Interactor;
-    /// # use varys::recognise::Model;
+    /// # use varys_audio::stt::Model;
     /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
     ///     vec!["Ava".to_string()],
@@ -99,9 +114,9 @@ impl Interactor {
     /// # use std::path::PathBuf;
     /// # use varys::assistant;
     /// # use varys::assistant::interactor::Interactor;
-    /// # use varys::database::query::Query;
-    /// # use varys::recognise::{Model, Recogniser};
-    /// # use varys::recognise::transcriber::Transcriber;
+    /// # use varys::query::Query;
+    /// # use varys_audio::stt::{Model, Recogniser};
+    /// # use varys_audio::stt::transcriber::Transcriber;
     /// let (_, transcriber_handle) = Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
     /// let mut interactor = Interactor::new(
     ///     "en0".to_string(),
@@ -136,7 +151,7 @@ impl Interactor {
         &mut self,
         queries: &mut Vec<Query>,
         assistant: &Box<dyn VoiceAssistant>,
-        mut transcriber_handle: TranscriberHandle<Interaction>,
+        mut transcriber_handle: TranscriberHandle<TranscribeInteraction>,
     ) -> Result<(), Error> {
         let voice = self.next_voice()?;
         let (mut session, session_path, database_pool) = self.create_session(voice.clone()).await?;
@@ -167,13 +182,13 @@ impl Interactor {
                             Self::complete_interaction(receiver, &database_pool).await?
                         }
                     }
-                    .transcribe(interaction, audio)
+                    .transcribe(interaction.into(), audio)
                     .into();
                 }
                 Err(error) => {
                     error!("An interaction did not complete successfully: {error}");
 
-                    if let Error::RecordingTimeout = error {
+                    if let Error::AudioError(varys_audio::error::Error::RecordingTimeout) = error {
                         assistant.reset_assistant(self)?;
                     }
                 }
@@ -263,7 +278,7 @@ impl Interactor {
         // stop recording the query
         let query_audio = query_instance.stop()?;
 
-        file::audio::write_audio(&query_audio_path, &query_audio)?;
+        varys_audio::file::write_audio(&query_audio_path, &query_audio)?;
         interaction.query_file = Some(file::file_name_or_full(&query_audio_path));
         interaction.update(connection).await?;
 
@@ -273,7 +288,7 @@ impl Interactor {
             .record_until_silent(silence_after_talking, self.sensitivity)?;
 
         interaction.response_duration = Some(response_audio.duration_ms());
-        file::audio::write_audio(&response_audio_path, &response_audio)?;
+        varys_audio::file::write_audio(&response_audio_path, &response_audio)?;
         interaction.response_file = Some(file::file_name_or_full(&response_audio_path));
         interaction.update(connection).await?;
 
@@ -290,15 +305,15 @@ impl Interactor {
     }
 
     async fn complete_interaction(
-        receiver: TranscriberReceiver<Interaction>,
+        receiver: TranscriberReceiver<TranscribeInteraction>,
         database_connection: &DatabaseConnection,
-    ) -> Result<TranscriberSender<Interaction>, Error> {
+    ) -> Result<TranscriberSender<TranscribeInteraction>, Error> {
         let (sender, interaction) = receiver.receive();
         let mut interaction = interaction?;
 
-        info!("Transcription of {interaction} done, completing it...");
+        info!("Transcription of {} done, completing it...", interaction.0);
 
-        interaction.complete(database_connection).await?;
+        interaction.0.complete(database_connection).await?;
         Ok(sender)
     }
 }

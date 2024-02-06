@@ -12,11 +12,9 @@ use cpal::{
 use log::{debug, error, info, trace, warn};
 use simple_moving_average::{NoSumSMA, SMA};
 
+use crate::audio::AudioData;
 use crate::error::Error;
-use crate::listen::audio::AudioData;
-use crate::recognise::Recogniser;
-
-pub mod audio;
+use crate::stt::Recogniser;
 
 const CALIBRATION_TIMEOUT: Duration = Duration::from_secs(5);
 const MOVING_AVERAGE_WINDOW_SIZE: usize = 1024;
@@ -45,7 +43,7 @@ impl Listener {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::Listener;
+    /// # use varys_audio::listen::Listener;
     /// let listener = Listener::new().unwrap();
     /// ```
     pub fn new() -> Result<Self, Error> {
@@ -82,7 +80,7 @@ impl Listener {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::Listener;
+    /// # use varys_audio::listen::Listener;
     /// let listener = Listener::new().unwrap();
     /// let instance = listener.start().unwrap();
     /// # instance.stop().unwrap();
@@ -146,7 +144,7 @@ impl Listener {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::Listener;
+    /// # use varys_audio::listen::Listener;
     /// let listener = Listener::new().unwrap();
     /// let audio = listener.record_for(0, 0.01);
     /// ```
@@ -182,7 +180,7 @@ impl Listener {
     ///
     /// ```no_run
     /// # use std::time;
-    /// # use varys::listen::Listener;
+    /// # use varys_audio::listen::Listener;
     /// let listener = Listener::new().unwrap();
     /// let audio = listener.record_until_silent(time::Duration::from_secs(0), 0.01);
     /// ```
@@ -221,7 +219,7 @@ impl Listener {
     ///
     /// ```no_run
     /// # use std::time;
-    /// # use varys::listen::Listener;
+    /// # use varys_audio::listen::Listener;
     /// let listener = Listener::new().unwrap();
     /// listener.wait_until_silent(time::Duration::from_secs(0), 0.01, false).unwrap();
     /// ```
@@ -334,7 +332,7 @@ impl ListenerInstance {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::Listener;
+    /// # use varys_audio::listen::Listener;
     /// let instance = Listener::new().unwrap().start().unwrap();
     /// let audio = instance.stop().unwrap();
     /// ```

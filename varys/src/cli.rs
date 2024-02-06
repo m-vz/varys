@@ -4,16 +4,17 @@ use clap::Parser;
 use log::{debug, error, info};
 use pcap::ConnectionStatus;
 
+use varys_audio::listen::Listener;
+use varys_audio::stt::transcriber::Transcriber;
+use varys_audio::stt::{Model, Recogniser};
+use varys_audio::tts::Speaker;
+
 use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
 use crate::error::Error;
-use crate::listen::Listener;
 use crate::query::Query;
-use crate::recognise::transcriber::Transcriber;
-use crate::recognise::{Model, Recogniser};
-use crate::speak::Speaker;
 use crate::{assistant, file};
 use crate::{sniff, sniff::Sniffer};
 
@@ -98,7 +99,7 @@ fn listen(
     };
     audio.downsample(16000)?;
     if let Some(file) = command.file {
-        file::audio::write_audio(&file, &audio)?;
+        varys_audio::file::write_audio(&file, &audio)?;
     }
 
     if command.parrot {

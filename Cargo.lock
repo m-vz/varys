@@ -2915,34 +2915,45 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "varys"
-version = "0.10.0"
+version = "0.10.2"
 dependencies = [
- "audiopus",
  "chrono",
  "clap",
- "cocoa-foundation",
  "colored",
- "core-foundation",
- "cpal",
  "crossterm",
  "dotenvy",
  "flate2",
+ "log",
+ "pcap",
+ "pretty_env_logger",
+ "rand",
+ "reqwest",
+ "thiserror",
+ "tokio",
+ "toml",
+ "varys-audio",
+ "varys-database",
+]
+
+[[package]]
+name = "varys-audio"
+version = "0.10.0"
+dependencies = [
+ "audiopus",
+ "cocoa-foundation",
+ "core-foundation",
+ "cpal",
  "hound",
  "lerp",
  "libc",
  "log",
  "objc",
  "ogg",
- "pcap",
  "pretty_env_logger",
  "rand",
- "reqwest",
  "simple_moving_average",
  "thiserror",
- "tokio",
- "toml",
  "tts",
- "varys-database",
  "whisper-rs",
 ]
 

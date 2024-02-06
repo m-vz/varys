@@ -3,8 +3,8 @@ use std::fmt::Display;
 use log::{debug, info, trace, warn};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
+use crate::audio::AudioData;
 use crate::error::Error;
-use crate::listen::audio::AudioData;
 
 pub mod transcribe;
 pub mod transcriber;
@@ -58,7 +58,7 @@ impl Recogniser {
     /// # Examples
     ///
     /// ```no_run
-    /// # use varys::recognise::{Model, Recogniser};
+    /// # use varys_audio::stt::{Model, Recogniser};
     /// let recogniser = Recogniser::with_model(Model::Large).unwrap();
     /// ```
     pub fn with_model(model: Model) -> Result<Recogniser, Error> {
@@ -83,7 +83,7 @@ impl Recogniser {
     /// # Examples
     ///
     /// ```
-    /// # use varys::recognise::{Model, MODEL_LARGE, Recogniser};
+    /// # use varys_audio::stt::{Model, MODEL_LARGE, Recogniser};
     /// # let path = format!("../{}", MODEL_LARGE);
     /// let recogniser = Recogniser::with_model_path(&path).unwrap();
     /// ```
@@ -112,8 +112,8 @@ impl Recogniser {
     /// # Examples
     ///
     /// ```
-    /// # use varys::listen::audio::AudioData;
-    /// # use varys::recognise::{Model, MODEL_LARGE, Recogniser};
+    /// # use varys_audio::audio::AudioData;
+    /// # use varys_audio::stt::{Model, MODEL_LARGE, Recogniser};
     /// # let path = format!("../{}", MODEL_LARGE);
     /// let mut audio = AudioData {
     ///     data: vec![0_f32],

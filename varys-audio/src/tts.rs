@@ -58,14 +58,14 @@ impl Speaker {
     /// # #[cfg(target_os = "macos")]
     /// # {
     /// # use varys::error::Error;
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// assert!(Speaker::with_voice("Ava").is_ok());
     /// # }
     /// ```
     ///
     /// ```
-    /// # use varys::error::Error;
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::error::Error;
+    /// # use varys_audio::tts::Speaker;
     /// let invalid_speaker = Speaker::with_voice("Invalid Name");
     ///
     /// if let Err(Error::VoiceNotAvailable(text)) = invalid_speaker {
@@ -92,7 +92,7 @@ impl Speaker {
     /// # #[cfg(target_os = "macos")]
     /// # {
     /// # use varys::error::Error;
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     ///
     /// assert!(speaker.set_voice("Ava").is_ok());
@@ -100,8 +100,8 @@ impl Speaker {
     /// ```
     ///
     /// ```
-    /// # use varys::error::Error;
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::error::Error;
+    /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     /// let invalid = speaker.set_voice("Invalid Name");
     ///
@@ -135,7 +135,7 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     /// speaker.set_volume(0.8_f32).unwrap();
     /// ```
@@ -154,7 +154,7 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     /// speaker.reset_volume().unwrap();
     /// ```
@@ -171,7 +171,7 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     /// speaker.set_rate(0.8_f32).unwrap();
     /// ```
@@ -190,7 +190,7 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// let mut speaker = Speaker::new().unwrap();
     /// speaker.reset_rate().unwrap();
     /// ```
@@ -210,7 +210,7 @@ impl Speaker {
     /// # Examples
     ///
     /// ```
-    /// # use varys::speak::Speaker;
+    /// # use varys_audio::tts::Speaker;
     /// let speaker = Speaker::new().unwrap();
     /// let speaking_duration = speaker.say("", false).unwrap();
     /// ```
