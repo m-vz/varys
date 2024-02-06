@@ -6,8 +6,8 @@ use log::{debug, error};
 
 use crate::error::Error;
 use crate::listen::audio::AudioData;
-use crate::recognise::Recogniser;
 use crate::recognise::transcribe::Transcribe;
+use crate::recognise::Recogniser;
 
 /// A transcriber that can run in the background to transcribe audio.
 ///
@@ -31,10 +31,11 @@ impl<T: Transcribe> Transcriber<T> {
     ///
     /// ```
     /// # use varys::database::interaction::Interaction;
-    /// # use varys::recognise::{Model, Recogniser};
+    /// # use varys::recognise::{Model, MODEL_LARGE, Recogniser};
     /// # use varys::recognise::transcriber::Transcriber;
+    /// # let path = format!("../{}", MODEL_LARGE);
     /// let (transcriber, transcriber_handle): (Transcriber<Interaction>, _) =
-    ///     Transcriber::new(Recogniser::with_model(Model::default()).unwrap());
+    ///     Transcriber::new(Recogniser::with_model_path(&path).unwrap());
     /// ```
     pub fn new(recogniser: Recogniser) -> (Self, TranscriberHandle<T>) {
         let (audio_sender, audio_receiver) = std::sync::mpsc::channel();

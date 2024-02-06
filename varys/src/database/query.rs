@@ -33,7 +33,7 @@ impl Query {
     ///
     /// ```
     /// # use varys::database::query::Query;
-    /// let queries = Query::read_toml("data/test_queries.toml").unwrap();
+    /// let queries = Query::read_toml("../data/test_queries.toml").unwrap();
     /// assert!(queries
     ///     .first()
     ///     .is_some_and(|query| query.category == "test_category_jokes"

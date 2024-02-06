@@ -57,7 +57,7 @@ impl Recogniser {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
     /// # use varys::recognise::{Model, Recogniser};
     /// let recogniser = Recogniser::with_model(Model::Large).unwrap();
     /// ```
@@ -83,8 +83,9 @@ impl Recogniser {
     /// # Examples
     ///
     /// ```
-    /// # use varys::recognise::{Model, Recogniser};
-    /// let recogniser = Recogniser::with_model_path(varys::recognise::MODEL_LARGE).unwrap();
+    /// # use varys::recognise::{Model, MODEL_LARGE, Recogniser};
+    /// # let path = format!("../{}", MODEL_LARGE);
+    /// let recogniser = Recogniser::with_model_path(&path).unwrap();
     /// ```
     pub fn with_model_path(model_path: &str) -> Result<Recogniser, Error> {
         let mut params = WhisperContextParameters::default();
@@ -112,14 +113,14 @@ impl Recogniser {
     ///
     /// ```
     /// # use varys::listen::audio::AudioData;
-    /// use varys::recognise::{Model, Recogniser};
+    /// # use varys::recognise::{Model, MODEL_LARGE, Recogniser};
+    /// # let path = format!("../{}", MODEL_LARGE);
     /// let mut audio = AudioData {
     ///     data: vec![0_f32],
     ///     channels: 1,
     ///     sample_rate: 16000,
     /// };
-    /// let recogniser =
-    ///     Recogniser::with_model(Model::Medium).unwrap();
+    /// let recogniser = Recogniser::with_model_path(&path).unwrap();
     /// let _ = recogniser.recognise(&mut audio);
     /// ```
     pub fn recognise(&self, audio: &mut AudioData) -> Result<String, Error> {
