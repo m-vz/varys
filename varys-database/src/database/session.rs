@@ -7,7 +7,7 @@ use sqlx::FromRow;
 use crate::connection::DatabaseConnection;
 use crate::database;
 use crate::database::interactor_config::InteractorConfig;
-use crate::error::DatabaseError;
+use crate::error::Error;
 
 /// The representation of a session in the database.
 ///
@@ -38,7 +38,7 @@ impl Session {
         connection: &DatabaseConnection,
         config: &InteractorConfig,
         version: String,
-    ) -> Result<Self, DatabaseError> {
+    ) -> Result<Self, Error> {
         let started = Utc::now();
         let interactor_config_id = config.get_or_create(connection).await?;
         let query = sqlx::query!(
@@ -67,10 +67,7 @@ impl Session {
     ///
     /// * `connection`: The connection to use.
     /// * `id`: The id of the session.
-    pub async fn get(
-        id: i32,
-        connection: &DatabaseConnection,
-    ) -> Result<Option<Self>, DatabaseError> {
+    pub async fn get(id: i32, connection: &DatabaseConnection) -> Result<Option<Self>, Error> {
         let query = sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id);
 
         database::log_query(&query);
@@ -82,10 +79,7 @@ impl Session {
     /// # Arguments
     ///
     /// * `connection`: The connection to use.
-    pub async fn update(
-        &mut self,
-        connection: &DatabaseConnection,
-    ) -> Result<&mut Self, DatabaseError> {
+    pub async fn update(&mut self, connection: &DatabaseConnection) -> Result<&mut Self, Error> {
         let query = sqlx::query!(
             "UPDATE session SET (version, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5) WHERE id = $6",
             self.version,
@@ -107,10 +101,7 @@ impl Session {
     /// # Arguments
     ///
     /// * `connection`: The connection to use.
-    pub async fn complete(
-        &mut self,
-        connection: &DatabaseConnection,
-    ) -> Result<&mut Self, DatabaseError> {
+    pub async fn complete(&mut self, connection: &DatabaseConnection) -> Result<&mut Self, Error> {
         self.ended = Some(Utc::now());
         self.update(connection).await?;
 
@@ -127,7 +118,7 @@ impl Session {
     pub async fn config(
         &self,
         connection: &DatabaseConnection,
-    ) -> Result<Option<InteractorConfig>, DatabaseError> {
+    ) -> Result<Option<InteractorConfig>, Error> {
         InteractorConfig::get(self.interactor_config_id, connection).await
     }
 }

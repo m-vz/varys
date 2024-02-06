@@ -1,11 +1,9 @@
 use thiserror::Error;
 
-use varys_database::error::DatabaseError;
-
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    DatabaseError(#[from] DatabaseError),
+    DatabaseError(#[from] varys_database::error::Error),
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),

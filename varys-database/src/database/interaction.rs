@@ -7,7 +7,7 @@ use sqlx::FromRow;
 use crate::connection::DatabaseConnection;
 use crate::database;
 use crate::database::session::Session;
-use crate::error::DatabaseError;
+use crate::error::Error;
 
 /// The representation of an interaction in the database.
 ///
@@ -71,7 +71,7 @@ impl Interaction {
         session: &Session,
         text: &str,
         category: &str,
-    ) -> Result<Self, DatabaseError> {
+    ) -> Result<Self, Error> {
         let started = Utc::now();
         let query = sqlx::query!(
             "INSERT INTO interaction (started, session_id, query, query_category) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -106,10 +106,7 @@ impl Interaction {
     ///
     /// * `connection`: The connection to use.
     /// * `id`: The id of the interaction.
-    pub async fn get(
-        connection: &DatabaseConnection,
-        id: i32,
-    ) -> Result<Option<Self>, DatabaseError> {
+    pub async fn get(connection: &DatabaseConnection, id: i32) -> Result<Option<Self>, Error> {
         let query = sqlx::query_as!(Self, "SELECT * FROM interaction WHERE id = $1", id);
 
         database::log_query(&query);
@@ -121,10 +118,7 @@ impl Interaction {
     /// # Arguments
     ///
     /// * `connection`: The connection to use.
-    pub async fn update(
-        &mut self,
-        connection: &DatabaseConnection,
-    ) -> Result<&mut Self, DatabaseError> {
+    pub async fn update(&mut self, connection: &DatabaseConnection) -> Result<&mut Self, Error> {
         let query = sqlx::query!(
             "UPDATE interaction SET (session_id, query, query_category, query_duration, query_file, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) WHERE id = $12",
             self.session_id,
@@ -152,10 +146,7 @@ impl Interaction {
     /// # Arguments
     ///
     /// * `connection`: The connection to use.
-    pub async fn complete(
-        &mut self,
-        connection: &DatabaseConnection,
-    ) -> Result<&mut Self, DatabaseError> {
+    pub async fn complete(&mut self, connection: &DatabaseConnection) -> Result<&mut Self, Error> {
         self.ended = Some(Utc::now());
         self.update(connection).await?;
 

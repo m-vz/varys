@@ -2,7 +2,7 @@ use sqlx::FromRow;
 
 use crate::connection::DatabaseConnection;
 use crate::database;
-use crate::error::DatabaseError;
+use crate::error::Error;
 
 /// The representation of an interactor configuration in the database.
 ///
@@ -24,10 +24,7 @@ impl InteractorConfig {
     /// # Arguments
     ///
     /// * `connection`: The connection to use.
-    pub async fn get_or_create(
-        &self,
-        connection: &DatabaseConnection,
-    ) -> Result<i32, DatabaseError> {
+    pub async fn get_or_create(&self, connection: &DatabaseConnection) -> Result<i32, Error> {
         // first, try to find an existing config with the same values ...
         let query = sqlx::query!(
             "SELECT id FROM interactor_config WHERE interface = $1 AND voice = $2 AND sensitivity = $3 AND model = $4",
@@ -61,10 +58,7 @@ impl InteractorConfig {
     ///
     /// * `connection`: The connection to use.
     /// * `id`: The id of the config.
-    pub async fn get(
-        id: i32,
-        connection: &DatabaseConnection,
-    ) -> Result<Option<Self>, DatabaseError> {
+    pub async fn get(id: i32, connection: &DatabaseConnection) -> Result<Option<Self>, Error> {
         let query = sqlx::query!("SELECT * FROM interactor_config WHERE id = $1", id);
 
         database::log_query(&query);
