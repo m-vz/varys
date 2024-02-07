@@ -3,15 +3,23 @@ use std::path::Path;
 use std::time;
 use std::time::Duration;
 
+use crate::address::MacAddress;
 use chrono::{DateTime, Utc};
 use pcap::Capture;
+use pnet::packet::ethernet::EthernetPacket;
 
 use crate::error::Error;
+
+#[derive(Copy, Clone, Debug)]
+pub enum PacketDirection {
+    In,
+    Out,
+}
 
 /// A sniffer packet contains all packet information for one captured pcap packet.
 pub struct Packet {
     pub timestamp: DateTime<Utc>,
-    /// The length of the packet, in bytes.
+    /// The length of the packet, read from the packet header.
     ///
     /// In rare cases, this might be more than the amount of data captured.
     pub len: usize,
@@ -19,8 +27,23 @@ pub struct Packet {
 }
 
 impl Packet {
+    /// Return the length of the captured data in bytes.
+    ///
+    /// In rare cases, this might be less than the stored length.
     pub fn captured_len(&self) -> usize {
         self.data.len()
+    }
+
+    pub fn direction(&self, relative_to: MacAddress) -> Option<PacketDirection> {
+        EthernetPacket::new(&self.data).and_then(|packet| {
+            if MacAddress::from(packet.get_source()) == relative_to {
+                Some(PacketDirection::Out)
+            } else if MacAddress::from(packet.get_destination()) == relative_to {
+                Some(PacketDirection::In)
+            } else {
+                None
+            }
+        })
     }
 }
 
