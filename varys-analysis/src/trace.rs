@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 
 use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
 
 use varys_network::address::MacAddress;
 use varys_network::packet::Packet;
@@ -72,7 +73,7 @@ impl Display for TrafficTrace {
     }
 }
 
-#[derive(Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct BinaryTrafficTrace(pub Vec<bool>);
 
 impl BinaryTrafficTrace {
@@ -99,7 +100,7 @@ impl Display for BinaryTrafficTrace {
     }
 }
 
-#[derive(Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct NumericTrafficTrace(pub Vec<i32>);
 
 impl NumericTrafficTrace {
