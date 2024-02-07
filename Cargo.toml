@@ -3,5 +3,6 @@ members = [
     "varys",
     "varys-database",
     "varys-audio",
+    "varys-network",
 ]
 resolver = "2"

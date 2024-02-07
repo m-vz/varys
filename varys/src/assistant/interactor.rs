@@ -3,11 +3,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use chrono::Utc;
 use clap::crate_version;
 use log::{debug, error, info, warn};
 use rand::prelude::SliceRandom;
 
+use chrono::Utc;
 use varys_audio::audio::AudioData;
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcribe::Transcribe;
@@ -19,12 +19,13 @@ use varys_database::database;
 use varys_database::database::interaction::Interaction;
 use varys_database::database::interactor_config::InteractorConfig;
 use varys_database::database::session::Session;
+use varys_network::sniff;
+use varys_network::sniff::Sniffer;
 
 use crate::assistant::VoiceAssistant;
 use crate::error::Error;
+use crate::monitoring;
 use crate::query::Query;
-use crate::sniff::Sniffer;
-use crate::{file, monitoring, sniff};
 
 pub struct TranscribeInteraction(Interaction);
 
@@ -279,7 +280,7 @@ impl Interactor {
         let query_audio = query_instance.stop()?;
 
         varys_audio::file::write_audio(&query_audio_path, &query_audio)?;
-        interaction.query_file = Some(file::file_name_or_full(&query_audio_path));
+        interaction.query_file = Some(file_name_or_full(&query_audio_path));
         interaction.update(connection).await?;
 
         // record the response
@@ -289,14 +290,14 @@ impl Interactor {
 
         interaction.response_duration = Some(response_audio.duration_ms());
         varys_audio::file::write_audio(&response_audio_path, &response_audio)?;
-        interaction.response_file = Some(file::file_name_or_full(&response_audio_path));
+        interaction.response_file = Some(file_name_or_full(&response_audio_path));
         interaction.update(connection).await?;
 
         // finish the sniffer
         let stats = sniffer_instance.stop()?;
 
         info!("{stats}");
-        interaction.capture_file = Some(file::file_name_or_full(&capture_path));
+        interaction.capture_file = Some(file_name_or_full(&capture_path));
         interaction.update(connection).await?;
 
         // at this point, the interaction is not yet complete because the response will later be
@@ -340,4 +341,25 @@ fn data_file_name(
         Utc::now().format("%Y-%m-%d-%H-%M-%S-%f"),
         file_type,
     ))
+}
+
+/// Returns the file name if it exists. Otherwise, returns the full path.
+///
+/// # Arguments
+///
+/// * `file_path`: The path to the file to get the name from.
+///
+/// # Examples
+///
+/// ```
+/// # use std::path::Path;
+/// # use varys::assistant::interactor::file_name_or_full;
+/// assert_eq!(file_name_or_full(Path::new("path/to/text.txt")), "text.txt");
+/// ```
+pub fn file_name_or_full(file_path: &Path) -> String {
+    file_path
+        .file_name()
+        .unwrap_or(file_path.as_os_str())
+        .to_string_lossy()
+        .to_string()
 }

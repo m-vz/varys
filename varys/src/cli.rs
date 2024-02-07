@@ -2,12 +2,13 @@ use std::{thread, time};
 
 use clap::Parser;
 use log::{debug, error, info};
-use pcap::ConnectionStatus;
 
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcriber::Transcriber;
 use varys_audio::stt::{Model, Recogniser};
 use varys_audio::tts::Speaker;
+use varys_network::sniff;
+use varys_network::sniff::{ConnectionStatus, Sniffer};
 
 use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
@@ -15,8 +16,7 @@ use crate::cli::arguments::{
 };
 use crate::error::Error;
 use crate::query::Query;
-use crate::{assistant, file};
-use crate::{sniff, sniff::Sniffer};
+use crate::{assistant, compression};
 
 pub mod arguments;
 pub mod interact;
@@ -124,7 +124,7 @@ fn sniff_command(interface: &str, command: SniffCommand) -> Result<(), Error> {
     debug!("Using: {sniffer}");
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {stats}");
-    file::compress_gzip(&command.file, true)?;
+    compression::compress_gzip(&command.file, true)?;
 
     Ok(())
 }

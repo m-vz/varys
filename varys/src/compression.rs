@@ -2,10 +2,9 @@ use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, fs::File};
 
+use crate::error::Error;
 use flate2::{Compression, GzBuilder};
 use log::info;
-
-use crate::error::Error;
 
 /// Compress a file into a gzip wrapper.
 ///
@@ -26,8 +25,8 @@ use crate::error::Error;
 ///
 /// ```no_run
 /// # use std::path::Path;
-/// # use varys::file;
-/// let file_path_compressed = file::compress_gzip(Path::new("text.txt"), true).unwrap();
+/// # use varys::compression;
+/// let file_path_compressed = compression::compress_gzip(Path::new("text.txt"), true).unwrap();
 /// ```
 pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<PathBuf, Error> {
     let file = File::open(file_path)?;
@@ -52,25 +51,4 @@ pub fn compress_gzip(file_path: &Path, keep: bool) -> Result<PathBuf, Error> {
     }
 
     Ok(PathBuf::from(file_path_gz))
-}
-
-/// Returns the file name if it exists. Otherwise, returns the full path.
-///
-/// # Arguments
-///
-/// * `file_path`: The path to the file to get the name from.
-///
-/// # Examples
-///
-/// ```
-/// # use std::path::Path;
-/// # use varys::file::file_name_or_full;
-/// assert_eq!(file_name_or_full(Path::new("path/to/text.txt")), "text.txt");
-/// ```
-pub fn file_name_or_full(file_path: &Path) -> String {
-    file_path
-        .file_name()
-        .unwrap_or(file_path.as_os_str())
-        .to_string_lossy()
-        .to_string()
 }

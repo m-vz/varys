@@ -6,7 +6,8 @@ use std::{time, time::Duration};
 
 use chrono::{DateTime, Utc};
 use log::{info, trace};
-use pcap::{Capture, ConnectionStatus, Device, Packet, Stat};
+pub use pcap::ConnectionStatus;
+use pcap::{Capture, Device, Packet, Stat};
 
 use crate::error::Error;
 
@@ -76,8 +77,8 @@ impl Sniffer {
     ///
     /// ```no_run
     /// # use std::path::Path;
-    /// # use varys::sniff;
-    /// # use varys::sniff::Sniffer;
+    /// # use varys_network::sniff;
+    /// # use varys_network::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
     ///
     /// let instance = sniffer.start(Path::new("/path/to/capture.pcap")).unwrap();
@@ -138,8 +139,8 @@ impl Sniffer {
     ///
     /// ```no_run
     /// # use std::path::Path;
-    /// # use varys::sniff;
-    /// # use varys::sniff::Sniffer;
+    /// # use varys_network::sniff;
+    /// # use varys_network::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
     ///
     /// let stats = sniffer.run_for(5, Path::new("capture.pcap")).unwrap();
@@ -186,8 +187,8 @@ impl SnifferInstance {
     ///
     /// ```no_run
     /// # use std::path::Path;
-    /// # use varys::sniff;
-    /// # use varys::sniff::Sniffer;
+    /// # use varys_network::sniff;
+    /// # use varys_network::sniff::Sniffer;
     /// let sniffer = Sniffer::from(sniff::default_device().unwrap());
     /// let instance = sniffer.start(Path::new("capture.pcap")).unwrap();
     ///
@@ -249,7 +250,7 @@ impl Display for SnifferStats {
 ///
 /// ```
 /// # use pcap::ConnectionStatus;
-/// # use varys::sniff;
+/// # use varys_network::sniff;
 /// let devices = sniff::all_devices().unwrap();
 /// ```
 pub fn all_devices() -> Result<Vec<Device>, Error> {
@@ -268,7 +269,7 @@ pub fn all_devices() -> Result<Vec<Device>, Error> {
 ///
 /// ```
 /// # use pcap::ConnectionStatus;
-/// # use varys::sniff;
+/// # use varys_network::sniff;
 /// let connected_devices = sniff::devices_with_status(&ConnectionStatus::Connected).unwrap();
 /// ```
 pub fn devices_with_status(status: &ConnectionStatus) -> Result<Vec<Device>, Error> {
@@ -286,7 +287,7 @@ pub fn devices_with_status(status: &ConnectionStatus) -> Result<Vec<Device>, Err
 ///
 /// ```
 /// # use pcap::ConnectionStatus;
-/// # use varys::sniff;
+/// # use varys_network::sniff;
 /// let default_device = sniff::default_device().unwrap();
 /// ```
 pub fn default_device() -> Result<Device, Error> {
@@ -306,8 +307,8 @@ pub fn default_device() -> Result<Device, Error> {
 ///
 /// ```
 /// # use pcap::ConnectionStatus;
-/// # use varys::error::Error;
-/// # use varys::sniff;
+/// # use varys_network::error::Error;
+/// # use varys_network::sniff;
 /// let connected_devices = sniff::device_by_name("en0").unwrap();
 /// let invalid_device = sniff::device_by_name("Invalid device name");
 ///

@@ -1,0 +1,15 @@
+[package]
+name = "varys-network"
+version = "0.10.0"
+edition = "2021"
+authors = ["Milan van Zanten <milan@milan.wtf>"]
+description = "Network sniffing for varys."
+license = "MIT"
+publish = false
+
+[dependencies]
+log = "0.4.20"
+pretty_env_logger = "0.5.0"
+thiserror = "1.0.56"
+chrono = "0.4.32"
+pcap = "1.2.0"
