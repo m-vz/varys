@@ -50,6 +50,7 @@ pub struct Interactor {
     pub sensitivity: f32,
     model: Model,
     data_dir: PathBuf,
+    assistant_mac: String,
 }
 
 impl Interactor {
@@ -76,7 +77,8 @@ impl Interactor {
     ///     vec!["Ava".to_string()],
     ///     0.01,
     ///     Model::Large,
-    ///     PathBuf::from("./data")
+    ///     PathBuf::from("./data"),
+    ///     "00:00:00:00:00:00".to_string(),
     /// ).unwrap();
     /// ```
     pub fn new(
@@ -85,6 +87,7 @@ impl Interactor {
         sensitivity: f32,
         model: Model,
         data_dir: PathBuf,
+        assistant_mac: String,
     ) -> Result<Interactor, Error> {
         Ok(Interactor {
             listener: Listener::new()?,
@@ -95,6 +98,7 @@ impl Interactor {
             sensitivity,
             model,
             data_dir,
+            assistant_mac,
         })
     }
 
@@ -125,7 +129,8 @@ impl Interactor {
     ///     vec!["Ava".to_string()],
     ///     0.01,
     ///     Model::Large,
-    ///     PathBuf::from("./data")
+    ///     PathBuf::from("./data"),
+    ///     "00:00:00:00:00:00".to_string(),
     /// )
     /// .unwrap();
     /// let mut queries = vec![
@@ -236,6 +241,7 @@ impl Interactor {
                 model: self.model.to_string(),
             },
             crate_version!().to_string(),
+            self.assistant_mac.clone(),
         )
         .await?;
         let session_path = self

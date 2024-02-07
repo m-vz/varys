@@ -12,6 +12,8 @@
             <string>run</string>
             <string>-v</string>
             <string>Ava</string>
+            <string>--mac</string>
+            <string>de:ad:be:ef:fe:ed</string>
             <string>Siri</string>
             <string>data/queries.toml</string>
             <string>data</string>

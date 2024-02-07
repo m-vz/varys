@@ -142,6 +142,7 @@ async fn run_command(
         sensitivity,
         model,
         command.data_dir,
+        command.mac,
     )?;
     let assistant = assistant::from(command.assistant.as_str());
     let mut queries = Query::read_toml(&command.queries)?;

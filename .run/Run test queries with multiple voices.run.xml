@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run test queries with multiple voices" type="CargoCommandRunConfiguration" factoryName="Cargo Command" focusToolWindowBeforeRun="true">
-    <option name="command" value="run --package varys --bin varys -- run -m medium -v Zoe -v Jamie Siri data/test_queries.toml data" />
+    <option name="command" value="run --package varys --bin varys -- run -m medium -v Zoe -v Jamie --mac de:ad:be:ef:fe:ed Siri data/test_queries.toml data" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$" />
     <envs>
       <env name="RUST_LOG" value="debug" />
