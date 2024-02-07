@@ -151,7 +151,7 @@ impl Interactor {
     pub async fn start(
         &mut self,
         queries: &mut Vec<Query>,
-        assistant: &Box<dyn VoiceAssistant>,
+        assistant: &dyn VoiceAssistant,
         mut transcriber_handle: TranscriberHandle<TranscribeInteraction>,
     ) -> Result<(), Error> {
         let voice = self.next_voice()?;
@@ -168,7 +168,7 @@ impl Interactor {
 
             match self
                 .interaction(
-                    &query,
+                    query,
                     &session,
                     &session_path,
                     &database_pool,

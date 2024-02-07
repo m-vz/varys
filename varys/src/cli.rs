@@ -153,7 +153,7 @@ async fn run_command(
         let _ = thread::spawn(move || transcriber.start());
 
         if let Err(error) = interactor
-            .start(&mut queries, &assistant, transcriber_handle)
+            .start(&mut queries, assistant.as_ref(), transcriber_handle)
             .await
         {
             error!("A session did not complete successfully: {error}");
