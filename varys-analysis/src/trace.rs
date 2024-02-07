@@ -73,7 +73,15 @@ impl Display for TrafficTrace {
 }
 
 #[derive(Debug)]
-pub struct BinaryTrafficTrace(Vec<bool>);
+pub struct BinaryTrafficTrace(pub Vec<bool>);
+
+impl BinaryTrafficTrace {
+    pub fn resized(&mut self, len: usize) -> &mut Self {
+        self.0.resize(len, false);
+
+        self
+    }
+}
 
 impl Display for BinaryTrafficTrace {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -92,7 +100,15 @@ impl Display for BinaryTrafficTrace {
 }
 
 #[derive(Debug)]
-pub struct NumericTrafficTrace(Vec<i32>);
+pub struct NumericTrafficTrace(pub Vec<i32>);
+
+impl NumericTrafficTrace {
+    pub fn resized(&mut self, len: usize) -> &mut Self {
+        self.0.resize(len, 0);
+
+        self
+    }
+}
 
 impl Display for NumericTrafficTrace {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
