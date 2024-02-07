@@ -2949,7 +2949,6 @@ dependencies = [
  "log",
  "objc",
  "ogg",
- "pretty_env_logger",
  "rand",
  "simple_moving_average",
  "thiserror",
@@ -2963,7 +2962,6 @@ version = "0.10.0"
 dependencies = [
  "chrono",
  "log",
- "pretty_env_logger",
  "sqlx",
  "thiserror",
  "tokio",
@@ -2976,7 +2974,6 @@ dependencies = [
  "chrono",
  "log",
  "pcap",
- "pretty_env_logger",
  "thiserror",
 ]
 
