@@ -8,6 +8,8 @@ pub enum Error {
     AudioError(#[from] varys_audio::error::Error),
     #[error(transparent)]
     NetworkError(#[from] varys_network::error::Error),
+    #[error(transparent)]
+    AnalysisError(#[from] varys_analysis::error::Error),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

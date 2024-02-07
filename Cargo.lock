@@ -2930,8 +2930,18 @@ dependencies = [
  "thiserror",
  "tokio",
  "toml",
+ "varys-analysis",
  "varys-audio",
  "varys-database",
+ "varys-network",
+]
+
+[[package]]
+name = "varys-analysis"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "thiserror",
  "varys-network",
 ]
 

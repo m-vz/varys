@@ -4,5 +4,6 @@ members = [
     "varys-database",
     "varys-audio",
     "varys-network",
+    "varys-analysis",
 ]
 resolver = "2"

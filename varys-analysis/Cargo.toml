@@ -1,0 +1,13 @@
+[package]
+name = "varys-analysis"
+version = "0.1.0"
+edition = "2021"
+authors = ["Milan van Zanten <milan@milan.wtf>"]
+description = "Traffic analysis for varys."
+license = "MIT"
+publish = false
+
+[dependencies]
+varys-network = { path = "../varys-network" }
+log = "0.4.20"
+thiserror = "1.0.56"
