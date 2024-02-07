@@ -112,7 +112,8 @@ impl Interactor {
     /// # Examples
     ///
     /// ```no_run
-    /// # use std::path::PathBuf;
+    /// # use std::ops::Deref;
+    /// use std::path::PathBuf;
     /// # use varys::assistant;
     /// # use varys::assistant::interactor::Interactor;
     /// # use varys::query::Query;
@@ -143,7 +144,7 @@ impl Interactor {
     /// #     .unwrap()
     /// #     .block_on(async {
     /// interactor
-    ///     .start(&mut queries, &assistant::from("Siri"), transcriber_handle)
+    ///     .start(&mut queries, assistant::from("Siri").as_ref(), transcriber_handle)
     ///     .await
     ///     .unwrap();
     /// #     })
