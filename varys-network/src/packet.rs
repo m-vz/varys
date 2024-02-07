@@ -16,6 +16,24 @@ pub enum PacketDirection {
     Out,
 }
 
+impl From<PacketDirection> for bool {
+    fn from(value: PacketDirection) -> Self {
+        match value {
+            PacketDirection::In => false,
+            PacketDirection::Out => true,
+        }
+    }
+}
+
+impl From<PacketDirection> for i32 {
+    fn from(value: PacketDirection) -> Self {
+        match value {
+            PacketDirection::In => -1,
+            PacketDirection::Out => 1,
+        }
+    }
+}
+
 /// A sniffer packet contains all packet information for one captured pcap packet.
 pub struct Packet {
     pub timestamp: DateTime<Utc>,

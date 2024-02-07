@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
+    #[error(transparent)]
+    InvalidMacAddress(#[from] pnet::datalink::ParseMacAddrErr),
     #[error("No default network device was found")]
     DefaultDeviceNotFound,
     #[error("Could not find device {0}")]

@@ -1,6 +1,9 @@
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 use pnet::util::MacAddr;
+
+use crate::error::Error;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct MacAddress(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
@@ -14,6 +17,14 @@ impl From<MacAddress> for MacAddr {
 impl From<MacAddr> for MacAddress {
     fn from(value: MacAddr) -> Self {
         MacAddress(value.0, value.1, value.2, value.3, value.4, value.5)
+    }
+}
+
+impl FromStr for MacAddress {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(MacAddr::from_str(s)?.into())
     }
 }
 
