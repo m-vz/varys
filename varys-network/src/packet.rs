@@ -1,7 +1,12 @@
-use chrono::{DateTime, Utc};
 use std::fmt::{Display, Formatter};
+use std::path::Path;
 use std::time;
 use std::time::Duration;
+
+use chrono::{DateTime, Utc};
+use pcap::Capture;
+
+use crate::error::Error;
 
 /// A sniffer packet contains all packet information for one captured pcap packet.
 pub struct Packet {
@@ -49,4 +54,24 @@ impl From<pcap::Packet<'_>> for Packet {
             data: packet.data.into(),
         }
     }
+}
+
+/// Load all packets from a pcap file.
+///
+/// # Arguments
+///
+/// * `path`: The path to the pcap file.
+pub fn load_packets<P: AsRef<Path>>(path: P) -> Result<Vec<Packet>, Error> {
+    let mut capture = Capture::from_file(path)?;
+    let mut packets = Vec::new();
+
+    loop {
+        match capture.next_packet() {
+            Ok(pcap_packet) => packets.push(Packet::from(pcap_packet)),
+            Err(pcap::Error::NoMorePackets) => break,
+            Err(error) => return Err(Error::from(error)),
+        }
+    }
+
+    Ok(packets)
 }
