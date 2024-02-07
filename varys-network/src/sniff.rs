@@ -1,56 +1,15 @@
 use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::sync::mpsc::{channel, Sender, TryRecvError};
+use std::time::Duration;
 use std::{thread, thread::JoinHandle};
-use std::{time, time::Duration};
 
-use chrono::{DateTime, Utc};
 use log::{info, trace};
 pub use pcap::ConnectionStatus;
-use pcap::{Capture, Device, Packet, Stat};
+use pcap::{Capture, Device, Stat};
 
 use crate::error::Error;
-
-/// A sniffer packet contains all packet information for one captured pcap packet.
-pub struct SnifferPacket {
-    pub timestamp: DateTime<Utc>,
-    pub len: u32,
-    pub captured_len: u32,
-    pub data: Box<[u8]>,
-}
-
-impl Display for SnifferPacket {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let length = if self.captured_len == self.len {
-            self.len.to_string()
-        } else {
-            format!("{}/{}", self.captured_len, self.len)
-        };
-
-        write!(
-            f,
-            "{} bytes captured on {}",
-            length,
-            self.timestamp.format("%d.%m.%Y %H:%M:%S")
-        )
-    }
-}
-
-impl From<Packet<'_>> for SnifferPacket {
-    fn from(packet: Packet) -> Self {
-        let timestamp = packet.header.ts;
-        let s = timestamp.tv_sec as u64;
-        let ms = u64::try_from(timestamp.tv_usec as i64).unwrap_or(0); // tv_usec might be negative for dates before 1970, ignore those
-        let timestamp =
-            DateTime::from(time::UNIX_EPOCH + Duration::from_secs(s) + Duration::from_micros(ms));
-        SnifferPacket {
-            timestamp,
-            len: packet.header.len,
-            captured_len: packet.header.caplen,
-            data: packet.data.into(),
-        }
-    }
-}
+use crate::packet::Packet;
 
 /// A sniffer is used to capture network packets on a specific network device.
 pub struct Sniffer {
@@ -104,7 +63,7 @@ impl Sniffer {
                 match capture.next_packet() {
                     Ok(packet) => {
                         file.write(&packet);
-                        trace!("{}", SnifferPacket::from(packet));
+                        trace!("{}", Packet::from(packet));
                     }
                     Err(_) => thread::sleep(Duration::from_millis(10)),
                 }
