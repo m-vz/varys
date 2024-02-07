@@ -9,17 +9,22 @@ pub struct Packet {
     /// The length of the packet, in bytes.
     ///
     /// In rare cases, this might be more than the amount of data captured.
-    pub len: u32,
-    pub captured_len: u32,
+    pub len: usize,
     pub data: Vec<u8>,
+}
+
+impl Packet {
+    pub fn captured_len(&self) -> usize {
+        self.data.len()
+    }
 }
 
 impl Display for Packet {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let length = if self.captured_len == self.len {
+        let length = if self.captured_len() == self.len {
             self.len.to_string()
         } else {
-            format!("{}/{}", self.captured_len, self.len)
+            format!("{}/{}", self.captured_len(), self.len)
         };
 
         write!(
@@ -40,8 +45,7 @@ impl From<pcap::Packet<'_>> for Packet {
 
         Packet {
             timestamp,
-            len: packet.header.len,
-            captured_len: packet.header.caplen,
+            len: packet.header.len as usize,
             data: packet.data.into(),
         }
     }
