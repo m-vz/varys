@@ -11,3 +11,4 @@ publish = false
 varys-network = { path = "../varys-network" }
 log = "0.4.20"
 thiserror = "1.0.56"
+chrono = "0.4.32"
