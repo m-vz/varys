@@ -8,6 +8,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
+varys-database = { path = "../varys-database" }
 varys-network = { path = "../varys-network" }
 log = "0.4.20"
 thiserror = "1.0.56"

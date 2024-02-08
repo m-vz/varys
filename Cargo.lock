@@ -4927,6 +4927,7 @@ dependencies = [
  "log",
  "serde",
  "thiserror",
+ "varys-database",
  "varys-network",
 ]
 

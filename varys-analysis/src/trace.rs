@@ -19,7 +19,7 @@ impl TrafficTrace {
         self.end_time - self.start_time
     }
 
-    pub fn as_binary_trace(&self, relative_to: MacAddress) -> BinaryTrafficTrace {
+    pub fn as_binary_trace(&self, relative_to: &MacAddress) -> BinaryTrafficTrace {
         BinaryTrafficTrace(
             self.packets
                 .iter()
@@ -29,7 +29,7 @@ impl TrafficTrace {
         )
     }
 
-    pub fn as_numeric_trace(&self, relative_to: MacAddress) -> NumericTrafficTrace {
+    pub fn as_numeric_trace(&self, relative_to: &MacAddress) -> NumericTrafficTrace {
         NumericTrafficTrace(
             self.packets
                 .iter()

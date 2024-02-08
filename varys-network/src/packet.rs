@@ -52,11 +52,11 @@ impl Packet {
         self.data.len()
     }
 
-    pub fn direction(&self, relative_to: MacAddress) -> Option<PacketDirection> {
+    pub fn direction(&self, relative_to: &MacAddress) -> Option<PacketDirection> {
         EthernetPacket::new(&self.data).and_then(|packet| {
-            if MacAddress::from(packet.get_source()) == relative_to {
+            if MacAddress::from(packet.get_source()) == *relative_to {
                 Some(PacketDirection::Out)
-            } else if MacAddress::from(packet.get_destination()) == relative_to {
+            } else if MacAddress::from(packet.get_destination()) == *relative_to {
                 Some(PacketDirection::In)
             } else {
                 None

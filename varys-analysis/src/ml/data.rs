@@ -1,9 +1,16 @@
 use burn::data::dataloader::batcher::Batcher;
+use burn::data::dataset::Dataset;
 use burn::tensor::backend::Backend;
 use burn::tensor::{Data, ElementConversion, Int, Tensor};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
-use crate::trace::NumericTrafficTrace;
+use varys_database::database::interaction::Interaction;
+use varys_network::address::MacAddress;
+use varys_network::packet::load_packets;
+
+use crate::error::Error;
+use crate::trace::{NumericTrafficTrace, TrafficTrace};
 
 pub struct TrafficTraceBatcher<B: Backend> {
     device: B::Device,
@@ -19,6 +26,152 @@ impl<B: Backend> TrafficTraceBatcher<B> {
 pub struct NumericTraceItem {
     pub trace: NumericTrafficTrace,
     pub label: u8,
+}
+
+pub struct NumericTraceDataset {
+    pub items: Vec<NumericTraceItem>,
+    /// The label of a query is the index of the query in this vector
+    queries: Vec<String>,
+}
+
+impl NumericTraceDataset {
+    const MAX_LABELS: usize = u8::MAX as usize;
+
+    /// Create a dataset of all numeric traffic traces from a list of interactions.
+    ///
+    /// Filters the interactions according to [`Self::filter_interactions`] and drops any interactions where the trace
+    /// could not be loaded.
+    ///
+    /// # Arguments
+    ///
+    /// * `interactions`: The interactions to create the dataset from.
+    /// * `relative_to`: The MAC address to use as the reference point for the trace.
+    ///
+    /// returns: The created dataset or [`Error::TooManyLabels`] if there were too many different queries.
+    pub fn load(interactions: Vec<Interaction>, relative_to: &MacAddress) -> Result<Self, Error> {
+        info!(
+            "Creating dataset from {} interactions...",
+            interactions.len()
+        );
+
+        let interactions = Self::filter_interactions(interactions);
+        let mut dataset = Self {
+            items: Vec::new(),
+            queries: Self::collect_queries(&interactions)?,
+        };
+
+        dataset.items = interactions
+            .into_iter()
+            .map(|interaction| {
+                (
+                    Self::load_trace(&interaction, relative_to),
+                    dataset.get_label(&interaction.query),
+                )
+            })
+            // only keep items where the trace could be loaded and the label was found
+            .filter_map(|(trace, label)| trace.zip(label))
+            .map(|(trace, label)| NumericTraceItem { trace, label })
+            .collect();
+
+        Ok(dataset)
+    }
+
+    /// Find the query corresponding to a label. The label corresponds to the index of the query in the list of queries.
+    ///
+    /// # Arguments
+    ///
+    /// * `label`: The label to find the query for.
+    ///
+    /// returns: The query corresponding to the label or `None` if the label could not be found.
+    pub fn get_query(&self, label: u8) -> Option<&String> {
+        self.queries.get(label as usize)
+    }
+
+    /// Find the label of a query. This will search the list of queries.
+    ///
+    /// # Arguments
+    ///
+    /// * `query`: The query to find the label of.
+    ///
+    /// returns: The label of the query or `None` if the query could not be found.
+    pub fn get_label(&self, query: &str) -> Option<u8> {
+        self.queries
+            .iter()
+            .position(|label| label == query)
+            .map(|label| label as u8)
+    }
+
+    /// This function filters out all interactions that should not be used in the dataset.
+    ///
+    /// # Arguments
+    ///
+    /// * `interactions`: The interactions to filter.
+    fn filter_interactions(interactions: Vec<Interaction>) -> Vec<Interaction> {
+        interactions
+            .into_iter()
+            .filter(|interaction| true)
+            .collect()
+    }
+
+    /// Load a [`TrafficTrace`] from a pcap file.
+    ///
+    /// # Arguments
+    ///
+    /// * `interaction`: The interaction to load the traffic trace from.
+    ///
+    /// returns: The parsed [`TrafficTrace`] or `None` if the pcap file could not be loaded.
+    fn load_trace(
+        interaction: &Interaction,
+        relative_to: &MacAddress,
+    ) -> Option<NumericTrafficTrace> {
+        interaction
+            .capture_file
+            .map(|file| load_packets(file).ok())
+            .flatten()
+            .map(|packets| TrafficTrace::try_from(packets).ok())
+            .flatten()
+            .map(|trace| trace.as_numeric_trace(relative_to))
+    }
+
+    /// Turns a list of interactions into a list of unique queries. The indices of the returned list will be used as
+    /// labels.
+    ///
+    /// Returns an error if there are more than [`Self::MAX_LABELS`] unique queries.
+    ///
+    /// # Arguments
+    ///
+    /// * `interactions`: The list of interactions to search for queries.
+    fn collect_queries(interactions: &Vec<Interaction>) -> Result<Vec<String>, Error> {
+        let mut labels = Vec::with_capacity(Self::MAX_LABELS);
+
+        for interaction in interactions {
+            if !labels.contains(&interaction.query) {
+                labels.push(interaction.query.clone());
+            }
+
+            if labels.len() > Self::MAX_LABELS {
+                return Err(Error::TooManyLabels(Self::MAX_LABELS));
+            }
+        }
+
+        debug!("Found {} unique queries", labels.len());
+
+        Ok(labels)
+    }
+}
+
+impl Dataset<NumericTraceItem> for NumericTraceDataset {
+    fn get(&self, index: usize) -> Option<NumericTraceItem> {
+        self.items.get(index).cloned()
+    }
+
+    fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
 }
 
 #[derive(Clone, Debug)]
