@@ -1,4 +1,3 @@
-use crate::ml::activation::{Softmax, Tanh, ELU, SELU};
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::conv::{Conv1d, Conv1dConfig};
@@ -6,6 +5,8 @@ use burn::nn::pool::{AvgPool1d, AvgPool1dConfig, MaxPool1d, MaxPool1dConfig};
 use burn::nn::{Dropout, DropoutConfig, Linear, LinearConfig};
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
+
+use crate::ml::activation::{Softmax, Tanh, ELU, SELU};
 
 #[derive(Module, Debug)]
 pub struct CNNModel<B: Backend> {
