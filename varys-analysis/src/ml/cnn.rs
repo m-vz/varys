@@ -8,6 +8,8 @@ use burn::tensor::Tensor;
 
 use crate::ml::activation::{Softmax, Tanh, ELU, SELU};
 
+pub mod training;
+
 #[derive(Module, Debug)]
 pub struct CNNModel<B: Backend> {
     convolution_0: Conv1d<B>,

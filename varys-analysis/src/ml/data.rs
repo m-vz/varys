@@ -129,6 +129,7 @@ impl NumericTraceDataset {
     ) -> Option<NumericTrafficTrace> {
         interaction
             .capture_file
+            .clone()
             .map(|file| load_packets(file).ok())
             .flatten()
             .map(|packets| TrafficTrace::try_from(packets).ok())
@@ -219,7 +220,7 @@ impl SplitNumericTraceDataset {
                 validation_index,
                 (testing_index - 1).max(0),
             ),
-            testing: PartialDataset::new(dataset, testing_index, dataset.len() - 1),
+            testing: PartialDataset::new(dataset.clone(), testing_index, dataset.len() - 1),
         })
     }
 }
@@ -246,7 +247,7 @@ impl<B: Backend> Batcher<NumericTraceItem, NumericBatch<B>> for TrafficTraceBatc
         let targets = items
             .iter()
             // in this step we convert each item to the backend element type
-            .map(|&item| Data::from([(item.label as i64).elem()]))
+            .map(|item| Data::from([(item.label as i64).elem()]))
             .map(|data| Tensor::<B, 1, Int>::from_data(data, &self.device))
             .collect();
         let targets = Tensor::cat(targets, 0).to_device(&self.device);
