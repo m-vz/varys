@@ -34,7 +34,7 @@ pub struct NumericTraceItem {
 pub struct NumericTraceDataset {
     pub items: Vec<NumericTraceItem>,
     /// The label of a query is the index of the query in this vector
-    queries: Vec<String>,
+    pub queries: Vec<String>,
 }
 
 impl NumericTraceDataset {
@@ -72,7 +72,7 @@ impl NumericTraceDataset {
                 )
             })
             // only keep items where the trace could be loaded and the label was found
-            .filter_map(|(trace, label)| trace.zip(label))
+            .filter_map(|(trace, label)| trace.ok().zip(label))
             .map(|(trace, label)| NumericTraceItem { trace, label })
             .collect();
 
@@ -104,16 +104,9 @@ impl NumericTraceDataset {
             .map(|label| label as u8)
     }
 
-    /// This function filters out all interactions that should not be used in the dataset.
-    ///
-    /// # Arguments
-    ///
-    /// * `interactions`: The interactions to filter.
-    fn filter_interactions(interactions: Vec<Interaction>) -> Vec<Interaction> {
-        interactions
-            .into_iter()
-            .filter(|interaction| true)
-            .collect()
+    /// Get the number of labels in the dataset.
+    pub fn num_labels(&self) -> usize {
+        self.queries.len()
     }
 
     /// Load a [`TrafficTrace`] from a pcap file.
@@ -123,18 +116,29 @@ impl NumericTraceDataset {
     /// * `interaction`: The interaction to load the traffic trace from.
     ///
     /// returns: The parsed [`TrafficTrace`] or `None` if the pcap file could not be loaded.
-    fn load_trace(
+    pub fn load_trace(
         interaction: &Interaction,
         relative_to: &MacAddress,
-    ) -> Option<NumericTrafficTrace> {
+    ) -> Result<NumericTrafficTrace, Error> {
         interaction
             .capture_file
             .clone()
-            .map(|file| load_packets(file).ok())
-            .flatten()
-            .map(|packets| TrafficTrace::try_from(packets).ok())
-            .flatten()
+            .and_then(|file| load_packets(file).ok())
+            .and_then(|packets| TrafficTrace::try_from(packets).ok())
             .map(|trace| trace.as_numeric_trace(relative_to))
+            .ok_or(Error::CannotLoadTrace)
+    }
+
+    /// This function filters out all interactions that should not be used in the dataset.
+    ///
+    /// # Arguments
+    ///
+    /// * `interactions`: The interactions to filter.
+    fn filter_interactions(interactions: Vec<Interaction>) -> Vec<Interaction> {
+        interactions
+            .into_iter()
+            .filter(|interaction| interaction.is_complete())
+            .collect()
     }
 
     /// Turns a list of interactions into a list of unique queries. The indices of the returned list will be used as
@@ -179,6 +183,7 @@ impl Dataset<NumericTraceItem> for NumericTraceDataset {
 }
 
 pub struct SplitNumericTraceDataset {
+    pub full: Arc<NumericTraceDataset>,
     pub training: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
     pub validation: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
     pub testing: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
@@ -214,6 +219,7 @@ impl SplitNumericTraceDataset {
         let testing_index = validation_index + (validation_proportion * length) as usize;
 
         Ok(SplitNumericTraceDataset {
+            full: dataset.clone(),
             training: PartialDataset::new(dataset.clone(), 0, (validation_index - 1).max(0)),
             validation: PartialDataset::new(
                 dataset.clone(),

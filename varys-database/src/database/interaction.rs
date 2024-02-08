@@ -154,6 +154,10 @@ impl Interaction {
 
         Ok(self)
     }
+
+    pub fn is_complete(&self) -> bool {
+        self.ended.is_some()
+    }
 }
 
 impl Display for Interaction {

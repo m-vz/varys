@@ -8,6 +8,7 @@ use burn::tensor::Tensor;
 
 use crate::ml::activation::{Softmax, Tanh, ELU, SELU};
 
+pub mod inference;
 pub mod training;
 
 #[derive(Module, Debug)]
@@ -141,5 +142,9 @@ impl CNNModelConfig {
             activation_selu: SELU::new(),
             activation_softmax: Softmax::new(),
         }
+    }
+
+    pub fn init_with<B: Backend>(self, record: CNNModelRecord<B>) -> CNNModel<B> {
+        todo!()
     }
 }

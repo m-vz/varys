@@ -2,6 +2,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
     #[error("Cannot turn an empty list of packets into a trace")]
     EmptyTrace,
     #[error("At most {0} labels are supported")]
@@ -10,4 +12,6 @@ pub enum Error {
     ProportionError,
     #[error("Dataset proportions do not add up to 1")]
     ProportionSumError,
+    #[error("Cannot load traffic trace")]
+    CannotLoadTrace,
 }

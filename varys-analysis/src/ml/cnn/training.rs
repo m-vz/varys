@@ -1,5 +1,3 @@
-use std::fs;
-
 use burn::config::Config;
 use burn::data::dataloader::DataLoaderBuilder;
 use burn::lr_scheduler::noam::NoamLrSchedulerConfig;
@@ -68,7 +66,6 @@ pub fn train<B: AutodiffBackend>(
     dataset: SplitNumericTraceDataset,
     device: B::Device,
 ) {
-    fs::create_dir_all(data_dir).expect("Failed to create artifact directory.");
     config
         .save(format!("{data_dir}/config.json"))
         .expect("Failed to save config.");
