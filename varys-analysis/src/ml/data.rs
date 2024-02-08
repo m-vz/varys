@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use burn::data::dataloader::batcher::Batcher;
+use burn::data::dataset::transform::PartialDataset;
 use burn::data::dataset::Dataset;
 use burn::tensor::backend::Backend;
 use burn::tensor::{Data, ElementConversion, Int, Tensor};
@@ -171,6 +174,53 @@ impl Dataset<NumericTraceItem> for NumericTraceDataset {
 
     fn is_empty(&self) -> bool {
         self.items.is_empty()
+    }
+}
+
+pub struct SplitNumericTraceDataset {
+    pub training: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
+    pub validation: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
+    pub testing: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
+}
+
+impl SplitNumericTraceDataset {
+    pub fn split(
+        dataset: NumericTraceDataset,
+        training_proportion: f64,
+        validation_proportion: f64,
+        testing_proportion: f64,
+    ) -> Result<Self, Error> {
+        if !(0.0..1.0).contains(&training_proportion)
+            || !(0.0..1.0).contains(&validation_proportion)
+            || !(0.0..1.0).contains(&testing_proportion)
+        {
+            return Err(Error::ProportionError);
+        }
+        if (training_proportion + validation_proportion + testing_proportion - 1.).abs() > 0.001 {
+            return Err(Error::ProportionSumError);
+        }
+
+        info!(
+            "Splitting dataset into training: {:.0}%, validation: {:.0}%, testing: {:.0}%",
+            (training_proportion * 100.).round(),
+            (validation_proportion * 100.).round(),
+            (testing_proportion * 100.).round()
+        );
+
+        let dataset = Arc::new(dataset);
+        let length = dataset.len() as f64;
+        let validation_index = (training_proportion * length) as usize;
+        let testing_index = validation_index + (validation_proportion * length) as usize;
+
+        Ok(SplitNumericTraceDataset {
+            training: PartialDataset::new(dataset.clone(), 0, (validation_index - 1).max(0)),
+            validation: PartialDataset::new(
+                dataset.clone(),
+                validation_index,
+                (testing_index - 1).max(0),
+            ),
+            testing: PartialDataset::new(dataset, testing_index, dataset.len() - 1),
+        })
     }
 }
 
