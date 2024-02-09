@@ -117,8 +117,8 @@ impl NumericTraceDataset {
     /// * `label`: The label to find the query for.
     ///
     /// returns: The query corresponding to the label or `None` if the label could not be found.
-    pub fn get_query(&self, label: u8) -> Option<&String> {
-        self.queries.get(label as usize)
+    pub fn get_query(&self, label: u8) -> Option<String> {
+        self.queries.get(label as usize).cloned()
     }
 
     /// Find the label of a query. This will search the list of queries.

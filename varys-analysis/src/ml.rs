@@ -2,6 +2,7 @@ use std::fs;
 
 use burn::backend::wgpu::{AutoGraphicsApi, WgpuDevice};
 use burn::backend::{Autodiff, Wgpu};
+use burn::data::dataset::Dataset;
 use burn::optim::AdamConfig;
 use log::info;
 
@@ -12,7 +13,7 @@ use varys_network::address::MacAddress;
 use crate::error::Error;
 use crate::ml::cnn::training::CNNTrainingConfig;
 use crate::ml::cnn::{inference, CNNModelConfig};
-use crate::ml::data::{NumericTraceDataset, SplitNumericTraceDataset};
+use crate::ml::data::{NumericTraceItem, SplitNumericTraceDataset};
 
 mod activation;
 mod cnn;
@@ -48,30 +49,39 @@ pub fn train(
     Ok(())
 }
 
-pub fn infer(
+pub fn test(
     data_dir: &str,
-    recognise: &Interaction,
     interactions: Vec<Interaction>,
     relative_to: &MacAddress,
 ) -> Result<(), Error> {
     let device = WgpuDevice::default();
     let dataset = SplitNumericTraceDataset::load_or_create(data_dir, interactions, relative_to)?;
 
-    let recognised = inference::infer::<AutodiffBackend>(
-        data_dir,
-        NumericTraceDataset::load_trace(recognise, relative_to)?,
-        device.clone(),
-    )?;
-
-    println!(
-        "Recognised as: {}",
-        dataset
-            .full
-            .get_query(recognised)
-            .unwrap_or(&String::from("Unknown"))
-    );
+    for index in 0..dataset.testing.len() {
+        if let Some(item) = &dataset.testing.get(index) {
+            infer(data_dir, item, &dataset, &device)?;
+        }
+    }
 
     Ok(())
+}
+
+pub fn infer(
+    data_dir: &str,
+    item: &NumericTraceItem,
+    dataset: &SplitNumericTraceDataset,
+    device: &WgpuDevice,
+) -> Result<u8, Error> {
+    let recognised =
+        inference::infer::<AutodiffBackend>(data_dir, item.trace.clone(), device.clone())?;
+
+    println!(
+        "Recognised \"{}\" as \"{}\"",
+        dataset.full.get_query(item.label).unwrap_or_default(),
+        dataset.full.get_query(recognised).unwrap_or_default(),
+    );
+
+    Ok(recognised)
 }
 
 fn model_path(data_dir: &str) -> String {
