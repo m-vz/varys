@@ -41,7 +41,7 @@ pub fn train(
         ),
         dataset,
         device,
-    );
+    )?;
 
     println!("Training complete");
 
@@ -61,7 +61,7 @@ pub fn infer(
         data_dir,
         NumericTraceDataset::load_trace(recognise, relative_to)?,
         device.clone(),
-    );
+    )?;
 
     println!(
         "Recognised as: {}",
@@ -72,4 +72,12 @@ pub fn infer(
     );
 
     Ok(())
+}
+
+fn model_path(data_dir: &str) -> String {
+    format!("{data_dir}/model")
+}
+
+fn config_path(data_dir: &str) -> String {
+    format!("{data_dir}/config.json")
 }

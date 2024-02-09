@@ -1,3 +1,4 @@
+use crate::error::Error;
 use burn::config::Config;
 use burn::data::dataloader::DataLoaderBuilder;
 use burn::lr_scheduler::noam::NoamLrSchedulerConfig;
@@ -12,6 +13,7 @@ use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, 
 
 use crate::ml::cnn::{CNNModel, CNNModelConfig};
 use crate::ml::data::{NumericBatch, SplitNumericTraceDataset, TrafficTraceBatcher};
+use crate::ml::{config_path, model_path};
 
 impl<B: AutodiffBackend> TrainStep<NumericBatch<B>, ClassificationOutput<B>> for CNNModel<B> {
     fn step(&self, batch: NumericBatch<B>) -> TrainOutput<ClassificationOutput<B>> {
@@ -65,10 +67,8 @@ pub fn train<B: AutodiffBackend>(
     config: CNNTrainingConfig,
     dataset: SplitNumericTraceDataset,
     device: B::Device,
-) {
-    config
-        .save(format!("{data_dir}/config.json"))
-        .expect("Failed to save config.");
+) -> Result<(), Error> {
+    config.save(config_path(data_dir))?;
 
     B::seed(config.seed);
 
@@ -100,6 +100,6 @@ pub fn train<B: AutodiffBackend>(
 
     learner
         .fit(data_loader_training, data_loader_validation)
-        .save_file(format!("{data_dir}/model"), &CompactRecorder::new())
-        .expect("Failed to save trained model.");
+        .save_file(model_path(data_dir), &CompactRecorder::new())
+        .map_err(Error::from)
 }

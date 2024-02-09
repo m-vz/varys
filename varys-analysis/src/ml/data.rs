@@ -225,6 +225,14 @@ impl SplitNumericTraceDataset {
     const VALIDATION_PROPORTION: f64 = 0.16;
     const TESTING_PROPORTION: f64 = 0.2;
 
+    /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets.
+    ///
+    /// # Arguments
+    ///
+    /// * `dataset`: The dataset to split.
+    /// * `training_proportion`: The proportion of the dataset to use for training.
+    /// * `validation_proportion`: The proportion of the dataset to use for validation.
+    /// * `testing_proportion`: The proportion of the dataset to use for testing.
     pub fn split(
         dataset: NumericTraceDataset,
         training_proportion: f64,
