@@ -21,24 +21,15 @@ mod data;
 type Backend = Wgpu<AutoGraphicsApi, f32, i32>;
 type AutodiffBackend = Autodiff<Backend>;
 
-const TRAINING_PROPORTION: f64 = 0.64;
-const VALIDATION_PROPORTION: f64 = 0.16;
-const TESTING_PROPORTION: f64 = 0.2;
-
 pub fn train(
     data_dir: &str,
     interactions: Vec<Interaction>,
     relative_to: &MacAddress,
 ) -> Result<(), Error> {
-    let device = WgpuDevice::default();
-    let dataset = SplitNumericTraceDataset::split(
-        NumericTraceDataset::load(interactions, relative_to)?,
-        TRAINING_PROPORTION,
-        VALIDATION_PROPORTION,
-        TESTING_PROPORTION,
-    )?;
+    fs::create_dir_all(data_dir)?;
 
-    fs::create_dir_all(data_dir).expect("Failed to create data directory.");
+    let device = WgpuDevice::default();
+    let dataset = SplitNumericTraceDataset::load_or_create(data_dir, interactions, relative_to)?;
 
     info!("Beginning training...");
 
@@ -64,12 +55,8 @@ pub fn infer(
     relative_to: &MacAddress,
 ) -> Result<(), Error> {
     let device = WgpuDevice::default();
-    let dataset = SplitNumericTraceDataset::split(
-        NumericTraceDataset::load(interactions, relative_to)?,
-        TRAINING_PROPORTION,
-        VALIDATION_PROPORTION,
-        TESTING_PROPORTION,
-    )?;
+    let dataset = SplitNumericTraceDataset::load_or_create(data_dir, interactions, relative_to)?;
+
     let recognised = inference::infer::<AutodiffBackend>(
         data_dir,
         NumericTraceDataset::load_trace(recognise, relative_to)?,

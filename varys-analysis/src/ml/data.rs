@@ -1,3 +1,6 @@
+use std::fs::{File, OpenOptions};
+use std::io::{BufReader, Write};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use burn::data::dataloader::batcher::Batcher;
@@ -31,6 +34,7 @@ pub struct NumericTraceItem {
     pub label: u8,
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct NumericTraceDataset {
     pub items: Vec<NumericTraceItem>,
     /// The label of a query is the index of the query in this vector
@@ -51,7 +55,7 @@ impl NumericTraceDataset {
     /// * `relative_to`: The MAC address to use as the reference point for the trace.
     ///
     /// returns: The created dataset or [`Error::TooManyLabels`] if there were too many different queries.
-    pub fn load(interactions: Vec<Interaction>, relative_to: &MacAddress) -> Result<Self, Error> {
+    pub fn new(interactions: Vec<Interaction>, relative_to: &MacAddress) -> Result<Self, Error> {
         info!(
             "Creating dataset from {} interactions...",
             interactions.len()
@@ -77,6 +81,33 @@ impl NumericTraceDataset {
             .collect();
 
         Ok(dataset)
+    }
+
+    /// Load a numeric traffic trace dataset from a JSON file.
+    ///
+    /// # Arguments
+    ///
+    /// * `path`: The path to the JSON file.
+    ///
+    /// returns: The loaded dataset or an error if the file could not be opened or the JSON could not be deserialized.
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?)
+    }
+
+    /// Save the dataset to a JSON file.
+    ///
+    /// # Arguments
+    ///
+    /// * `path`: Where to save the dataset.
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
+        OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(path)?
+            .write_all(serde_json::to_string(self)?.as_bytes())?;
+
+        Ok(())
     }
 
     /// Find the query corresponding to a label. The label corresponds to the index of the query in the list of queries.
@@ -190,6 +221,10 @@ pub struct SplitNumericTraceDataset {
 }
 
 impl SplitNumericTraceDataset {
+    const TRAINING_PROPORTION: f64 = 0.64;
+    const VALIDATION_PROPORTION: f64 = 0.16;
+    const TESTING_PROPORTION: f64 = 0.2;
+
     pub fn split(
         dataset: NumericTraceDataset,
         training_proportion: f64,
@@ -228,6 +263,27 @@ impl SplitNumericTraceDataset {
             ),
             testing: PartialDataset::new(dataset.clone(), testing_index, dataset.len() - 1),
         })
+    }
+
+    pub fn load_or_create(
+        data_dir: &str,
+        interactions: Vec<Interaction>,
+        relative_to: &MacAddress,
+    ) -> Result<SplitNumericTraceDataset, Error> {
+        let dataset_path = PathBuf::from(format!("{data_dir}/dataset.json"));
+        let dataset = if dataset_path.exists() {
+            NumericTraceDataset::load(&dataset_path)?
+        } else {
+            NumericTraceDataset::new(interactions, relative_to)?
+        };
+
+        dataset.save(&dataset_path)?;
+        Self::split(
+            dataset,
+            Self::TRAINING_PROPORTION,
+            Self::VALIDATION_PROPORTION,
+            Self::TESTING_PROPORTION,
+        )
     }
 }
 
