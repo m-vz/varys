@@ -10,13 +10,13 @@ use varys_audio::tts::Speaker;
 use varys_network::sniff;
 use varys_network::sniff::{ConnectionStatus, Sniffer};
 
+use crate::assistant;
 use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
     Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
 };
 use crate::error::Error;
 use crate::query::Query;
-use crate::{assistant, compression};
 
 pub mod arguments;
 pub mod interact;
@@ -117,6 +117,7 @@ fn listen(
 
 fn sniff_command(interface: &str, command: SniffCommand) -> Result<(), Error> {
     info!("Sniffing...");
+
     for device in sniff::devices_with_status(&ConnectionStatus::Connected)? {
         debug!("{}", Sniffer::from(device));
     }
@@ -124,7 +125,6 @@ fn sniff_command(interface: &str, command: SniffCommand) -> Result<(), Error> {
     debug!("Using: {sniffer}");
     let stats = sniffer.run_for(5, &command.file)?;
     debug!("Stats: {stats}");
-    compression::compress_gzip(&command.file, true)?;
 
     Ok(())
 }

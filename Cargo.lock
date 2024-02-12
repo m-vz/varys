@@ -4904,7 +4904,6 @@ dependencies = [
  "colored",
  "crossterm",
  "dotenvy",
- "flate2",
  "log",
  "pretty_env_logger",
  "rand",

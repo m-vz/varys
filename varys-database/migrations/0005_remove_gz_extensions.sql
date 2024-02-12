@@ -1,0 +1,1 @@
+update interaction set capture_file = replace(capture_file, '.gz', '');
