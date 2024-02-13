@@ -1,1 +1,0 @@
-alter table session add column assistant_mac text not null default '00:00:00:00:00:00';

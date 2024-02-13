@@ -1,6 +1,6 @@
 [package]
 name = "varys-database"
-version = "0.10.0"
+version = "0.10.1"
 edition = "2021"
 authors = ["Milan van Zanten <milan@milan.wtf>"]
 description = "Storing interactions in a database with varys."

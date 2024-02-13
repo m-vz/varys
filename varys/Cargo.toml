@@ -1,6 +1,6 @@
 [package]
 name = "varys"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2021"
 authors = ["Milan van Zanten <milan@milan.wtf>"]
 description = "Spying on smart speakers."

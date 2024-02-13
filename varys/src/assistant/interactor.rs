@@ -236,7 +236,6 @@ impl Interactor {
                 model: self.model.to_string(),
             },
             crate_version!().to_string(),
-            self.assistant_mac.clone(),
         )
         .await?;
 
@@ -260,8 +259,14 @@ impl Interactor {
         info!("Starting interaction with \"{query}\"");
 
         // prepare the interaction
-        let mut interaction =
-            Interaction::create(connection, session, &query.text, &query.category).await?;
+        let mut interaction = Interaction::create(
+            connection,
+            session,
+            &query.text,
+            &query.category,
+            self.assistant_mac.clone(),
+        )
+        .await?;
         let capture_path = file::artefact_path(&self.data_dir, DataType::Capture, &interaction);
         let query_audio_path = file::artefact_path(
             &self.data_dir,
