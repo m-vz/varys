@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use clap::crate_version;
 use log::{error, info, warn};
 use rand::prelude::SliceRandom;
 
@@ -235,7 +234,7 @@ impl Interactor {
                 sensitivity: self.sensitivity.to_string(),
                 model: self.model.to_string(),
             },
-            crate_version!().to_string(),
+            crate::version(),
         )
         .await?;
 
