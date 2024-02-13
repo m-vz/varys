@@ -18,6 +18,8 @@ pub enum Error {
     ProportionError,
     #[error("Dataset proportions do not add up to 1")]
     ProportionSumError,
+    #[error("Dataset too small for the given proportions (one or more partitions would be empty)")]
+    DatasetTooSmall,
     #[error("Cannot load traffic trace")]
     CannotLoadTrace,
 }

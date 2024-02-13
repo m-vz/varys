@@ -275,14 +275,17 @@ impl SplitNumericTraceDataset {
         let validation_index = (training_proportion * length) as usize;
         let testing_index = validation_index + (validation_proportion * length) as usize;
 
+        if validation_index <= 1
+            || testing_index <= validation_index + 1
+            || dataset.len() <= testing_index + 1
+        {
+            return Err(Error::DatasetTooSmall);
+        }
+
         Ok(SplitNumericTraceDataset {
             full: dataset.clone(),
-            training: PartialDataset::new(dataset.clone(), 0, (validation_index - 1).max(0)),
-            validation: PartialDataset::new(
-                dataset.clone(),
-                validation_index,
-                (testing_index - 1).max(0),
-            ),
+            training: PartialDataset::new(dataset.clone(), 0, validation_index - 1),
+            validation: PartialDataset::new(dataset.clone(), validation_index, testing_index - 1),
             testing: PartialDataset::new(dataset.clone(), testing_index, dataset.len() - 1),
         })
     }
