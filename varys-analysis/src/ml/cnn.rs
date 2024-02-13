@@ -1,7 +1,7 @@
 use burn::config::Config;
 use burn::module::Module;
 use burn::nn::conv::{Conv1d, Conv1dConfig};
-use burn::nn::pool::{AvgPool1d, AvgPool1dConfig, MaxPool1d, MaxPool1dConfig};
+use burn::nn::pool::{AdaptiveAvgPool1d, AdaptiveAvgPool1dConfig};
 use burn::nn::{Dropout, DropoutConfig, Linear, LinearConfig};
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
@@ -17,11 +17,7 @@ pub struct CNNModel<B: Backend> {
     convolution_1: Conv1d<B>,
     convolution_2: Conv1d<B>,
     convolution_3: Conv1d<B>,
-    pooling_0: MaxPool1d,
-    pooling_1: MaxPool1d,
-    pooling_2: MaxPool1d,
-    pooling_3: MaxPool1d,
-    pooling_4: AvgPool1d,
+    pooling: AdaptiveAvgPool1d,
     dropout_0: Dropout,
     dropout_1: Dropout,
     dropout_2: Dropout,
@@ -42,32 +38,28 @@ impl<B: Backend> CNNModel<B> {
 
         let x = self.convolution_0.forward(x);
         let x = self.activation_tanh.forward(x);
-        let x = self.pooling_0.forward(x);
         let x = self.dropout_0.forward(x);
 
         let x = self.convolution_1.forward(x);
         let x = self.activation_elu.forward(x);
-        let x = self.pooling_1.forward(x);
         let x = self.dropout_1.forward(x);
 
         let x = self.convolution_2.forward(x);
         let x = self.activation_elu.forward(x);
-        let x = self.pooling_2.forward(x);
         let x = self.dropout_2.forward(x);
 
         let x = self.convolution_3.forward(x);
         let x = self.activation_selu.forward(x);
-        let x = self.pooling_3.forward(x);
 
-        let x = self.pooling_4.forward(x);
+        let x = self.pooling.forward(x);
+        let [batch_size, channels, _] = x.dims();
+        let x = x.reshape([batch_size, channels]);
 
         let x = self.dense_0.forward(x);
         let x = self.activation_selu.forward(x);
 
         let x = self.dense_1.forward(x);
-        let x = self.activation_softmax.forward(x);
-
-        todo!()
+        self.activation_softmax.forward(x)
     }
 }
 
@@ -100,8 +92,6 @@ pub struct CNNModelConfig {
     filter_size_2: usize,
     #[config(default = 23)]
     filter_size_3: usize,
-    #[config(default = 1)]
-    pool_size: usize,
 }
 
 impl CNNModelConfig {
@@ -127,15 +117,11 @@ impl CNNModelConfig {
                 self.filter_size_3,
             )
             .init(device),
-            pooling_0: MaxPool1dConfig::new(self.pool_size).init(),
-            pooling_1: MaxPool1dConfig::new(self.pool_size).init(),
-            pooling_2: MaxPool1dConfig::new(self.pool_size).init(),
-            pooling_3: MaxPool1dConfig::new(self.pool_size).init(),
-            pooling_4: AvgPool1dConfig::new(self.pool_size).init(),
+            pooling: AdaptiveAvgPool1dConfig::new(1).init(),
             dropout_0: DropoutConfig::new(self.dropout_rate_0).init(),
             dropout_1: DropoutConfig::new(self.dropout_rate_1).init(),
             dropout_2: DropoutConfig::new(self.dropout_rate_2).init(),
-            dense_0: LinearConfig::new(todo!(), self.dense_size).init(device),
+            dense_0: LinearConfig::new(self.convolution_number_3, self.dense_size).init(device),
             dense_1: LinearConfig::new(self.dense_size, self.num_classes).init(device),
             activation_tanh: Tanh::new(),
             activation_elu: ELU::new(1.),
