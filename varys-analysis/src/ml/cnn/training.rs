@@ -13,7 +13,7 @@ use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, 
 
 use crate::ml::cnn::{CNNModel, CNNModelConfig};
 use crate::ml::data::{NumericBatch, SplitNumericTraceDataset, TrafficTraceBatcher};
-use crate::ml::{config_path, model_path};
+use crate::ml::{config_path, ml_path, model_path};
 
 impl<B: AutodiffBackend> TrainStep<NumericBatch<B>, ClassificationOutput<B>> for CNNModel<B> {
     fn step(&self, batch: NumericBatch<B>) -> TrainOutput<ClassificationOutput<B>> {
@@ -84,7 +84,7 @@ pub fn train<B: AutodiffBackend>(
         .shuffle(config.seed)
         .num_workers(config.num_workers)
         .build(dataset.validation);
-    let learner = LearnerBuilder::new(data_dir)
+    let learner = LearnerBuilder::new(&ml_path(data_dir))
         .metric_train_numeric(AccuracyMetric::new())
         .metric_valid_numeric(AccuracyMetric::new())
         .metric_train_numeric(LossMetric::new())

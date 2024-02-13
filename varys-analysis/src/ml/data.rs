@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use burn::data::dataloader::batcher::Batcher;
@@ -17,6 +17,7 @@ use varys_network::address::MacAddress;
 use varys_network::packet;
 
 use crate::error::Error;
+use crate::ml;
 use crate::trace::{NumericTrafficTrace, TrafficTrace};
 
 pub struct TrafficTraceBatcher<B: Backend> {
@@ -288,7 +289,7 @@ impl SplitNumericTraceDataset {
         interactions: Vec<Interaction>,
         relative_to: &MacAddress,
     ) -> Result<SplitNumericTraceDataset, Error> {
-        let dataset_path = PathBuf::from(format!("{}/dataset.json", data_path.as_ref().display()));
+        let dataset_path = ml::dataset_path(&data_path);
         let dataset = if dataset_path.exists() {
             NumericTraceDataset::load(&dataset_path)?
         } else {
