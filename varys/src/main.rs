@@ -1,6 +1,6 @@
 use log::error;
-use std::str::FromStr;
 
+use varys::cli;
 use varys::error::Error;
 
 #[tokio::main]

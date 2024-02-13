@@ -3,17 +3,21 @@ use std::{thread, time};
 use clap::Parser;
 use log::{debug, error, info};
 
+use varys_analysis::ml;
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcriber::Transcriber;
 use varys_audio::stt::{Model, Recogniser};
 use varys_audio::tts::Speaker;
+use varys_database::database;
+use varys_database::database::interaction::Interaction;
 use varys_network::sniff;
 use varys_network::sniff::{ConnectionStatus, Sniffer};
 
 use crate::assistant;
 use crate::assistant::interactor::Interactor;
 use crate::cli::arguments::{
-    Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand, SniffCommand,
+    AnalyseSubcommand, Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand,
+    SniffCommand,
 };
 use crate::error::Error;
 use crate::query::Query;
@@ -48,6 +52,7 @@ pub async fn run() -> Result<(), Error> {
             )
             .await
         }
+        Command::Analyse(command) => analyse_command(command.command).await,
     }
 }
 
@@ -160,4 +165,15 @@ async fn run_command(
             error!("A session did not complete successfully: {error}");
         }
     }
+}
+
+async fn analyse_command(analyse_subcommand: AnalyseSubcommand) -> Result<(), Error> {
+    let interactions = Interaction::get_all(&database::connect().await?).await?;
+
+    match analyse_subcommand {
+        AnalyseSubcommand::Train { data_dir } => ml::train(data_dir, interactions)?,
+        AnalyseSubcommand::Test { data_dir } => ml::test(data_dir, interactions)?,
+    }
+
+    Ok(())
 }
