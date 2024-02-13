@@ -84,7 +84,7 @@ pub struct SniffCommand {
 #[derive(Debug, Args)]
 pub struct RunCommand {
     /// The MAC address of the assistant
-    #[arg(long)]
+    #[arg(long, required(true))]
     pub mac: String,
     /// Which voice assistant to interact with
     pub assistant: String,

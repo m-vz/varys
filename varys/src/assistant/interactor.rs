@@ -241,7 +241,6 @@ impl Interactor {
                 model: self.model.to_string(),
             },
             crate_version!().to_string(),
-            self.assistant_mac.clone(),
         )
         .await?;
         let session_path = self
@@ -267,8 +266,14 @@ impl Interactor {
         info!("Starting interaction with \"{query}\"");
 
         // prepare the interaction
-        let mut interaction =
-            Interaction::create(connection, session, &query.text, &query.category).await?;
+        let mut interaction = Interaction::create(
+            connection,
+            session,
+            &query.text,
+            &query.category,
+            self.assistant_mac.clone(),
+        )
+        .await?;
         let capture_path = session_path.join(capture_file_name(session, &interaction));
         let query_audio_path = session_path.join(audio_file_name(session, &interaction, "query"));
         let response_audio_path =

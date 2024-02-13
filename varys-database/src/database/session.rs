@@ -20,8 +20,6 @@ pub struct Session {
     interactor_config_id: i32,
     /// The directory where the session data is stored.
     pub data_dir: Option<String>,
-    /// The MAC address of the assistant.
-    pub assistant_mac: String,
     /// When this session was started.
     pub started: DateTime<Utc>,
     /// When this session was ended.
@@ -36,19 +34,19 @@ impl Session {
     /// # Arguments
     ///
     /// * `connection`: The connection to use.
+    /// * `config`: The config to use.
+    /// * `version`: The version of varys this session was run on.
     pub async fn create(
         connection: &DatabaseConnection,
         config: &InteractorConfig,
         version: String,
-        assistant_mac: String,
     ) -> Result<Self, Error> {
         let started = Utc::now();
         let interactor_config_id = config.get_or_create(connection).await?;
         let query = sqlx::query!(
-            "INSERT INTO session (started, version, assistant_mac, interactor_config_id) VALUES ($1, $2, $3, $4) RETURNING id",
+            "INSERT INTO session (started, version, interactor_config_id) VALUES ($1, $2, $3) RETURNING id",
             started,
             version,
-            assistant_mac,
             interactor_config_id,
         );
 
@@ -60,7 +58,6 @@ impl Session {
             version,
             interactor_config_id,
             data_dir: None,
-            assistant_mac,
             started,
             ended: None,
         })
@@ -72,7 +69,7 @@ impl Session {
     ///
     /// * `connection`: The connection to use.
     /// * `id`: The id of the session.
-    pub async fn get(id: i32, connection: &DatabaseConnection) -> Result<Option<Self>, Error> {
+    pub async fn get(connection: &DatabaseConnection, id: i32) -> Result<Option<Self>, Error> {
         let query = sqlx::query_as!(Self, "SELECT * FROM session WHERE id = $1", id);
 
         database::log_query(&query);
@@ -86,9 +83,8 @@ impl Session {
     /// * `connection`: The connection to use.
     pub async fn update(&mut self, connection: &DatabaseConnection) -> Result<&mut Self, Error> {
         let query = sqlx::query!(
-            "UPDATE session SET (version, assistant_mac, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5, $6) WHERE id = $7",
+            "UPDATE session SET (version, interactor_config_id, data_dir, started, ended) = ($1, $2, $3, $4, $5) WHERE id = $6",
             self.version,
-            self.assistant_mac,
             self.interactor_config_id,
             self.data_dir,
             self.started,

@@ -51,6 +51,8 @@ pub struct Interaction {
     ///
     /// Stored inside the session `data_dir`.
     pub capture_file: Option<String>,
+    /// The MAC address of the assistant.
+    pub assistant_mac: String,
     /// When this interaction was started.
     pub started: DateTime<Utc>,
     /// When this interaction was ended.
@@ -66,19 +68,24 @@ impl Interaction {
     ///
     /// * `connection`: The connection to use.
     /// * `session`: The session to associate the interaction with.
+    /// * `text`: The query that was asked for this interaction.
+    /// * `category`: The category of the query.
+    /// * `assistant_mac`: The MAC address of the assistant.
     pub async fn create(
         connection: &DatabaseConnection,
         session: &Session,
         text: &str,
         category: &str,
+        assistant_mac: String,
     ) -> Result<Self, Error> {
         let started = Utc::now();
         let query = sqlx::query!(
-            "INSERT INTO interaction (started, session_id, query, query_category) VALUES ($1, $2, $3, $4) RETURNING id",
+            "INSERT INTO interaction (started, session_id, query, query_category, assistant_mac) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             started,
             session.id,
             text,
             category,
+            assistant_mac
         );
 
         database::log_query(&query);
@@ -95,6 +102,7 @@ impl Interaction {
             response_duration: None,
             response_file: None,
             capture_file: None,
+            assistant_mac,
             started,
             ended: None,
         })
@@ -120,7 +128,7 @@ impl Interaction {
     /// * `connection`: The connection to use.
     pub async fn update(&mut self, connection: &DatabaseConnection) -> Result<&mut Self, Error> {
         let query = sqlx::query!(
-            "UPDATE interaction SET (session_id, query, query_category, query_duration, query_file, response, response_duration, response_file, capture_file, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) WHERE id = $12",
+            "UPDATE interaction SET (session_id, query, query_category, query_duration, query_file, response, response_duration, response_file, capture_file, assistant_mac, started, ended) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) WHERE id = $13",
             self.session_id,
             self.query,
             self.query_category,
@@ -130,6 +138,7 @@ impl Interaction {
             self.response_duration,
             self.response_file,
             self.capture_file,
+            self.assistant_mac,
             self.started,
             self.ended,
             self.id
