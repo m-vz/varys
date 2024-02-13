@@ -1,13 +1,11 @@
 use std::collections::VecDeque;
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use clap::crate_version;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use rand::prelude::SliceRandom;
 
-use chrono::Utc;
 use varys_audio::audio::AudioData;
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcribe::Transcribe;
@@ -15,10 +13,11 @@ use varys_audio::stt::transcriber::{TranscriberHandle, TranscriberReceiver, Tran
 use varys_audio::stt::Model;
 use varys_audio::tts::Speaker;
 use varys_database::connection::DatabaseConnection;
-use varys_database::database;
 use varys_database::database::interaction::Interaction;
 use varys_database::database::interactor_config::InteractorConfig;
 use varys_database::database::session::Session;
+use varys_database::file::DataType;
+use varys_database::{database, file};
 use varys_network::sniff;
 use varys_network::sniff::Sniffer;
 
@@ -161,7 +160,7 @@ impl Interactor {
         mut transcriber_handle: TranscriberHandle<TranscribeInteraction>,
     ) -> Result<(), Error> {
         let voice = self.next_voice()?;
-        let (mut session, session_path, database_pool) = self.create_session(voice.clone()).await?;
+        let (mut session, database_pool) = self.create_session(voice.clone()).await?;
         self.listener.recording_timeout = Some(assistant.recording_timeout());
         queries.shuffle(&mut rand::thread_rng());
 
@@ -176,7 +175,6 @@ impl Interactor {
                 .interaction(
                     query,
                     &session,
-                    &session_path,
                     &database_pool,
                     assistant.silence_after_talking(),
                 )
@@ -227,10 +225,7 @@ impl Interactor {
         Ok(voice)
     }
 
-    async fn create_session(
-        &self,
-        voice: String,
-    ) -> Result<(Session, PathBuf, DatabaseConnection), Error> {
+    async fn create_session(&self, voice: String) -> Result<(Session, DatabaseConnection), Error> {
         let database_connection = database::connect().await?;
         let mut session = Session::create(
             &database_connection,
@@ -244,23 +239,21 @@ impl Interactor {
             self.assistant_mac.clone(),
         )
         .await?;
-        let session_path = self
-            .data_dir
-            .join(Path::new(&format!("sessions/session_{}", session.id)));
 
-        fs::create_dir_all(&session_path)?;
-        debug!("Storing data files at {}", session_path.to_string_lossy());
-        session.data_dir = Some(session_path.to_string_lossy().to_string());
+        session.data_dir = Some(
+            file::create_session_dir(&self.data_dir, session.id)?
+                .to_string_lossy()
+                .to_string(),
+        );
         session.update(&database_connection).await?;
 
-        Ok((session, session_path, database_connection))
+        Ok((session, database_connection))
     }
 
     async fn interaction(
         &mut self,
         query: &Query,
         session: &Session,
-        session_path: &Path,
         connection: &DatabaseConnection,
         silence_after_talking: Duration,
     ) -> Result<(Interaction, AudioData), Error> {
@@ -269,10 +262,17 @@ impl Interactor {
         // prepare the interaction
         let mut interaction =
             Interaction::create(connection, session, &query.text, &query.category).await?;
-        let capture_path = session_path.join(capture_file_name(session, &interaction));
-        let query_audio_path = session_path.join(audio_file_name(session, &interaction, "query"));
-        let response_audio_path =
-            session_path.join(audio_file_name(session, &interaction, "response"));
+        let capture_path = file::artefact_path(&self.data_dir, DataType::Capture, &interaction);
+        let query_audio_path = file::artefact_path(
+            &self.data_dir,
+            DataType::Audio(String::from("query")),
+            &interaction,
+        );
+        let response_audio_path = file::artefact_path(
+            &self.data_dir,
+            DataType::Audio(String::from("response")),
+            &interaction,
+        );
 
         // start the sniffer
         let sniffer_instance = self.sniffer.start(&capture_path)?;
@@ -324,30 +324,6 @@ impl Interactor {
         interaction.0.complete(database_connection).await?;
         Ok(sender)
     }
-}
-
-fn audio_file_name(session: &Session, interaction: &Interaction, prefix: &str) -> PathBuf {
-    data_file_name(session, interaction, &format!("{prefix}-audio"), "opus")
-}
-
-fn capture_file_name(session: &Session, interaction: &Interaction) -> PathBuf {
-    data_file_name(session, interaction, "capture", "pcap")
-}
-
-fn data_file_name(
-    session: &Session,
-    interaction: &Interaction,
-    data_type: &str,
-    file_type: &str,
-) -> PathBuf {
-    PathBuf::from(format!(
-        "s{}i{}-{}-{}.{}",
-        session.id,
-        interaction.id,
-        data_type,
-        Utc::now().format("%Y-%m-%d-%H-%M-%S-%f"),
-        file_type,
-    ))
 }
 
 /// Returns the file name if it exists. Otherwise, returns the full path.

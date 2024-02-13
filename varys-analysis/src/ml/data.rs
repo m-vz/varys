@@ -12,8 +12,9 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use varys_database::database::interaction::Interaction;
+use varys_database::file;
 use varys_network::address::MacAddress;
-use varys_network::packet::load_packets;
+use varys_network::packet;
 
 use crate::error::Error;
 use crate::trace::{NumericTrafficTrace, TrafficTrace};
@@ -55,7 +56,11 @@ impl NumericTraceDataset {
     /// * `relative_to`: The MAC address to use as the reference point for the trace.
     ///
     /// returns: The created dataset or [`Error::TooManyLabels`] if there were too many different queries.
-    pub fn new(interactions: Vec<Interaction>, relative_to: &MacAddress) -> Result<Self, Error> {
+    pub fn new<P: AsRef<Path>>(
+        data_path: P,
+        interactions: Vec<Interaction>,
+        relative_to: &MacAddress,
+    ) -> Result<Self, Error> {
         info!(
             "Creating dataset from {} interactions...",
             interactions.len()
@@ -71,7 +76,7 @@ impl NumericTraceDataset {
             .into_iter()
             .map(|interaction| {
                 (
-                    Self::load_trace(&interaction, relative_to),
+                    Self::load_trace(&data_path, &interaction, relative_to),
                     dataset.get_label(&interaction.query),
                 )
             })
@@ -147,15 +152,18 @@ impl NumericTraceDataset {
     /// * `interaction`: The interaction to load the traffic trace from.
     ///
     /// returns: The parsed [`TrafficTrace`] or `None` if the pcap file could not be loaded.
-    pub fn load_trace(
+    pub fn load_trace<P: AsRef<Path>>(
+        data_path: P,
         interaction: &Interaction,
         relative_to: &MacAddress,
     ) -> Result<NumericTrafficTrace, Error> {
         interaction
             .capture_file
             .clone()
-            .and_then(|file| load_packets(file).ok())
-            .and_then(|packets| TrafficTrace::try_from(packets).ok())
+            .map(|path| file::session_path(data_path, interaction.session_id).join(path))
+            .and_then(|path| packet::load_packets(path).ok())
+            .map(TrafficTrace::try_from)
+            .transpose()?
             .map(|trace| trace.as_numeric_trace(relative_to))
             .ok_or(Error::CannotLoadTrace)
     }
@@ -273,16 +281,16 @@ impl SplitNumericTraceDataset {
         })
     }
 
-    pub fn load_or_create(
-        data_dir: &str,
+    pub fn load_or_create<P: AsRef<Path>>(
+        data_path: P,
         interactions: Vec<Interaction>,
         relative_to: &MacAddress,
     ) -> Result<SplitNumericTraceDataset, Error> {
-        let dataset_path = PathBuf::from(format!("{data_dir}/dataset.json"));
+        let dataset_path = PathBuf::from(format!("{}/dataset.json", data_path.as_ref().display()));
         let dataset = if dataset_path.exists() {
             NumericTraceDataset::load(&dataset_path)?
         } else {
-            NumericTraceDataset::new(interactions, relative_to)?
+            NumericTraceDataset::new(data_path, interactions, relative_to)?
         };
 
         dataset.save(&dataset_path)?;

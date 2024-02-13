@@ -3,11 +3,12 @@ use std::path::Path;
 use std::time;
 use std::time::Duration;
 
-use crate::address::MacAddress;
 use chrono::{DateTime, Utc};
+use log::trace;
 use pcap::Capture;
 use pnet::packet::ethernet::EthernetPacket;
 
+use crate::address::MacAddress;
 use crate::error::Error;
 
 #[derive(Copy, Clone, Debug)]
@@ -103,6 +104,8 @@ impl From<pcap::Packet<'_>> for Packet {
 ///
 /// * `path`: The path to the pcap file.
 pub fn load_packets<P: AsRef<Path>>(path: P) -> Result<Vec<Packet>, Error> {
+    trace!("Loading packets from {}...", path.as_ref().display());
+
     let mut capture = Capture::from_file(path)?;
     let mut packets = Vec::new();
 
