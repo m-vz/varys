@@ -127,7 +127,7 @@ impl Interaction {
     ///
     /// * `connection`: The connection to use.
     /// * `session_id`: The id of the session.
-    pub async fn get_session(
+    pub async fn get_by_session(
         connection: &DatabaseConnection,
         session_id: i32,
     ) -> Result<Vec<Self>, Error> {

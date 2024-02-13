@@ -146,7 +146,7 @@ impl Session {
         &self,
         connection: &DatabaseConnection,
     ) -> Result<Vec<Interaction>, Error> {
-        Interaction::get_session(connection, self.id).await
+        Interaction::get_by_session(connection, self.id).await
     }
 }
 

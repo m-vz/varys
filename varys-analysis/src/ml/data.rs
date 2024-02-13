@@ -1,6 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Write};
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use burn::data::dataloader::batcher::Batcher;
@@ -53,14 +54,13 @@ impl NumericTraceDataset {
     ///
     /// # Arguments
     ///
+    /// * `data_path`: The path to the data directory.
     /// * `interactions`: The interactions to create the dataset from.
-    /// * `relative_to`: The MAC address to use as the reference point for the trace.
     ///
     /// returns: The created dataset or [`Error::TooManyLabels`] if there were too many different queries.
     pub fn new<P: AsRef<Path>>(
         data_path: P,
         interactions: Vec<Interaction>,
-        relative_to: &MacAddress,
     ) -> Result<Self, Error> {
         info!(
             "Creating dataset from {} interactions...",
@@ -77,7 +77,7 @@ impl NumericTraceDataset {
             .into_iter()
             .map(|interaction| {
                 (
-                    Self::load_trace(&data_path, &interaction, relative_to),
+                    Self::load_trace(&data_path, &interaction),
                     dataset.get_label(&interaction.query),
                 )
             })
@@ -152,14 +152,17 @@ impl NumericTraceDataset {
     ///
     /// # Arguments
     ///
+    /// * `data_path`: The path to the data directory.
     /// * `interaction`: The interaction to load the traffic trace from.
     ///
     /// returns: The parsed [`TrafficTrace`] or `None` if the pcap file could not be loaded.
     pub fn load_trace<P: AsRef<Path>>(
         data_path: P,
         interaction: &Interaction,
-        relative_to: &MacAddress,
     ) -> Result<NumericTrafficTrace, Error> {
+        let address =
+            MacAddress::from_str(&interaction.assistant_mac).map_err(|_| Error::CannotLoadTrace)?;
+
         interaction
             .capture_file
             .clone()
@@ -167,7 +170,7 @@ impl NumericTraceDataset {
             .and_then(|path| packet::load_packets(path).ok())
             .map(TrafficTrace::try_from)
             .transpose()?
-            .map(|trace| trace.as_numeric_trace(relative_to))
+            .map(|trace| trace.as_numeric_trace(&address))
             .ok_or(Error::CannotLoadTrace)
     }
 
@@ -284,16 +287,23 @@ impl SplitNumericTraceDataset {
         })
     }
 
+    /// Load a dataset from disk, if it is found or create it from a list of [`Interaction`]s.
+    ///
+    /// If no existing dataset is found, a new one is created and saved to disk.
+    ///
+    /// # Arguments
+    ///
+    /// * `data_path`: The path to the data directory.
+    /// * `interactions`: The interactions to create the dataset from if no dataset is found on disk.
     pub fn load_or_create<P: AsRef<Path>>(
         data_path: P,
         interactions: Vec<Interaction>,
-        relative_to: &MacAddress,
     ) -> Result<SplitNumericTraceDataset, Error> {
         let dataset_path = ml::dataset_path(&data_path);
         let dataset = if dataset_path.exists() {
             NumericTraceDataset::load(&dataset_path)?
         } else {
-            let dataset = NumericTraceDataset::new(data_path, interactions, relative_to)?;
+            let dataset = NumericTraceDataset::new(data_path, interactions)?;
             dataset.save(&dataset_path)?;
             dataset
         };

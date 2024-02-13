@@ -9,7 +9,6 @@ use log::info;
 
 use cnn::training;
 use varys_database::database::interaction::Interaction;
-use varys_network::address::MacAddress;
 
 use crate::error::Error;
 use crate::ml::cnn::training::CNNTrainingConfig;
@@ -23,16 +22,12 @@ pub mod data;
 type Backend = Wgpu<AutoGraphicsApi, f32, i32>;
 type AutodiffBackend = Autodiff<Backend>;
 
-pub fn train<P: AsRef<Path>>(
-    data_dir: P,
-    interactions: Vec<Interaction>,
-    relative_to: &MacAddress,
-) -> Result<(), Error> {
+pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Result<(), Error> {
     let data_dir_string = data_dir.as_ref().to_string_lossy().to_string();
     fs::create_dir_all(ml_path(&data_dir_string))?;
 
     let device = WgpuDevice::default();
-    let dataset = SplitNumericTraceDataset::load_or_create(data_dir, interactions, relative_to)?;
+    let dataset = SplitNumericTraceDataset::load_or_create(data_dir, interactions)?;
 
     info!("Beginning training...");
 
@@ -51,13 +46,9 @@ pub fn train<P: AsRef<Path>>(
     Ok(())
 }
 
-pub fn test<P: AsRef<Path>>(
-    data_dir: P,
-    interactions: Vec<Interaction>,
-    relative_to: &MacAddress,
-) -> Result<(), Error> {
+pub fn test<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Result<(), Error> {
     let device = WgpuDevice::default();
-    let dataset = SplitNumericTraceDataset::load_or_create(&data_dir, interactions, relative_to)?;
+    let dataset = SplitNumericTraceDataset::load_or_create(&data_dir, interactions)?;
 
     for index in 0..dataset.testing.len() {
         if let Some(item) = &dataset.testing.get(index) {
