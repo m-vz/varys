@@ -26,5 +26,6 @@ Icon
 /data/sessions
 /data/varys.stderr
 /data/varys.stdout
+/data/dataset.json
 /*.pcap
 /*.pcap.gz

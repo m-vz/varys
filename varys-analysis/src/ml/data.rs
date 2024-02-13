@@ -96,6 +96,8 @@ impl NumericTraceDataset {
     ///
     /// returns: The loaded dataset or an error if the file could not be opened or the JSON could not be deserialized.
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        debug!("Loading dataset from {}", path.as_ref().display());
+
         Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?)
     }
 
@@ -290,10 +292,11 @@ impl SplitNumericTraceDataset {
         let dataset = if dataset_path.exists() {
             NumericTraceDataset::load(&dataset_path)?
         } else {
-            NumericTraceDataset::new(data_path, interactions, relative_to)?
+            let dataset = NumericTraceDataset::new(data_path, interactions, relative_to)?;
+            dataset.save(&dataset_path)?;
+            dataset
         };
 
-        dataset.save(&dataset_path)?;
         Self::split(
             dataset,
             Self::TRAINING_PROPORTION,
