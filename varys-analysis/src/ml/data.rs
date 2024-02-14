@@ -367,7 +367,7 @@ impl<B: Backend> Batcher<NumericTraceItem, NumericBatch<B>> for TrafficTraceBatc
     fn batch(&self, items: Vec<NumericTraceItem>) -> NumericBatch<B> {
         let traces = items
             .iter()
-            .map(|item| Data::<i32, 1>::from(item.trace.0.as_slice()))
+            .map(|item| Data::<f32, 1>::from(item.trace.0.as_slice()))
             // in this step we convert all data to the backend type
             .map(|data| Tensor::<B, 1>::from_data(data.convert(), &self.device))
             .map(|tensor| {

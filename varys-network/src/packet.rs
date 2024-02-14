@@ -26,11 +26,11 @@ impl From<PacketDirection> for bool {
     }
 }
 
-impl From<PacketDirection> for i32 {
+impl From<PacketDirection> for f32 {
     fn from(value: PacketDirection) -> Self {
         match value {
-            PacketDirection::In => -1,
-            PacketDirection::Out => 1,
+            PacketDirection::In => -1.,
+            PacketDirection::Out => 1.,
         }
     }
 }

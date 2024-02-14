@@ -36,7 +36,7 @@ impl TrafficTrace {
                 .filter_map(|packet| {
                     packet
                         .direction(relative_to)
-                        .map(|direction| i32::from(direction) * packet.len as i32)
+                        .map(|direction| f32::from(direction) * packet.len as f32)
                 })
                 .collect(),
         )
@@ -115,8 +115,8 @@ impl Display for BinaryTrafficTrace {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-pub struct NumericTrafficTrace(pub Vec<i32>);
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct NumericTrafficTrace(pub Vec<f32>);
 
 impl NumericTrafficTrace {
     /// Resize the trace, truncating if it is longer than `len` and adding zeroes if it is shorter.
@@ -129,15 +129,15 @@ impl NumericTrafficTrace {
     ///
     /// ```
     /// # use varys_analysis::trace::NumericTrafficTrace;
-    /// let mut trace = NumericTrafficTrace(vec![1, 2, 3]);
+    /// let mut trace = NumericTrafficTrace(vec![1., 2., 3.]);
     ///
     /// trace.resize(2);
-    /// assert_eq!(trace, NumericTrafficTrace(vec![1, 2]));
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1., 2.]));
     /// trace.resize(4);
-    /// assert_eq!(trace, NumericTrafficTrace(vec![1, 2, 0, 0]));
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1., 2., 0., 0.]));
     /// ```
     pub fn resize(&mut self, len: usize) {
-        self.0.resize(len, 0);
+        self.0.resize(len, 0.);
     }
 }
 
