@@ -37,6 +37,21 @@ pub struct NumericTraceItem {
     pub label: u8,
 }
 
+impl NumericTraceItem {
+    /// Resize the item, truncating if it is longer than `len` and adding zeroes if it is shorter.
+    ///
+    /// # Arguments
+    ///
+    /// * `len`: The new length of the item.
+    ///
+    /// # Examples
+    ///
+    /// See [`NumericTrafficTrace::resize`].
+    pub fn resize(&mut self, len: usize) {
+        self.trace.resize(len);
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct NumericTraceDataset {
     pub items: Vec<NumericTraceItem>,
@@ -46,6 +61,28 @@ pub struct NumericTraceDataset {
 
 impl NumericTraceDataset {
     const MAX_LABELS: usize = u8::MAX as usize;
+
+    /// Load a dataset from disk, if it is found or create it from a list of [`Interaction`]s.
+    ///
+    /// If no existing dataset is found, a new one is created and saved to disk.
+    ///
+    /// # Arguments
+    ///
+    /// * `data_path`: The path to the data directory.
+    /// * `interactions`: The interactions to create the dataset from if no dataset is found on disk.
+    pub fn load_or_new<P: AsRef<Path>>(
+        data_path: P,
+        interactions: Vec<Interaction>,
+    ) -> Result<NumericTraceDataset, Error> {
+        let dataset_path = ml::dataset_path(&data_path);
+        if dataset_path.exists() {
+            NumericTraceDataset::load(&dataset_path)
+        } else {
+            let dataset = NumericTraceDataset::new(data_path, interactions)?;
+            dataset.save(&dataset_path)?;
+            Ok(dataset)
+        }
+    }
 
     /// Create a dataset of all numeric traffic traces from a list of interactions.
     ///
@@ -116,6 +153,20 @@ impl NumericTraceDataset {
             .write_all(serde_json::to_string(self)?.as_bytes())?;
 
         Ok(())
+    }
+
+    /// Resize all items in this dataset, truncating if they are longer than `len` and adding zeroes
+    /// if they are shorter.
+    ///
+    /// # Arguments
+    ///
+    /// * `len`: The new length of all items in the dataset.
+    ///
+    /// # Examples
+    ///
+    /// See [`NumericTrafficTrace::resize`].
+    pub fn resize_all(&mut self, len: usize) {
+        self.items.iter_mut().for_each(|item| item.resize(len));
     }
 
     /// Find the query corresponding to a label. The label corresponds to the index of the query in the list of queries.
@@ -239,6 +290,21 @@ impl SplitNumericTraceDataset {
     const VALIDATION_PROPORTION: f64 = 0.16;
     const TESTING_PROPORTION: f64 = 0.2;
 
+    /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets using the
+    /// default proportions.
+    ///
+    /// # Arguments
+    ///
+    /// * `dataset`: The dataset to split.
+    pub fn split_default(dataset: NumericTraceDataset) -> Result<Self, Error> {
+        Self::split(
+            dataset,
+            Self::TRAINING_PROPORTION,
+            Self::VALIDATION_PROPORTION,
+            Self::TESTING_PROPORTION,
+        )
+    }
+
     /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets.
     ///
     /// # Arguments
@@ -288,35 +354,6 @@ impl SplitNumericTraceDataset {
             validation: PartialDataset::new(dataset.clone(), validation_index, testing_index - 1),
             testing: PartialDataset::new(dataset.clone(), testing_index, dataset.len() - 1),
         })
-    }
-
-    /// Load a dataset from disk, if it is found or create it from a list of [`Interaction`]s.
-    ///
-    /// If no existing dataset is found, a new one is created and saved to disk.
-    ///
-    /// # Arguments
-    ///
-    /// * `data_path`: The path to the data directory.
-    /// * `interactions`: The interactions to create the dataset from if no dataset is found on disk.
-    pub fn load_or_create<P: AsRef<Path>>(
-        data_path: P,
-        interactions: Vec<Interaction>,
-    ) -> Result<SplitNumericTraceDataset, Error> {
-        let dataset_path = ml::dataset_path(&data_path);
-        let dataset = if dataset_path.exists() {
-            NumericTraceDataset::load(&dataset_path)?
-        } else {
-            let dataset = NumericTraceDataset::new(data_path, interactions)?;
-            dataset.save(&dataset_path)?;
-            dataset
-        };
-
-        Self::split(
-            dataset,
-            Self::TRAINING_PROPORTION,
-            Self::VALIDATION_PROPORTION,
-            Self::TESTING_PROPORTION,
-        )
     }
 }
 

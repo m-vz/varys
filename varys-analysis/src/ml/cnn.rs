@@ -66,7 +66,6 @@ impl<B: Backend> CNNModel<B> {
 #[derive(Config, Debug)]
 pub struct CNNModelConfig {
     num_classes: usize,
-    #[config(default = 475)]
     input_dimension: usize,
     #[config(default = 0.1)]
     dropout_rate_0: f64,
@@ -95,6 +94,8 @@ pub struct CNNModelConfig {
 }
 
 impl CNNModelConfig {
+    pub const DEFAULT_INPUT_DIMENSIONS: usize = 475;
+
     pub fn init<B: Backend>(&self, device: &B::Device) -> CNNModel<B> {
         CNNModel {
             convolution_0: Conv1dConfig::new(1, self.convolution_number_0, self.filter_size_0)

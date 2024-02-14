@@ -13,7 +13,7 @@ use varys_database::database::interaction::Interaction;
 use crate::error::Error;
 use crate::ml::cnn::training::CNNTrainingConfig;
 use crate::ml::cnn::{inference, CNNModelConfig};
-use crate::ml::data::{NumericTraceItem, SplitNumericTraceDataset};
+use crate::ml::data::{NumericTraceDataset, NumericTraceItem, SplitNumericTraceDataset};
 
 mod activation;
 mod cnn;
@@ -27,19 +27,20 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
     fs::create_dir_all(ml_path(&data_dir_string))?;
 
     let device = WgpuDevice::default();
-    let dataset = SplitNumericTraceDataset::load_or_create(data_dir, interactions)?;
+    let mut dataset = NumericTraceDataset::load_or_new(&data_dir, interactions)?;
+    dataset.resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS);
+    let config = CNNTrainingConfig::new(
+        CNNModelConfig::new(
+            dataset.num_labels(),
+            CNNModelConfig::DEFAULT_INPUT_DIMENSIONS,
+        ),
+        AdamConfig::new(),
+    );
+    let dataset = SplitNumericTraceDataset::split_default(dataset)?;
 
     info!("Beginning training...");
 
-    training::train::<AutodiffBackend>(
-        &data_dir_string,
-        CNNTrainingConfig::new(
-            CNNModelConfig::new(dataset.full.num_labels()),
-            AdamConfig::new(),
-        ),
-        dataset,
-        device,
-    )?;
+    training::train::<AutodiffBackend>(&data_dir_string, config, dataset, device)?;
 
     println!("Training complete");
 
@@ -48,7 +49,8 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
 
 pub fn test<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Result<(), Error> {
     let device = WgpuDevice::default();
-    let dataset = SplitNumericTraceDataset::load_or_create(&data_dir, interactions)?;
+    let dataset = NumericTraceDataset::load_or_new(&data_dir, interactions)?;
+    let dataset = SplitNumericTraceDataset::split_default(dataset)?;
 
     for index in 0..dataset.testing.len() {
         if let Some(item) = &dataset.testing.get(index) {

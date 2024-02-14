@@ -73,14 +73,29 @@ impl Display for TrafficTrace {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct BinaryTrafficTrace(pub Vec<bool>);
 
 impl BinaryTrafficTrace {
-    pub fn resized(&mut self, len: usize) -> &mut Self {
+    /// Resize the trace, truncating if it is longer than `len` and adding zeroes if it is shorter.
+    ///
+    /// # Arguments
+    ///
+    /// * `len`: The new length of the trace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys_analysis::trace::BinaryTrafficTrace;
+    /// let mut trace = BinaryTrafficTrace(vec![true, false, true]);
+    ///
+    /// trace.resize(2);
+    /// assert_eq!(trace, BinaryTrafficTrace(vec![true, false]));
+    /// trace.resize(4);
+    /// assert_eq!(trace, BinaryTrafficTrace(vec![true, false, false, false]));
+    /// ```
+    pub fn resize(&mut self, len: usize) {
         self.0.resize(len, false);
-
-        self
     }
 }
 
@@ -100,14 +115,29 @@ impl Display for BinaryTrafficTrace {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct NumericTrafficTrace(pub Vec<i32>);
 
 impl NumericTrafficTrace {
-    pub fn resized(&mut self, len: usize) -> &mut Self {
+    /// Resize the trace, truncating if it is longer than `len` and adding zeroes if it is shorter.
+    ///
+    /// # Arguments
+    ///
+    /// * `len`: The new length of the trace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys_analysis::trace::NumericTrafficTrace;
+    /// let mut trace = NumericTrafficTrace(vec![1, 2, 3]);
+    ///
+    /// trace.resize(2);
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1, 2]));
+    /// trace.resize(4);
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1, 2, 0, 0]));
+    /// ```
+    pub fn resize(&mut self, len: usize) {
         self.0.resize(len, 0);
-
-        self
     }
 }
 
