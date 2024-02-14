@@ -139,6 +139,34 @@ impl NumericTrafficTrace {
     pub fn resize(&mut self, len: usize) {
         self.0.resize(len, 0.);
     }
+
+    /// Get the minimum and maximum value of this trace.
+    pub fn min_max(&self) -> (f32, f32) {
+        self.0
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(min, max), &value| {
+                (min.min(value), max.max(value))
+            })
+    }
+
+    /// Scale the whole trace by the given factor.
+    ///
+    /// # Arguments
+    ///
+    /// * `scale`: The factor to scale the trace by.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys_analysis::trace::NumericTrafficTrace;
+    /// let mut trace = NumericTrafficTrace(vec![1., 2., 3.]);
+    ///
+    /// trace.resize(2);
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1., 2.]));
+    /// ```
+    pub fn scale(&mut self, scale: f32) {
+        self.0.iter_mut().for_each(|value| *value *= scale);
+    }
 }
 
 impl Display for NumericTrafficTrace {

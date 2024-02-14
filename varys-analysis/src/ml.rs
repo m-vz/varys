@@ -28,7 +28,9 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
 
     let device = WgpuDevice::default();
     let mut dataset = NumericTraceDataset::load_or_new(&data_dir, interactions)?;
-    dataset.resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS);
+    dataset
+        .normalise()
+        .resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS);
     let config = CNNTrainingConfig::new(
         CNNModelConfig::new(
             dataset.num_labels(),

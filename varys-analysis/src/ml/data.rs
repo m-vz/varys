@@ -165,8 +165,28 @@ impl NumericTraceDataset {
     /// # Examples
     ///
     /// See [`NumericTrafficTrace::resize`].
-    pub fn resize_all(&mut self, len: usize) {
+    pub fn resize_all(&mut self, len: usize) -> &mut Self {
         self.items.iter_mut().for_each(|item| item.resize(len));
+
+        self
+    }
+
+    /// Normalise all items into the range `[-1, 1]`.
+    pub fn normalise(&mut self) -> &mut Self {
+        let (min, max) = self
+            .items
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(min, max), item| {
+                let (trace_min, trace_max) = item.trace.min_max();
+                (min.min(trace_min), max.max(trace_max))
+            });
+        let scale = 1. / max.abs().max(min.abs());
+
+        self.items
+            .iter_mut()
+            .for_each(|item| item.trace.scale(scale));
+
+        self
     }
 
     /// Find the query corresponding to a label. The label corresponds to the index of the query in the list of queries.
