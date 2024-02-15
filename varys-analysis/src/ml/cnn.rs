@@ -132,6 +132,38 @@ impl CNNModelConfig {
     }
 
     pub fn init_with<B: Backend>(self, record: CNNModelRecord<B>) -> CNNModel<B> {
-        todo!()
+        CNNModel {
+            convolution_0: Conv1dConfig::new(1, self.convolution_number_0, self.filter_size_0)
+                .init_with(record.convolution_0),
+            convolution_1: Conv1dConfig::new(
+                self.convolution_number_0,
+                self.convolution_number_1,
+                self.filter_size_1,
+            )
+            .init_with(record.convolution_1),
+            convolution_2: Conv1dConfig::new(
+                self.convolution_number_1,
+                self.convolution_number_2,
+                self.filter_size_2,
+            )
+            .init_with(record.convolution_2),
+            convolution_3: Conv1dConfig::new(
+                self.convolution_number_2,
+                self.convolution_number_3,
+                self.filter_size_3,
+            )
+            .init_with(record.convolution_3),
+            pooling: AdaptiveAvgPool1dConfig::new(1).init(),
+            dropout_0: DropoutConfig::new(self.dropout_rate_0).init(),
+            dropout_1: DropoutConfig::new(self.dropout_rate_1).init(),
+            dropout_2: DropoutConfig::new(self.dropout_rate_2).init(),
+            dense_0: LinearConfig::new(self.convolution_number_3, self.dense_size)
+                .init_with(record.dense_0),
+            dense_1: LinearConfig::new(self.dense_size, self.num_classes).init_with(record.dense_1),
+            activation_tanh: Tanh::new(),
+            activation_elu: ELU::new(1.),
+            activation_selu: SELU::new(),
+            activation_softmax: Softmax::new(),
+        }
     }
 }

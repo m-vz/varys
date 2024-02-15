@@ -182,6 +182,8 @@ impl NumericTraceDataset {
             });
         let scale = 1. / max.abs().max(min.abs());
 
+        debug!("Normalising dataset with scale: {scale} (from {min} to {max})");
+
         self.items
             .iter_mut()
             .for_each(|item| item.trace.scale(scale));
