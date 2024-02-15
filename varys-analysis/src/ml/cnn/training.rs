@@ -1,4 +1,3 @@
-use crate::error::Error;
 use burn::config::Config;
 use burn::data::dataloader::DataLoaderBuilder;
 use burn::lr_scheduler::noam::NoamLrSchedulerConfig;
@@ -11,6 +10,7 @@ use burn::tensor::{Int, Tensor};
 use burn::train::metric::{AccuracyMetric, LossMetric};
 use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, ValidStep};
 
+use crate::error::Error;
 use crate::ml::cnn::{CNNModel, CNNModelConfig};
 use crate::ml::data::{NumericBatch, SplitNumericTraceDataset, TrafficTraceBatcher};
 use crate::ml::{config_path, ml_path, model_path};
