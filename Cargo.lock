@@ -5136,6 +5136,7 @@ dependencies = [
  "chrono",
  "log",
  "plotters",
+ "rand",
  "serde",
  "serde_json",
  "thiserror",

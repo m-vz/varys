@@ -30,7 +30,8 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
     let mut dataset = NumericTraceDataset::load_or_new(&data_dir, interactions)?;
     dataset
         .normalise()
-        .resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS);
+        .resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS)
+        .shuffle();
     dataset.save(dataset_path(&data_dir))?;
     let config = CNNTrainingConfig::new(
         CNNModelConfig::new(

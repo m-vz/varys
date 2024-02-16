@@ -8,6 +8,7 @@ use burn::data::dataset::Dataset;
 use burn::tensor::backend::Backend;
 use burn::tensor::{Data, ElementConversion, Int, Tensor};
 use log::{debug, info};
+use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 
 use varys_database::database::interaction::Interaction;
@@ -229,6 +230,13 @@ impl NumericTraceDataset {
                 queries: self.queries,
             },
         ))
+    }
+
+    /// Shuffle the items in this dataset.
+    pub fn shuffle(&mut self) -> &mut Self {
+        self.items.shuffle(&mut rand::thread_rng());
+
+        self
     }
 
     /// Resize all items in this dataset, truncating if they are longer than `len` and adding zeroes
