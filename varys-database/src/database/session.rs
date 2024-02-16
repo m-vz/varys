@@ -6,6 +6,7 @@ use sqlx::FromRow;
 
 use crate::connection::DatabaseConnection;
 use crate::database;
+use crate::database::interaction::Interaction;
 use crate::database::interactor_config::InteractorConfig;
 use crate::error::Error;
 
@@ -76,6 +77,18 @@ impl Session {
         Ok(query.fetch_optional(&connection.pool).await?)
     }
 
+    /// Get all sessions from the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `connection`: The connection to use.
+    pub async fn get_all(connection: &DatabaseConnection) -> Result<Vec<Self>, Error> {
+        let query = sqlx::query_as!(Self, "SELECT * FROM session");
+
+        database::log_query(&query);
+        Ok(query.fetch_all(&connection.pool).await?)
+    }
+
     /// Update all values of a session in the database.
     ///
     /// # Arguments
@@ -121,7 +134,19 @@ impl Session {
         &self,
         connection: &DatabaseConnection,
     ) -> Result<Option<InteractorConfig>, Error> {
-        InteractorConfig::get(self.interactor_config_id, connection).await
+        InteractorConfig::get(connection, self.interactor_config_id).await
+    }
+
+    /// Get all interactions for this session.
+    ///
+    /// # Arguments
+    ///
+    /// * `connection`: The connection to use.
+    pub async fn interactions(
+        &self,
+        connection: &DatabaseConnection,
+    ) -> Result<Vec<Interaction>, Error> {
+        Interaction::get_by_session(connection, self.id).await
     }
 }
 

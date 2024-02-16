@@ -3,11 +3,12 @@ use std::path::Path;
 use std::time;
 use std::time::Duration;
 
-use crate::address::MacAddress;
 use chrono::{DateTime, Utc};
+use log::trace;
 use pcap::Capture;
 use pnet::packet::ethernet::EthernetPacket;
 
+use crate::address::MacAddress;
 use crate::error::Error;
 
 #[derive(Copy, Clone, Debug)]
@@ -25,11 +26,11 @@ impl From<PacketDirection> for bool {
     }
 }
 
-impl From<PacketDirection> for i32 {
+impl From<PacketDirection> for f32 {
     fn from(value: PacketDirection) -> Self {
         match value {
-            PacketDirection::In => -1,
-            PacketDirection::Out => 1,
+            PacketDirection::In => -1.,
+            PacketDirection::Out => 1.,
         }
     }
 }
@@ -52,11 +53,11 @@ impl Packet {
         self.data.len()
     }
 
-    pub fn direction(&self, relative_to: MacAddress) -> Option<PacketDirection> {
+    pub fn direction(&self, relative_to: &MacAddress) -> Option<PacketDirection> {
         EthernetPacket::new(&self.data).and_then(|packet| {
-            if MacAddress::from(packet.get_source()) == relative_to {
+            if MacAddress::from(packet.get_source()) == *relative_to {
                 Some(PacketDirection::Out)
-            } else if MacAddress::from(packet.get_destination()) == relative_to {
+            } else if MacAddress::from(packet.get_destination()) == *relative_to {
                 Some(PacketDirection::In)
             } else {
                 None
@@ -103,6 +104,8 @@ impl From<pcap::Packet<'_>> for Packet {
 ///
 /// * `path`: The path to the pcap file.
 pub fn load_packets<P: AsRef<Path>>(path: P) -> Result<Vec<Packet>, Error> {
+    trace!("Loading packets from {}...", path.as_ref().display());
+
     let mut capture = Capture::from_file(path)?;
     let mut packets = Vec::new();
 

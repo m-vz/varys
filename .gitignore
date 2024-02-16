@@ -22,8 +22,10 @@ Icon
 /data/recordings/*.opus
 /data/captures/*.pcap
 /data/captures/*.pcap.gz
+/data/plots/*.png
 /data/db
-/data/sessions
+/data/sessions*
+/data/ml
 /data/varys.stderr
 /data/varys.stdout
 /*.pcap

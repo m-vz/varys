@@ -58,7 +58,7 @@ impl InteractorConfig {
     ///
     /// * `connection`: The connection to use.
     /// * `id`: The id of the config.
-    pub async fn get(id: i32, connection: &DatabaseConnection) -> Result<Option<Self>, Error> {
+    pub async fn get(connection: &DatabaseConnection, id: i32) -> Result<Option<Self>, Error> {
         let query = sqlx::query!("SELECT * FROM interactor_config WHERE id = $1", id);
 
         database::log_query(&query);

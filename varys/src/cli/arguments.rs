@@ -31,6 +31,8 @@ pub enum Command {
     Sniff(SniffCommand),
     /// Start varys
     Run(RunCommand),
+    /// Analyse data captured with varys
+    Analyse(AnalyseCommand),
 }
 
 #[derive(Debug, Args)]
@@ -92,4 +94,25 @@ pub struct RunCommand {
     pub queries: PathBuf,
     /// The directory in which to store data files
     pub data_dir: PathBuf,
+}
+
+#[derive(Debug, Args)]
+pub struct AnalyseCommand {
+    /// What type of analysis to perform
+    #[clap(subcommand)]
+    pub command: AnalyseSubcommand,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum AnalyseSubcommand {
+    /// Train varys traffic fingerprinting
+    Train {
+        /// The directory in which data files are stored
+        data_dir: PathBuf,
+    },
+    /// Test varys traffic fingerprinting
+    Test {
+        /// The directory in which data files are stored
+        data_dir: PathBuf,
+    },
 }

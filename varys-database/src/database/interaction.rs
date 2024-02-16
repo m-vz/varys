@@ -121,6 +121,38 @@ impl Interaction {
         Ok(query.fetch_optional(&connection.pool).await?)
     }
 
+    /// Get all interactions belonging to a session from the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `connection`: The connection to use.
+    /// * `session_id`: The id of the session.
+    pub async fn get_by_session(
+        connection: &DatabaseConnection,
+        session_id: i32,
+    ) -> Result<Vec<Self>, Error> {
+        let query = sqlx::query_as!(
+            Self,
+            "SELECT * FROM interaction WHERE interaction.session_id = $1",
+            session_id
+        );
+
+        database::log_query(&query);
+        Ok(query.fetch_all(&connection.pool).await?)
+    }
+
+    /// Get all interactions from the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `connection`: The connection to use.
+    pub async fn get_all(connection: &DatabaseConnection) -> Result<Vec<Self>, Error> {
+        let query = sqlx::query_as!(Self, "SELECT * FROM interaction");
+
+        database::log_query(&query);
+        Ok(query.fetch_all(&connection.pool).await?)
+    }
+
     /// Update all values of an interaction in the database.
     ///
     /// # Arguments
@@ -162,6 +194,10 @@ impl Interaction {
         info!("Completed {self} at {}", Utc::now());
 
         Ok(self)
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.ended.is_some()
     }
 }
 

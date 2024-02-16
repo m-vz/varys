@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 
 use chrono::{DateTime, Duration, Utc};
+use serde::{Deserialize, Serialize};
 
 use varys_network::address::MacAddress;
 use varys_network::packet::Packet;
@@ -18,7 +19,7 @@ impl TrafficTrace {
         self.end_time - self.start_time
     }
 
-    pub fn as_binary_trace(&self, relative_to: MacAddress) -> BinaryTrafficTrace {
+    pub fn as_binary_trace(&self, relative_to: &MacAddress) -> BinaryTrafficTrace {
         BinaryTrafficTrace(
             self.packets
                 .iter()
@@ -28,14 +29,14 @@ impl TrafficTrace {
         )
     }
 
-    pub fn as_numeric_trace(&self, relative_to: MacAddress) -> NumericTrafficTrace {
+    pub fn as_numeric_trace(&self, relative_to: &MacAddress) -> NumericTrafficTrace {
         NumericTrafficTrace(
             self.packets
                 .iter()
                 .filter_map(|packet| {
                     packet
                         .direction(relative_to)
-                        .map(|direction| i32::from(direction) * packet.len as i32)
+                        .map(|direction| f32::from(direction) * packet.len as f32)
                 })
                 .collect(),
         )
@@ -72,14 +73,29 @@ impl Display for TrafficTrace {
     }
 }
 
-#[derive(Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct BinaryTrafficTrace(pub Vec<bool>);
 
 impl BinaryTrafficTrace {
-    pub fn resized(&mut self, len: usize) -> &mut Self {
+    /// Resize the trace, truncating if it is longer than `len` and adding zeroes if it is shorter.
+    ///
+    /// # Arguments
+    ///
+    /// * `len`: The new length of the trace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys_analysis::trace::BinaryTrafficTrace;
+    /// let mut trace = BinaryTrafficTrace(vec![true, false, true]);
+    ///
+    /// trace.resize(2);
+    /// assert_eq!(trace, BinaryTrafficTrace(vec![true, false]));
+    /// trace.resize(4);
+    /// assert_eq!(trace, BinaryTrafficTrace(vec![true, false, false, false]));
+    /// ```
+    pub fn resize(&mut self, len: usize) {
         self.0.resize(len, false);
-
-        self
     }
 }
 
@@ -99,14 +115,57 @@ impl Display for BinaryTrafficTrace {
     }
 }
 
-#[derive(Debug)]
-pub struct NumericTrafficTrace(pub Vec<i32>);
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct NumericTrafficTrace(pub Vec<f32>);
 
 impl NumericTrafficTrace {
-    pub fn resized(&mut self, len: usize) -> &mut Self {
-        self.0.resize(len, 0);
+    /// Resize the trace, truncating if it is longer than `len` and adding zeroes if it is shorter.
+    ///
+    /// # Arguments
+    ///
+    /// * `len`: The new length of the trace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys_analysis::trace::NumericTrafficTrace;
+    /// let mut trace = NumericTrafficTrace(vec![1., 2., 3.]);
+    ///
+    /// trace.resize(2);
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1., 2.]));
+    /// trace.resize(4);
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1., 2., 0., 0.]));
+    /// ```
+    pub fn resize(&mut self, len: usize) {
+        self.0.resize(len, 0.);
+    }
 
-        self
+    /// Get the minimum and maximum value of this trace.
+    pub fn min_max(&self) -> (f32, f32) {
+        self.0
+            .iter()
+            .fold((f32::MAX, f32::MIN), |(min, max), &value| {
+                (min.min(value), max.max(value))
+            })
+    }
+
+    /// Scale the whole trace by the given factor.
+    ///
+    /// # Arguments
+    ///
+    /// * `scale`: The factor to scale the trace by.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use varys_analysis::trace::NumericTrafficTrace;
+    /// let mut trace = NumericTrafficTrace(vec![1., 2., 3.]);
+    ///
+    /// trace.resize(2);
+    /// assert_eq!(trace, NumericTrafficTrace(vec![1., 2.]));
+    /// ```
+    pub fn scale(&mut self, scale: f32) {
+        self.0.iter_mut().for_each(|value| *value *= scale);
     }
 }
 
