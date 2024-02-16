@@ -6,7 +6,7 @@ use burn::nn::{Dropout, DropoutConfig, Linear, LinearConfig};
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 
-use crate::ml::activation::{Softmax, Tanh, ELU, SELU};
+use crate::ml::activation::{Tanh, ELU, SELU};
 
 pub mod inference;
 pub mod training;
@@ -26,7 +26,6 @@ pub struct CNNModel<B: Backend> {
     activation_tanh: Tanh,
     activation_elu: ELU,
     activation_selu: SELU,
-    activation_softmax: Softmax,
 }
 
 impl<B: Backend> CNNModel<B> {
@@ -58,8 +57,9 @@ impl<B: Backend> CNNModel<B> {
         let x = self.dense_0.forward(x);
         let x = self.activation_selu.forward(x);
 
-        let x = self.dense_1.forward(x);
-        self.activation_softmax.forward(x)
+        self.dense_1.forward(x)
+        // we don't need to apply softmax here since the logits will be turned into probabilities by
+        // the loss function
     }
 }
 
@@ -127,7 +127,6 @@ impl CNNModelConfig {
             activation_tanh: Tanh::new(),
             activation_elu: ELU::new(1.),
             activation_selu: SELU::new(),
-            activation_softmax: Softmax::new(),
         }
     }
 
@@ -163,7 +162,6 @@ impl CNNModelConfig {
             activation_tanh: Tanh::new(),
             activation_elu: ELU::new(1.),
             activation_selu: SELU::new(),
-            activation_softmax: Softmax::new(),
         }
     }
 }
