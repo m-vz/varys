@@ -13,7 +13,7 @@ use varys_database::database::interaction::Interaction;
 use crate::error::Error;
 use crate::ml::cnn::training::CNNTrainingConfig;
 use crate::ml::cnn::{inference, CNNModelConfig};
-use crate::ml::data::{NumericTraceDataset, NumericTraceItem, SplitNumericTraceDataset};
+use crate::ml::data::{NumericTraceDataset, NumericTraceItem};
 
 mod activation;
 mod cnn;
@@ -31,6 +31,7 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
     dataset
         .normalise()
         .resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS);
+    dataset.save(dataset_path(&data_dir))?;
     let config = CNNTrainingConfig::new(
         CNNModelConfig::new(
             dataset.num_labels(),
@@ -38,25 +39,39 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
         ),
         AdamConfig::new(),
     );
-    let dataset = SplitNumericTraceDataset::split_default(dataset)?;
+    let (training_dataset, validation_dataset, _) = dataset.split_default()?;
 
     info!("Beginning training...");
 
-    training::train::<AutodiffBackend>(&data_dir_string, config, dataset, device)?;
+    training::train::<AutodiffBackend>(
+        &data_dir_string,
+        config,
+        training_dataset,
+        validation_dataset,
+        device,
+    )?;
 
     println!("Training complete");
 
     Ok(())
 }
 
-pub fn test<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Result<(), Error> {
+pub fn test<P: AsRef<Path>>(data_dir: P) -> Result<(), Error> {
     let device = WgpuDevice::default();
-    let dataset = NumericTraceDataset::load_or_new(&data_dir, interactions)?;
-    let dataset = SplitNumericTraceDataset::split_default(dataset)?;
+    let (_, _, testing_dataset) = NumericTraceDataset::load(&data_dir)?.split_default()?;
+    let mut num_correct = 0;
 
-    for index in 0..dataset.testing.len() {
-        if let Some(item) = &dataset.testing.get(index) {
-            infer(&data_dir, item, &dataset, &device)?;
+    for index in 0..testing_dataset.len() {
+        if let Some(item) = &testing_dataset.get(index) {
+            if infer(&data_dir, item, &testing_dataset, &device)? == item.label {
+                num_correct += 1;
+            }
+
+            println!(
+                "Recognised {num_correct}/{} correctly ({:.2}%)",
+                index + 1,
+                num_correct as f32 * 100. / (index + 1) as f32
+            );
         }
     }
 
@@ -66,7 +81,7 @@ pub fn test<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Resu
 pub fn infer<P: AsRef<Path>>(
     data_dir: P,
     item: &NumericTraceItem,
-    dataset: &SplitNumericTraceDataset,
+    testing_dataset: &NumericTraceDataset,
     device: &WgpuDevice,
 ) -> Result<u8, Error> {
     let recognised = inference::infer::<AutodiffBackend>(
@@ -76,9 +91,9 @@ pub fn infer<P: AsRef<Path>>(
     )?;
 
     println!(
-        "Recognised \"{}\" as \"{}\"",
-        dataset.full.get_query(item.label).unwrap_or_default(),
-        dataset.full.get_query(recognised).unwrap_or_default(),
+        "Recognised \"{}\"\nas         \"{}\"",
+        testing_dataset.get_query(item.label).unwrap_or_default(),
+        testing_dataset.get_query(recognised).unwrap_or_default(),
     );
 
     Ok(recognised)

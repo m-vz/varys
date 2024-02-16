@@ -2,10 +2,8 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Write};
 use std::path::Path;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use burn::data::dataloader::batcher::Batcher;
-use burn::data::dataset::transform::PartialDataset;
 use burn::data::dataset::Dataset;
 use burn::tensor::backend::Backend;
 use burn::tensor::{Data, ElementConversion, Int, Tensor};
@@ -60,27 +58,30 @@ pub struct NumericTraceDataset {
 }
 
 impl NumericTraceDataset {
+    const DEFAULT_TRAINING_PROPORTION: f64 = 0.64;
+    const DEFAULT_VALIDATION_PROPORTION: f64 = 0.16;
+    const DEFAULT_TESTING_PROPORTION: f64 = 0.2;
     const MAX_LABELS: usize = u8::MAX as usize;
 
     /// Load a dataset from disk, if it is found or create it from a list of [`Interaction`]s.
     ///
-    /// If no existing dataset is found, a new one is created and saved to disk.
+    /// If no existing dataset is found, a new one is created.
     ///
     /// # Arguments
     ///
     /// * `data_path`: The path to the data directory.
-    /// * `interactions`: The interactions to create the dataset from if no dataset is found on disk.
+    /// * `interactions`: The interactions to create the dataset from if no dataset is found on
+    /// disk.
     pub fn load_or_new<P: AsRef<Path>>(
         data_path: P,
         interactions: Vec<Interaction>,
     ) -> Result<NumericTraceDataset, Error> {
         let dataset_path = ml::dataset_path(&data_path);
+
         if dataset_path.exists() {
             NumericTraceDataset::load(&dataset_path)
         } else {
-            let dataset = NumericTraceDataset::new(data_path, interactions)?;
-            dataset.save(&dataset_path)?;
-            Ok(dataset)
+            NumericTraceDataset::new(data_path, interactions)
         }
     }
 
@@ -153,6 +154,81 @@ impl NumericTraceDataset {
             .write_all(serde_json::to_string(self)?.as_bytes())?;
 
         Ok(())
+    }
+
+    /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets using the
+    /// default proportions.
+    pub fn split_default(self) -> Result<(Self, Self, Self), Error> {
+        self.split(
+            Self::DEFAULT_TRAINING_PROPORTION,
+            Self::DEFAULT_VALIDATION_PROPORTION,
+            Self::DEFAULT_TESTING_PROPORTION,
+        )
+    }
+
+    /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets.
+    ///
+    /// # Arguments
+    ///
+    /// * `training_proportion`: The proportion of the dataset to use for training.
+    /// * `validation_proportion`: The proportion of the dataset to use for validation.
+    /// * `testing_proportion`: The proportion of the dataset to use for testing.
+    pub fn split(
+        self,
+        training_proportion: f64,
+        validation_proportion: f64,
+        testing_proportion: f64,
+    ) -> Result<(Self, Self, Self), Error> {
+        if !(0.0..1.0).contains(&training_proportion)
+            || !(0.0..1.0).contains(&validation_proportion)
+            || !(0.0..1.0).contains(&testing_proportion)
+        {
+            return Err(Error::ProportionError);
+        }
+        if (training_proportion + validation_proportion + testing_proportion - 1.).abs() > 0.001 {
+            return Err(Error::ProportionSumError);
+        }
+
+        let length = self.len() as f64;
+        let training_count = (training_proportion * length) as usize;
+        let validation_count = (validation_proportion * length) as usize;
+        let testing_count = (testing_proportion * length) as usize;
+
+        if training_count < 1 || validation_count < 1 || testing_count < 1 {
+            return Err(Error::DatasetTooSmall);
+        }
+
+        info!(
+            "Splitting dataset into training: {:.0}% ({training_count}), validation: {:.0}% ({validation_count}), testing: {:.0}% ({testing_count})",
+            (training_proportion * 100.).round(),
+            (validation_proportion * 100.).round(),
+            (testing_proportion * 100.).round()
+        );
+
+        let mut training_items = self.items;
+        if training_count > training_items.len() {
+            return Err(Error::DatasetTooSmall);
+        }
+        let mut validation_items = training_items.split_off(training_count);
+        if validation_count > validation_items.len() {
+            return Err(Error::DatasetTooSmall);
+        }
+        let testing_items = validation_items.split_off(validation_count);
+
+        Ok((
+            Self {
+                items: training_items,
+                queries: self.queries.clone(),
+            },
+            Self {
+                items: validation_items,
+                queries: self.queries.clone(),
+            },
+            Self {
+                items: testing_items,
+                queries: self.queries,
+            },
+        ))
     }
 
     /// Resize all items in this dataset, truncating if they are longer than `len` and adding zeroes
@@ -297,85 +373,6 @@ impl Dataset<NumericTraceItem> for NumericTraceDataset {
 
     fn is_empty(&self) -> bool {
         self.items.is_empty()
-    }
-}
-
-pub struct SplitNumericTraceDataset {
-    pub full: Arc<NumericTraceDataset>,
-    pub training: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
-    pub validation: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
-    pub testing: PartialDataset<Arc<NumericTraceDataset>, NumericTraceItem>,
-}
-
-impl SplitNumericTraceDataset {
-    const TRAINING_PROPORTION: f64 = 0.64;
-    const VALIDATION_PROPORTION: f64 = 0.16;
-    const TESTING_PROPORTION: f64 = 0.2;
-
-    /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets using the
-    /// default proportions.
-    ///
-    /// # Arguments
-    ///
-    /// * `dataset`: The dataset to split.
-    pub fn split_default(dataset: NumericTraceDataset) -> Result<Self, Error> {
-        Self::split(
-            dataset,
-            Self::TRAINING_PROPORTION,
-            Self::VALIDATION_PROPORTION,
-            Self::TESTING_PROPORTION,
-        )
-    }
-
-    /// Split a [`NumericTraceDataset`] into training, validation, and testing datasets.
-    ///
-    /// # Arguments
-    ///
-    /// * `dataset`: The dataset to split.
-    /// * `training_proportion`: The proportion of the dataset to use for training.
-    /// * `validation_proportion`: The proportion of the dataset to use for validation.
-    /// * `testing_proportion`: The proportion of the dataset to use for testing.
-    pub fn split(
-        dataset: NumericTraceDataset,
-        training_proportion: f64,
-        validation_proportion: f64,
-        testing_proportion: f64,
-    ) -> Result<Self, Error> {
-        if !(0.0..1.0).contains(&training_proportion)
-            || !(0.0..1.0).contains(&validation_proportion)
-            || !(0.0..1.0).contains(&testing_proportion)
-        {
-            return Err(Error::ProportionError);
-        }
-        if (training_proportion + validation_proportion + testing_proportion - 1.).abs() > 0.001 {
-            return Err(Error::ProportionSumError);
-        }
-
-        info!(
-            "Splitting dataset into training: {:.0}%, validation: {:.0}%, testing: {:.0}%",
-            (training_proportion * 100.).round(),
-            (validation_proportion * 100.).round(),
-            (testing_proportion * 100.).round()
-        );
-
-        let dataset = Arc::new(dataset);
-        let length = dataset.len() as f64;
-        let validation_index = (training_proportion * length) as usize;
-        let testing_index = validation_index + (validation_proportion * length) as usize;
-
-        if validation_index <= 1
-            || testing_index <= validation_index + 1
-            || dataset.len() <= testing_index + 1
-        {
-            return Err(Error::DatasetTooSmall);
-        }
-
-        Ok(SplitNumericTraceDataset {
-            full: dataset.clone(),
-            training: PartialDataset::new(dataset.clone(), 0, validation_index - 1),
-            validation: PartialDataset::new(dataset.clone(), validation_index, testing_index - 1),
-            testing: PartialDataset::new(dataset.clone(), testing_index, dataset.len() - 1),
-        })
     }
 }
 

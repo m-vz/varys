@@ -12,7 +12,7 @@ use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, 
 
 use crate::error::Error;
 use crate::ml::cnn::{CNNModel, CNNModelConfig};
-use crate::ml::data::{NumericBatch, SplitNumericTraceDataset, TrafficTraceBatcher};
+use crate::ml::data::{NumericBatch, NumericTraceDataset, TrafficTraceBatcher};
 use crate::ml::{config_path, ml_path, model_path};
 
 impl<B: AutodiffBackend> TrainStep<NumericBatch<B>, ClassificationOutput<B>> for CNNModel<B> {
@@ -65,7 +65,8 @@ pub struct CNNTrainingConfig {
 pub fn train<B: AutodiffBackend>(
     data_dir: &str,
     config: CNNTrainingConfig,
-    dataset: SplitNumericTraceDataset,
+    training_dataset: NumericTraceDataset,
+    validation_dataset: NumericTraceDataset,
     device: B::Device,
 ) -> Result<(), Error> {
     config.save(config_path(data_dir))?;
@@ -78,12 +79,12 @@ pub fn train<B: AutodiffBackend>(
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
-        .build(dataset.training);
+        .build(training_dataset);
     let data_loader_validation = DataLoaderBuilder::new(batcher_valid)
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
-        .build(dataset.validation);
+        .build(validation_dataset);
     let learner = LearnerBuilder::new(&ml_path(data_dir))
         .metric_train_numeric(AccuracyMetric::new())
         .metric_valid_numeric(AccuracyMetric::new())
