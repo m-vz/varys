@@ -1,0 +1,51 @@
+conversion = [
+    "What’s 2330 dollars in euros?",
+]
+
+mathematics = [
+    "What is the factorial of 6?",
+]
+
+time = [
+    "What day was 90 days ago?",
+]
+
+home = [
+    "What is the temperature in living room?",
+]
+
+calls = [
+    "Any missed calls?",
+]
+
+calendar = [
+    "Read Calendar",
+]
+
+reminders = [
+    "Remind me to wash the car",
+]
+
+maps = [
+    "How far is New York from Boston",
+]
+
+trivia = [
+    "How old is Ian McKellen?",
+]
+
+weather = [
+    "What’s the temperature outside?",
+]
+
+translation = [
+    "Translate car from English to Spanish",
+]
+
+randomness = [
+    "Roll a die",
+]
+
+banter = [
+    "Is there a God?",
+]
