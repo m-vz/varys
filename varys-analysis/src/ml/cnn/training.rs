@@ -1,6 +1,5 @@
 use burn::config::Config;
 use burn::data::dataloader::DataLoaderBuilder;
-use burn::lr_scheduler::noam::NoamLrSchedulerConfig;
 use burn::module::Module;
 use burn::nn::loss::CrossEntropyLossConfig;
 use burn::optim::AdamConfig;
@@ -48,7 +47,7 @@ impl<B: Backend> CNNModel<B> {
 pub struct CNNTrainingConfig {
     pub model: CNNModelConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 10)]
+    #[config(default = 1000)]
     pub num_epochs: usize,
     #[config(default = 70)]
     pub batch_size: usize,
@@ -96,7 +95,7 @@ pub fn train<B: AutodiffBackend>(
         .build(
             config.model.init::<B>(&device),
             config.optimizer.init(),
-            NoamLrSchedulerConfig::new(config.learning_rate).init(),
+            config.learning_rate,
         );
 
     learner
