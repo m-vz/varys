@@ -77,10 +77,8 @@ impl NumericTraceDataset {
         data_path: P,
         interactions: Vec<Interaction>,
     ) -> Result<NumericTraceDataset, Error> {
-        let dataset_path = ml::dataset_path(&data_path);
-
-        if dataset_path.exists() {
-            NumericTraceDataset::load(&dataset_path)
+        if ml::dataset_path(&data_path).exists() {
+            NumericTraceDataset::load(data_path)
         } else {
             NumericTraceDataset::new(data_path, interactions)
         }
@@ -135,10 +133,14 @@ impl NumericTraceDataset {
     /// * `path`: The path to the JSON file.
     ///
     /// returns: The loaded dataset or an error if the file could not be opened or the JSON could not be deserialized.
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        debug!("Loading dataset from {}", path.as_ref().display());
+    pub fn load<P: AsRef<Path>>(data_path: P) -> Result<Self, Error> {
+        let dataset_path = ml::dataset_path(&data_path);
 
-        Ok(serde_json::from_reader(BufReader::new(File::open(path)?))?)
+        debug!("Loading dataset from {}", dataset_path.display());
+
+        Ok(serde_json::from_reader(BufReader::new(File::open(
+            dataset_path,
+        )?))?)
     }
 
     /// Save the dataset to a JSON file.
@@ -146,12 +148,16 @@ impl NumericTraceDataset {
     /// # Arguments
     ///
     /// * `path`: Where to save the dataset.
-    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
+    pub fn save<P: AsRef<Path>>(&self, data_path: P) -> Result<(), Error> {
+        let dataset_path = ml::dataset_path(&data_path);
+
+        debug!("Saving dataset to {}", dataset_path.display());
+
         OpenOptions::new()
             .write(true)
             .truncate(true)
             .create(true)
-            .open(path)?
+            .open(dataset_path)?
             .write_all(serde_json::to_string(self)?.as_bytes())?;
 
         Ok(())

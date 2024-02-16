@@ -32,7 +32,7 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
         .normalise()
         .resize_all(CNNModelConfig::DEFAULT_INPUT_DIMENSIONS)
         .shuffle();
-    dataset.save(dataset_path(&data_dir))?;
+    dataset.save(&data_dir)?;
     let config = CNNTrainingConfig::new(
         CNNModelConfig::new(
             dataset.num_labels(),
