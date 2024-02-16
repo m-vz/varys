@@ -24,7 +24,7 @@ Icon
 /data/captures/*.pcap.gz
 /data/plots/*.png
 /data/db
-/data/sessions
+/data/sessions*
 /data/ml
 /data/varys.stderr
 /data/varys.stdout
