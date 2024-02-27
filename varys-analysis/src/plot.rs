@@ -1,3 +1,4 @@
+use log::info;
 use plotters::coord::Shift;
 use std::path::Path;
 
@@ -14,7 +15,11 @@ pub fn plot_queries<P: AsRef<Path>>(
     queries: Vec<&str>,
     dataset: &NumericTraceDataset,
 ) {
+    info!("Plotting {} queries...", queries.len());
+
     for query in queries {
+        info!("Plotting \"{}\"", query);
+
         plot(data_path.as_ref(), query, dataset);
     }
 }
@@ -78,7 +83,7 @@ fn color(value: f64) -> HSLColor {
     HSLColor(
         if scaled >= 0. { hue(215.) } else { hue(15.) },
         1.,
-        0.4 + 0.6 * (1. - scaled.abs()).powi(2),
+        0.4 + 0.6 * (1. - scaled.abs()).powi(3),
     )
 }
 

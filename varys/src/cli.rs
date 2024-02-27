@@ -3,7 +3,8 @@ use std::{thread, time};
 use clap::Parser;
 use log::{debug, error, info};
 
-use varys_analysis::ml;
+use varys_analysis::ml::data::NumericTraceDataset;
+use varys_analysis::{ml, plot};
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcriber::Transcriber;
 use varys_audio::stt::{Model, Recogniser};
@@ -177,6 +178,15 @@ async fn analyse_command(
             ml::train(data_dir, get_filtered_interactions(&dataset_size).await?)?
         }
         AnalyseSubcommand::Test { data_dir } => ml::test(data_dir)?,
+        AnalyseSubcommand::Plot { data_dir } => {
+            let mut dataset = NumericTraceDataset::new(
+                &data_dir,
+                get_filtered_interactions(&dataset_size).await?,
+            )?;
+            dataset.resize_all(475);
+
+            plot::plot_queries(&data_dir, dataset_size.queries(), &dataset);
+        }
     }
 
     Ok(())

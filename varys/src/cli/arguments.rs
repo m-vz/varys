@@ -120,4 +120,9 @@ pub enum AnalyseSubcommand {
         /// The directory in which data files are stored
         data_dir: PathBuf,
     },
+    /// Plot varys traffic traces
+    Plot {
+        /// The directory in which data files are stored
+        data_dir: PathBuf,
+    },
 }
