@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
 
+use crate::dataset::DatasetSize;
+
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 pub struct Arguments {
@@ -98,6 +100,9 @@ pub struct RunCommand {
 
 #[derive(Debug, Args)]
 pub struct AnalyseCommand {
+    /// The dataset to use
+    #[arg(short, long, value_enum, default_value_t)]
+    pub dataset: DatasetSize,
     /// What type of analysis to perform
     #[clap(subcommand)]
     pub command: AnalyseSubcommand,

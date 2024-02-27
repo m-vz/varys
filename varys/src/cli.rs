@@ -19,6 +19,7 @@ use crate::cli::arguments::{
     AnalyseSubcommand, Arguments, AssistantCommand, AssistantSubcommand, Command, ListenCommand,
     SniffCommand,
 };
+use crate::dataset::DatasetSize;
 use crate::error::Error;
 use crate::query::Query;
 
@@ -52,7 +53,7 @@ pub async fn run() -> Result<(), Error> {
             )
             .await
         }
-        Command::Analyse(command) => analyse_command(command.command).await,
+        Command::Analyse(command) => analyse_command(command.dataset, command.command).await,
     }
 }
 
@@ -167,14 +168,20 @@ async fn run_command(
     }
 }
 
-async fn analyse_command(analyse_subcommand: AnalyseSubcommand) -> Result<(), Error> {
+async fn analyse_command(
+    dataset_size: DatasetSize,
+    analyse_subcommand: AnalyseSubcommand,
+) -> Result<(), Error> {
     match analyse_subcommand {
-        AnalyseSubcommand::Train { data_dir } => ml::train(
-            data_dir,
-            Interaction::get_all(&database::connect().await?).await?,
-        )?,
+        AnalyseSubcommand::Train { data_dir } => {
+            ml::train(data_dir, get_filtered_interactions(&dataset_size).await?)?
+        }
         AnalyseSubcommand::Test { data_dir } => ml::test(data_dir)?,
     }
 
     Ok(())
+}
+
+async fn get_filtered_interactions(dataset_size: &DatasetSize) -> Result<Vec<Interaction>, Error> {
+    Ok(dataset_size.filter(Interaction::get_all(&database::connect().await?).await?))
 }
