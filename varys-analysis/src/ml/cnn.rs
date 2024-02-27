@@ -39,23 +39,23 @@ impl<B: Backend> CNNModel<B> {
         let x = self.activation_tanh.forward(x);
         let x = self.dropout_0.forward(x);
 
-        let x = self.convolution_1.forward(x);
-        let x = self.activation_elu.forward(x);
-        let x = self.dropout_1.forward(x);
+        // let x = self.convolution_1.forward(x);
+        // let x = self.activation_elu.forward(x);
+        // let x = self.dropout_1.forward(x);
 
-        let x = self.convolution_2.forward(x);
-        let x = self.activation_elu.forward(x);
-        let x = self.dropout_2.forward(x);
-
-        let x = self.convolution_3.forward(x);
-        let x = self.activation_selu.forward(x);
+        // let x = self.convolution_2.forward(x);
+        // let x = self.activation_elu.forward(x);
+        // let x = self.dropout_2.forward(x);
+        //
+        // let x = self.convolution_3.forward(x);
+        // let x = self.activation_selu.forward(x);
 
         let x = self.pooling.forward(x);
         let [batch_size, channels, _] = x.dims();
         let x = x.reshape([batch_size, channels]);
 
         let x = self.dense_0.forward(x);
-        let x = self.activation_selu.forward(x);
+        let x = self.activation_elu.forward(x); // was SELU
 
         self.dense_1.forward(x)
         // we don't need to apply softmax here since the logits will be turned into probabilities by
@@ -73,7 +73,7 @@ pub struct CNNModelConfig {
     dropout_rate_1: f64,
     #[config(default = 0.1)]
     dropout_rate_2: f64,
-    #[config(default = 180)]
+    #[config(default = 475)] // was 180
     dense_size: usize,
     #[config(default = 128)]
     convolution_number_0: usize,
@@ -122,7 +122,7 @@ impl CNNModelConfig {
             dropout_0: DropoutConfig::new(self.dropout_rate_0).init(),
             dropout_1: DropoutConfig::new(self.dropout_rate_1).init(),
             dropout_2: DropoutConfig::new(self.dropout_rate_2).init(),
-            dense_0: LinearConfig::new(self.convolution_number_3, self.dense_size).init(device),
+            dense_0: LinearConfig::new(self.convolution_number_0, self.dense_size).init(device), // was convolution_number_3
             dense_1: LinearConfig::new(self.dense_size, self.num_classes).init(device),
             activation_tanh: Tanh::new(),
             activation_elu: ELU::new(1.),
@@ -156,8 +156,8 @@ impl CNNModelConfig {
             dropout_0: DropoutConfig::new(self.dropout_rate_0).init(),
             dropout_1: DropoutConfig::new(self.dropout_rate_1).init(),
             dropout_2: DropoutConfig::new(self.dropout_rate_2).init(),
-            dense_0: LinearConfig::new(self.convolution_number_3, self.dense_size)
-                .init_with(record.dense_0),
+            dense_0: LinearConfig::new(self.convolution_number_0, self.dense_size)
+                .init_with(record.dense_0), // was convolution_number_3
             dense_1: LinearConfig::new(self.dense_size, self.num_classes).init_with(record.dense_1),
             activation_tanh: Tanh::new(),
             activation_elu: ELU::new(1.),

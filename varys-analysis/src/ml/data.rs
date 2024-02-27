@@ -68,6 +68,9 @@ impl NumericTraceDataset {
     ///
     /// If no existing dataset is found, a new one is created.
     ///
+    /// Note that this will always prefer loading from disk even if the existing dataset does not
+    /// match the given interactions.
+    ///
     /// # Arguments
     ///
     /// * `data_path`: The path to the data directory.
