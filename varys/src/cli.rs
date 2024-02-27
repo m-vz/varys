@@ -168,11 +168,12 @@ async fn run_command(
 }
 
 async fn analyse_command(analyse_subcommand: AnalyseSubcommand) -> Result<(), Error> {
-    let interactions = Interaction::get_all(&database::connect().await?).await?;
-
     match analyse_subcommand {
-        AnalyseSubcommand::Train { data_dir } => ml::train(data_dir, interactions)?,
-        AnalyseSubcommand::Test { data_dir } => ml::test(data_dir, interactions)?,
+        AnalyseSubcommand::Train { data_dir } => ml::train(
+            data_dir,
+            Interaction::get_all(&database::connect().await?).await?,
+        )?,
+        AnalyseSubcommand::Test { data_dir } => ml::test(data_dir)?,
     }
 
     Ok(())

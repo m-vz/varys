@@ -5130,12 +5130,13 @@ dependencies = [
 
 [[package]]
 name = "varys-analysis"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "burn",
  "chrono",
  "log",
  "plotters",
+ "rand",
  "serde",
  "serde_json",
  "thiserror",

@@ -1,6 +1,5 @@
 use burn::config::Config;
 use burn::data::dataloader::DataLoaderBuilder;
-use burn::lr_scheduler::noam::NoamLrSchedulerConfig;
 use burn::module::Module;
 use burn::nn::loss::CrossEntropyLossConfig;
 use burn::optim::AdamConfig;
@@ -12,7 +11,7 @@ use burn::train::{ClassificationOutput, LearnerBuilder, TrainOutput, TrainStep, 
 
 use crate::error::Error;
 use crate::ml::cnn::{CNNModel, CNNModelConfig};
-use crate::ml::data::{NumericBatch, SplitNumericTraceDataset, TrafficTraceBatcher};
+use crate::ml::data::{NumericBatch, NumericTraceDataset, TrafficTraceBatcher};
 use crate::ml::{config_path, ml_path, model_path};
 
 impl<B: AutodiffBackend> TrainStep<NumericBatch<B>, ClassificationOutput<B>> for CNNModel<B> {
@@ -48,7 +47,7 @@ impl<B: Backend> CNNModel<B> {
 pub struct CNNTrainingConfig {
     pub model: CNNModelConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 10)]
+    #[config(default = 1000)]
     pub num_epochs: usize,
     #[config(default = 70)]
     pub batch_size: usize,
@@ -65,7 +64,8 @@ pub struct CNNTrainingConfig {
 pub fn train<B: AutodiffBackend>(
     data_dir: &str,
     config: CNNTrainingConfig,
-    dataset: SplitNumericTraceDataset,
+    training_dataset: NumericTraceDataset,
+    validation_dataset: NumericTraceDataset,
     device: B::Device,
 ) -> Result<(), Error> {
     config.save(config_path(data_dir))?;
@@ -78,12 +78,12 @@ pub fn train<B: AutodiffBackend>(
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
-        .build(dataset.training);
+        .build(training_dataset);
     let data_loader_validation = DataLoaderBuilder::new(batcher_valid)
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
-        .build(dataset.validation);
+        .build(validation_dataset);
     let learner = LearnerBuilder::new(&ml_path(data_dir))
         .metric_train_numeric(AccuracyMetric::new())
         .metric_valid_numeric(AccuracyMetric::new())
@@ -95,7 +95,7 @@ pub fn train<B: AutodiffBackend>(
         .build(
             config.model.init::<B>(&device),
             config.optimizer.init(),
-            NoamLrSchedulerConfig::new(config.learning_rate).init(),
+            config.learning_rate,
         );
 
     learner

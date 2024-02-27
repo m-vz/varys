@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use burn::module::Module;
 use burn::tensor::activation::{softmax, tanh};
 use burn::tensor::backend::Backend;
@@ -75,12 +77,14 @@ impl ELU {
 
 /// Applies the softmax function element-wise.
 #[derive(Module, Clone, Debug, Default)]
-pub struct Softmax {}
+pub struct Softmax {
+    dim: usize,
+}
 
 impl Softmax {
     /// Create the module.
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(dim: usize) -> Self {
+        Self { dim }
     }
 
     /// Applies the forward pass on the input tensor.
@@ -90,7 +94,7 @@ impl Softmax {
     /// - input: `[..., any]`
     /// - output: `[..., any]`
     pub fn forward<B: Backend, const D: usize>(&self, input: Tensor<B, D>) -> Tensor<B, D> {
-        softmax(input, 0)
+        softmax(input, self.dim)
     }
 }
 
