@@ -20,10 +20,6 @@ impl DatasetSize {
     ///
     /// * `interactions`: The interactions to filter.
     pub fn filter(&self, interactions: Vec<Interaction>) -> Vec<Interaction> {
-        if let DatasetSize::Full = self {
-            return interactions;
-        }
-
         interactions
             .into_iter()
             .filter(|interaction| self.queries().contains(&interaction.query.as_str()))
