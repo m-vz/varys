@@ -1,6 +1,9 @@
 # varys
 Spying on smart speakers.
 
+## Usage
+The `varys` CLI contains comprehensive documentation about its usage. Use `varys help` for details on available commands and `varys help <COMMAND>` for the documentation of specific commands.
+
 ## macOS Caveats
 ### CMake
 To build `whisper.cpp`, CMake is required. It can be installed using homebrew:
