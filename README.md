@@ -1,6 +1,11 @@
 # varys
 Spying on smart speakers.
 
+## Building
+```shell
+cargo build --release
+```
+
 ## Usage
 The `varys` CLI contains comprehensive documentation about its usage. Use `varys help` for details on available commands and `varys help <COMMAND>` for the documentation of specific commands.
 
@@ -33,16 +38,4 @@ launchctl bootout gui/`id -u` ~/Library/LaunchAgents/local.varys.plist
 If building Opus fails, it can be manually installed from https://opus-codec.org/ or with homebrew:
 ```shell
 brew install opus
-```
-
-## Building
-```shell
-cargo build --release
-```
-
-## Running
-Since varys is sniffing network packets, it needs to run as root:
-
-```sh
-sudo ./target/release/varys
 ```
