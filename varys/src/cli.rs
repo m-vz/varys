@@ -178,6 +178,7 @@ async fn analyse_command(
             ml::train(data_dir, get_filtered_interactions(&dataset_size).await?)?
         }
         AnalyseSubcommand::Test { data_dir } => ml::test(data_dir)?,
+        AnalyseSubcommand::CompileLogs { data_dir, id } => ml::compile_all_logs(data_dir, &id)?,
         AnalyseSubcommand::Plot { data_dir } => {
             let mut dataset = NumericTraceDataset::new(
                 &data_dir,
