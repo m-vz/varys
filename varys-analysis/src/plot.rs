@@ -35,7 +35,11 @@ pub fn plot<P: AsRef<Path>>(data_path: P, query: &str, dataset: &NumericTraceDat
     let areas = drawing_area.split_evenly((100, 1));
 
     for area in areas {
-        plot_trace(&traces.next().unwrap().trace, &area, false, (0, 0, 0, 0));
+        if let Some(trace) = traces.next() {
+            plot_trace(&trace.trace, &area, false, (0, 0, 0, 0));
+        } else {
+            break;
+        }
     }
 }
 

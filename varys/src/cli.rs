@@ -183,7 +183,7 @@ async fn analyse_command(
                 &data_dir,
                 get_filtered_interactions(&dataset_size).await?,
             )?;
-            dataset.resize_all(475);
+            dataset.resize_all(475).shuffle();
 
             plot::plot_queries(&data_dir, dataset_size.queries(), &dataset);
         }
