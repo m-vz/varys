@@ -11,6 +11,7 @@ use log::info;
 
 use cnn::training;
 use varys_database::database::interaction::Interaction;
+use varys_network::address::MacAddress;
 
 use crate::error::Error;
 use crate::ml::cnn::training::CNNTrainingConfig;
@@ -59,7 +60,7 @@ pub fn train<P: AsRef<Path>>(data_dir: P, interactions: Vec<Interaction>) -> Res
     Ok(())
 }
 
-pub fn test<P: AsRef<Path>>(data_dir: P) -> Result<(), Error> {
+pub fn test_dataset<P: AsRef<Path>>(data_dir: P) -> Result<(), Error> {
     let device = WgpuDevice::default();
     let (_, _, testing_dataset) = NumericTraceDataset::load(&data_dir)?.split_default()?;
     let mut num_correct = 0;
@@ -81,13 +82,33 @@ pub fn test<P: AsRef<Path>>(data_dir: P) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn test_single<P: AsRef<Path>>(
+    data_dir: P,
+    capture_path: P,
+    address: &MacAddress,
+) -> Result<Vec<(String, f32)>, Error> {
+    let device = WgpuDevice::default();
+    let trace = NumericTraceDataset::load_trace(capture_path, address)?;
+    let (_, _, testing_dataset) = NumericTraceDataset::load(&data_dir)?.split_default()?;
+    let output = inference::infer::<AutodiffBackend>(
+        data_dir.as_ref().to_string_lossy().as_ref(),
+        trace,
+        device,
+    )?
+    .flatten::<1>(0, 1)
+    .to_data()
+    .value;
+
+    Ok(testing_dataset.queries.into_iter().zip(output).collect())
+}
+
 pub fn infer<P: AsRef<Path>>(
     data_dir: P,
     item: &NumericTraceItem,
     testing_dataset: &NumericTraceDataset,
     device: &WgpuDevice,
 ) -> Result<u8, Error> {
-    let recognised = inference::infer::<AutodiffBackend>(
+    let recognised = inference::predict(
         data_dir.as_ref().to_string_lossy().as_ref(),
         item.trace.clone(),
         device.clone(),
