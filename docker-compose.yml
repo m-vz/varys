@@ -1,5 +1,3 @@
-version: '3'
-
 services:
     database:
         image: 'postgres:latest'
@@ -7,7 +5,7 @@ services:
             - 5432:5432
         environment:
             POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: LdWP6tYK
+            POSTGRES_PASSWORD: developmentpassword
+            POSTGRES_DB: varys
         volumes:
             - ./data/db/:/var/lib/postgresql/data/
-            - ./init.sql:/docker-entrypoint-initdb.d/init.sql
