@@ -26,6 +26,7 @@ Icon
 /data/db
 /data/sessions*
 /data/ml
+/data/models
 /data/varys.stderr
 /data/varys.stdout
 /*.pcap
