@@ -21,6 +21,15 @@
             rust-bin.stable.latest.default
             pkg-config
             cargo-nextest
+            sqlx-cli
+            # packages for building varys
+            openssl
+            fontconfig
+            alsa-lib
+            cmake
+            libclang
+            libpcap
+            libopus
           ];
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
           RUST_SRC_PATH = "${rust.packages.stable.rustPlatform.rustLibSrc}";

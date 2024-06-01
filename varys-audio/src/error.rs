@@ -54,6 +54,7 @@ pub enum Error {
     Whisper(String),
 }
 
+#[cfg(target_os = "macos")]
 impl From<tts::Error> for Error {
     fn from(value: tts::Error) -> Self {
         match value {

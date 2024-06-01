@@ -1,4 +1,3 @@
-use std::sync::mpsc::{channel, TryRecvError};
 use std::time::Instant;
 
 #[cfg(target_os = "macos")]
@@ -6,44 +5,60 @@ use cocoa_foundation::{
     base::id,
     foundation::{NSDefaultRunLoopMode, NSRunLoop},
 };
+#[cfg(target_os = "macos")]
 use lerp::Lerp;
-use log::{debug, info, trace};
+#[cfg(target_os = "macos")]
+use log::debug;
+use log::{info, trace};
 #[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
+#[cfg(target_os = "macos")]
+use std::sync::mpsc::{channel, TryRecvError};
+#[cfg(target_os = "macos")]
 use tts::{Features, Tts, Voice};
 
 use crate::error::Error;
 
 /// A speaker that can synthesize voices.
+#[cfg(target_os = "macos")]
 pub struct Speaker {
     tts: Tts,
     available_voices: Vec<Voice>,
 }
+#[cfg(not(target_os = "macos"))]
+pub struct Speaker {}
 
 impl Speaker {
     /// Create a new speaker and load all available voices.
     pub fn new() -> Result<Self, Error> {
-        let tts = Tts::default()?;
+        #[cfg(target_os = "macos")]
+        {
+            let tts = Tts::default()?;
 
-        check_features(&tts)?;
+            check_features(&tts)?;
 
-        let available_voices = tts.voices()?;
-        let speaker = Speaker {
-            tts,
-            available_voices,
-        };
+            let available_voices = tts.voices()?;
+            let speaker = Speaker {
+                tts,
+                available_voices,
+            };
 
-        debug!(
-            "Available voices: {}",
-            speaker
-                .available_voices
-                .iter()
-                .map(|voice| voice.name())
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
+            debug!(
+                "Available voices: {}",
+                speaker
+                    .available_voices
+                    .iter()
+                    .map(|voice| voice.name())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
 
-        Ok(speaker)
+            Ok(speaker)
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            Ok(Self {})
+        }
     }
 
     /// Create a new speaker and set the voice that should be spoken with.
@@ -110,20 +125,25 @@ impl Speaker {
     /// }
     /// ```
     pub fn set_voice(&mut self, id_or_name: &str) -> Result<(), Error> {
-        let voice = self
-            .available_voices
-            .iter()
-            .find(|v| v.id() == id_or_name || v.name() == id_or_name);
+        #[cfg(target_os = "macos")]
+        {
+            let voice = self
+                .available_voices
+                .iter()
+                .find(|v| v.id() == id_or_name || v.name() == id_or_name);
 
-        if let Some(voice) = voice {
-            self.tts.set_voice(voice)?;
+            if let Some(voice) = voice {
+                self.tts.set_voice(voice)?;
 
-            info!("Using voice {}", id_or_name);
+                info!("Using voice {}", id_or_name);
 
-            Ok(())
-        } else {
-            Err(Error::VoiceNotAvailable(id_or_name.to_string()))
+                Ok(())
+            } else {
+                Err(Error::VoiceNotAvailable(id_or_name.to_string()))
+            }
         }
+        #[cfg(not(target_os = "macos"))]
+        Ok(())
     }
 
     /// Set the speaking volume.
@@ -138,9 +158,12 @@ impl Speaker {
     /// speaker.set_volume(0.8_f32).unwrap();
     /// ```
     pub fn set_volume(&mut self, volume: f32) -> Result<(), Error> {
-        let min = self.tts.min_volume();
-        let max = self.tts.max_volume();
-        self.tts.set_volume(min.lerp_bounded(max, volume))?;
+        #[cfg(target_os = "macos")]
+        {
+            let min = self.tts.min_volume();
+            let max = self.tts.max_volume();
+            self.tts.set_volume(min.lerp_bounded(max, volume))?;
+        }
 
         info!("Volume set to {:.2}", volume);
 
@@ -157,6 +180,7 @@ impl Speaker {
     /// speaker.reset_volume().unwrap();
     /// ```
     pub fn reset_volume(&mut self) -> Result<(), Error> {
+        #[cfg(target_os = "macos")]
         self.tts.set_volume(self.tts.normal_volume())?;
 
         Ok(())
@@ -174,9 +198,12 @@ impl Speaker {
     /// speaker.set_rate(0.8_f32).unwrap();
     /// ```
     pub fn set_rate(&mut self, rate: f32) -> Result<(), Error> {
-        let min = self.tts.min_rate();
-        let max = self.tts.max_rate();
-        self.tts.set_rate(min.lerp_bounded(max, rate))?;
+        #[cfg(target_os = "macos")]
+        {
+            let min = self.tts.min_rate();
+            let max = self.tts.max_rate();
+            self.tts.set_rate(min.lerp_bounded(max, rate))?;
+        }
 
         info!("Speaking rate set to {:.2}", rate);
 
@@ -193,6 +220,7 @@ impl Speaker {
     /// speaker.reset_rate().unwrap();
     /// ```
     pub fn reset_rate(&mut self) -> Result<(), Error> {
+        #[cfg(target_os = "macos")]
         self.tts.set_rate(self.tts.normal_rate())?;
 
         Ok(())
@@ -215,17 +243,16 @@ impl Speaker {
     pub fn say(&self, text: &str, interrupt: bool) -> Result<i32, Error> {
         info!("Saying \"{text}\"");
 
-        let (sender, receiver) = channel();
-        self.tts.on_utterance_end(Some(Box::new(move |_| {
-            let _ = sender.send(());
-        })))?;
-
         let start = Instant::now();
-
-        self.tts.clone().speak(text, interrupt)?;
-
         #[cfg(target_os = "macos")]
         {
+            let (sender, receiver) = channel();
+            self.tts.on_utterance_end(Some(Box::new(move |_| {
+                let _ = sender.send(());
+            })))?;
+
+            self.tts.clone().speak(text, interrupt)?;
+
             unsafe {
                 let run_loop: id = NSRunLoop::currentRunLoop();
                 let date: id = msg_send![class!(NSDate), distantFuture];
@@ -234,14 +261,15 @@ impl Speaker {
                 }
             }
         }
-
         let duration = start.elapsed().as_millis() as i32;
         trace!("Spoke for {duration}ms");
+
         Ok(duration)
     }
 }
 
 /// Check whether the necessary tts features are available on this platform.
+#[cfg(target_os = "macos")]
 fn check_features(tts: &Tts) -> Result<(), Error> {
     let Features {
         utterance_callbacks,
