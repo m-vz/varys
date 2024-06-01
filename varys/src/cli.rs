@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{thread, time};
 
 use clap::Parser;
@@ -7,7 +8,7 @@ use varys_analysis::ml::data::NumericTraceDataset;
 use varys_analysis::{ml, plot};
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcriber::Transcriber;
-use varys_audio::stt::{Model, Recogniser};
+use varys_audio::stt::Recogniser;
 use varys_audio::tts::Speaker;
 use varys_database::database;
 use varys_database::database::interaction::Interaction;
@@ -33,14 +34,13 @@ pub mod key_type;
 /// This parses the arguments passed in the command line and runs the appropriate command.
 pub async fn run() -> Result<(), Error> {
     let arguments = Arguments::parse();
-    let model = Model::from(arguments.model);
 
     match arguments.command {
         Command::Assistant(command) => assistant_command(command),
         Command::Listen(command) => listen_command(
             arguments.voices.first().ok_or(Error::NoVoiceProvided)?,
             arguments.sensitivity,
-            model,
+            arguments.model,
             command,
         ),
         Command::Sniff(command) => sniff_command(&arguments.interface, command),
@@ -49,7 +49,7 @@ pub async fn run() -> Result<(), Error> {
                 &arguments.interface,
                 arguments.voices,
                 arguments.sensitivity,
-                model,
+                arguments.model,
                 command,
             )
             .await
@@ -69,10 +69,10 @@ fn assistant_command(command: AssistantCommand) -> Result<(), Error> {
     Ok(())
 }
 
-fn listen_command(
+fn listen_command<P: AsRef<Path>>(
     voice: &str,
     sensitivity: f32,
-    model: Model,
+    model: P,
     command: ListenCommand,
 ) -> Result<(), Error> {
     if command.calibrate {
@@ -91,10 +91,10 @@ fn calibrate() -> Result<(), Error> {
     Ok(())
 }
 
-fn listen(
+fn listen<P: AsRef<Path>>(
     voice: &str,
     sensitivity: f32,
-    model: Model,
+    model: P,
     command: ListenCommand,
 ) -> Result<(), Error> {
     info!("Listening...");
@@ -111,7 +111,7 @@ fn listen(
 
     if command.parrot {
         info!("Recognising...");
-        let recogniser = Recogniser::with_model(model)?;
+        let recogniser = Recogniser::with_model_path(&model.as_ref().to_string_lossy())?;
         let text = recogniser.recognise(&mut audio)?;
 
         info!("Speaking...");
@@ -136,18 +136,18 @@ fn sniff_command(interface: &str, command: SniffCommand) -> Result<(), Error> {
     Ok(())
 }
 
-async fn run_command(
+async fn run_command<P: AsRef<Path>>(
     interface: &str,
     voices: Vec<String>,
     sensitivity: f32,
-    model: Model,
+    model: P,
     command: arguments::RunCommand,
 ) -> Result<(), Error> {
     let mut interactor = Interactor::new(
         interface.to_string(),
         voices,
         sensitivity,
-        model,
+        model.as_ref().to_string_lossy().to_string(),
         command.data_dir,
         command.mac,
     )?;
@@ -156,7 +156,9 @@ async fn run_command(
     assistant.prepare_queries(&mut queries);
 
     loop {
-        let (transcriber, transcriber_handle) = Transcriber::new(Recogniser::with_model(model)?);
+        let (transcriber, transcriber_handle) = Transcriber::new(Recogniser::with_model_path(
+            &model.as_ref().to_string_lossy(),
+        )?);
 
         let _ = thread::spawn(move || transcriber.start());
 

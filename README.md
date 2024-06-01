@@ -1,13 +1,21 @@
 # varys
 Spying on smart speakers.
 
+## Installing
+### Whisper Models
+The whisper models can be downloaded from one of these locations:
+- https://huggingface.co/ggerganov/whisper.cpp/tree/main
+- https://ggml.ggerganov.com
+
+More information about the models can be found [here](https://github.com/ggerganov/whisper.cpp/tree/master/models).
+
+## Usage
+The `varys` CLI contains comprehensive documentation about its usage. Use `varys help` for details on available commands and `varys help <COMMAND>` for the documentation of specific commands.
+
 ## Building
 ```shell
 cargo build --release
 ```
-
-## Usage
-The `varys` CLI contains comprehensive documentation about its usage. Use `varys help` for details on available commands and `varys help <COMMAND>` for the documentation of specific commands.
 
 ## macOS Caveats
 ### CMake
