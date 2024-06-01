@@ -1,5 +1,13 @@
 # varys
-Spying on smart speakers.
+A testbed to collect network captures, audio recordings, timestamps and a transcript of interactions with smart speakers. This data is used for large scale traffic fingerprinting on voice assistants. The ultimate goal hereby is to gain insight into security and privacy practices.
+
+## Modules
+This project is split into five modules:
+- [varys](varys): The main executable
+- [varys-analysis](varys-analysis): Experimental implementation of traffic fingerprinting and other analysis on data collected by varys
+- [varys-audio](varys-audio): Recording audio and the TTS and STT systems
+- [varys-database](varys-database): Abstraction of the database system where interactions are stored
+- [varys-network](varys-network): Collection of network traffic, writing and parsing of `.pcap` files
 
 ## Installing
 ### Whisper Models
@@ -23,14 +31,22 @@ The Nix package manager is required to start the dev shell. Installation instruc
 Additionally, Docker is required to start the development database.
 
 ### 2. Entering the Shell
-To enter the development shell, run `nix develop`. By default, this starts a new Bash shell with the required dependencies installed.
+To enter the development shell, run:
+```sh
+nix develop
+```
+By default, this starts a new Bash shell with the required dependencies installed.
 
 A different shell (e.g. `zsh`) can be launched with `nix develop --command zsh`.
 
 ### 3. Database
 Since `sqlx` checks SQL for correctness on the development database, we need to start it before building the project.
 
-Start postgresql with `docker compose up -d` in the background. Don't forget to stop the container when you're done working on varys. The container is configured to set up the development database in `data/db`. You can access it with `docker compose exec database psql -U postgres varys`.
+Start postgresql with:
+```sh
+docker compose up -d
+```
+Don't forget to stop the container when you're done working on varys. The container is configured to set up the development database in `data/db`. You can access it with `docker compose exec database psql -U postgres varys`.
 
 Migrate the database with:
 ```sh
