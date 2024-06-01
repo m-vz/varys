@@ -125,6 +125,20 @@ pub enum AnalyseSubcommand {
         /// The directory in which data files are stored
         data_dir: PathBuf,
     },
+    /// Run a demo on a pre-trained model
+    Demo {
+        /// The directory in which data files are stored
+        data_dir: PathBuf,
+        /// The MAC address of the assistant
+        mac: String,
+    },
+    /// Compile training logs into a training and validation `.csv` summary
+    CompileLogs {
+        /// The directory in which data files are stored
+        data_dir: PathBuf,
+        /// An identifier to prepend the summaries with
+        id: String,
+    },
     /// Plot varys traffic traces
     Plot {
         /// The directory in which data files are stored

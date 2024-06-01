@@ -117,7 +117,7 @@ impl NumericTraceDataset {
             .into_iter()
             .map(|interaction| {
                 (
-                    Self::load_trace(&data_path, &interaction),
+                    Self::load_interaction_trace(&data_path, &interaction),
                     dataset.get_label(&interaction.query),
                 )
             })
@@ -314,7 +314,7 @@ impl NumericTraceDataset {
         self.queries.len()
     }
 
-    /// Load a [`TrafficTrace`] from a pcap file.
+    /// Load a [`TrafficTrace`] from a pcap file given an interaction.
     ///
     /// # Arguments
     ///
@@ -322,18 +322,36 @@ impl NumericTraceDataset {
     /// * `interaction`: The interaction to load the traffic trace from.
     ///
     /// returns: The parsed [`TrafficTrace`] or `None` if the pcap file could not be loaded.
-    pub fn load_trace<P: AsRef<Path>>(
+    pub fn load_interaction_trace<P: AsRef<Path>>(
         data_path: P,
         interaction: &Interaction,
     ) -> Result<NumericTrafficTrace, Error> {
         let address =
             MacAddress::from_str(&interaction.assistant_mac).map_err(|_| Error::CannotLoadTrace)?;
 
-        interaction
+        let capture_path = interaction
             .capture_file
             .clone()
             .map(|path| file::session_path(data_path, interaction.session_id).join(path))
-            .and_then(|path| packet::load_packets(path).ok())
+            .ok_or(Error::CannotLoadTrace)?;
+
+        Self::load_trace(capture_path, &address)
+    }
+
+    /// Load a [`TrafficTrace`] from a pcap file directly.
+    ///
+    /// # Arguments
+    ///
+    /// * `capture_path`: The path to the pcap file.
+    /// * `address`: The address of the assistant.
+    ///
+    /// returns: The parsed [`TrafficTrace`] or `None` if the pcap file could not be loaded.
+    pub fn load_trace<P: AsRef<Path>>(
+        capture_path: P,
+        address: &MacAddress,
+    ) -> Result<NumericTrafficTrace, Error> {
+        packet::load_packets(capture_path)
+            .ok()
             .map(TrafficTrace::try_from)
             .transpose()?
             .map(|trace| trace.as_numeric_trace(&address))

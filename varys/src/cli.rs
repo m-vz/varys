@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::str::FromStr;
 use std::{thread, time};
 
 use clap::Parser;
@@ -12,6 +13,7 @@ use varys_audio::stt::Recogniser;
 use varys_audio::tts::Speaker;
 use varys_database::database;
 use varys_database::database::interaction::Interaction;
+use varys_network::address::MacAddress;
 use varys_network::sniff;
 use varys_network::sniff::{ConnectionStatus, Sniffer};
 
@@ -54,7 +56,9 @@ pub async fn run() -> Result<(), Error> {
             )
             .await
         }
-        Command::Analyse(command) => analyse_command(command.dataset, command.command).await,
+        Command::Analyse(command) => {
+            analyse_command(command.dataset, command.command, &arguments.interface).await
+        }
     }
 }
 
@@ -174,22 +178,44 @@ async fn run_command<P: AsRef<Path>>(
 async fn analyse_command(
     dataset_size: DatasetSize,
     analyse_subcommand: AnalyseSubcommand,
+    interface: &str,
 ) -> Result<(), Error> {
     match analyse_subcommand {
         AnalyseSubcommand::Train { data_dir } => {
             ml::train(data_dir, get_filtered_interactions(&dataset_size).await?)?
         }
-        AnalyseSubcommand::Test { data_dir } => ml::test(data_dir)?,
+        AnalyseSubcommand::Test { data_dir } => ml::test_dataset(data_dir)?,
+        AnalyseSubcommand::Demo { data_dir, mac } => demo(data_dir, interface, mac)?,
+        AnalyseSubcommand::CompileLogs { data_dir, id } => ml::compile_all_logs(data_dir, &id)?,
         AnalyseSubcommand::Plot { data_dir } => {
             let mut dataset = NumericTraceDataset::new(
                 &data_dir,
                 get_filtered_interactions(&dataset_size).await?,
             )?;
-            dataset.resize_all(475);
+            dataset.resize_all(475).shuffle();
 
             plot::plot_queries(&data_dir, dataset_size.queries(), &dataset);
         }
     }
+
+    Ok(())
+}
+
+fn demo<P: AsRef<Path>>(data_dir: P, interface: &str, address: String) -> Result<(), Error> {
+    let sniffer = Sniffer::from(sniff::device_by_name(interface)?);
+    let capture_path = data_dir.as_ref().join("captures/demo.pcap");
+    let data_dir = data_dir.as_ref().to_path_buf();
+
+    interact::user_confirmation("Starting the demo.")?;
+    interact::user_confirmation(&format!(
+        "The demo capture will be stored at {}.",
+        capture_path.display()
+    ))?;
+    let sniffer = sniffer.start(&capture_path)?;
+    interact::user_confirmation("Confirm when the voice assistant has finished speaking.")?;
+    let _ = sniffer.stop()?;
+    let output = ml::test_single(&data_dir, &capture_path, &MacAddress::from_str(&address)?)?;
+    println!("{output:?}");
 
     Ok(())
 }
