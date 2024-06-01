@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use log::{debug, info, trace, warn};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
@@ -9,35 +7,6 @@ use crate::error::Error;
 pub mod transcribe;
 pub mod transcriber;
 
-pub const MODEL_LARGE: &str = "data/models/ggml-model-whisper-large-q5_0.bin";
-pub const MODEL_MEDIUM_EN: &str = "data/models/ggml-model-whisper-medium.en-q5_0.bin";
-
-#[derive(Default, Copy, Clone)]
-pub enum Model {
-    #[default]
-    Large,
-    Medium,
-}
-
-impl From<String> for Model {
-    fn from(s: String) -> Self {
-        match s.to_lowercase().as_str() {
-            "large" => Model::Large,
-            "medium" => Model::Medium,
-            _ => Model::default(),
-        }
-    }
-}
-
-impl Display for Model {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Model::Large => write!(f, "Large"),
-            Model::Medium => write!(f, "Medium"),
-        }
-    }
-}
-
 /// Wraps the whisper API.
 pub struct Recogniser {
     context: WhisperContext,
@@ -46,29 +15,6 @@ pub struct Recogniser {
 impl Recogniser {
     /// This sample rate is expected by whisper, so all audio data has to be resampled to this.
     pub const SAMPLE_RATE: u32 = 16_000;
-
-    /// Create a new recogniser that uses one of the supplied models.
-    ///
-    /// Returns an error if the model could not be loaded or does not have proper `ggml` format.
-    ///
-    /// # Arguments
-    ///
-    /// * `model`: The model to use for this recogniser.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use varys_audio::stt::{Model, Recogniser};
-    /// let recogniser = Recogniser::with_model(Model::Large).unwrap();
-    /// ```
-    pub fn with_model(model: Model) -> Result<Recogniser, Error> {
-        let model_path = match model {
-            Model::Large => MODEL_LARGE,
-            Model::Medium => MODEL_MEDIUM_EN,
-        };
-
-        Recogniser::with_model_path(model_path)
-    }
 
     /// Create a new recogniser that uses the model stored at the given file path.
     ///
@@ -91,7 +37,7 @@ impl Recogniser {
         let mut params = WhisperContextParameters::default();
         params.use_gpu(true);
 
-        info!("Using model: {}", model_path);
+        info!("Using model: {model_path}");
 
         Ok(Recogniser {
             context: WhisperContext::new_with_params(model_path, params)?,

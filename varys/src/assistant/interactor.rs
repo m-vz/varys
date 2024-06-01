@@ -9,7 +9,6 @@ use varys_audio::audio::AudioData;
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcribe::Transcribe;
 use varys_audio::stt::transcriber::{TranscriberHandle, TranscriberReceiver, TranscriberSender};
-use varys_audio::stt::Model;
 use varys_audio::tts::Speaker;
 use varys_database::connection::DatabaseConnection;
 use varys_database::database::interaction::Interaction;
@@ -46,7 +45,7 @@ pub struct Interactor {
     pub speaker: Speaker,
     voices: VecDeque<String>,
     pub sensitivity: f32,
-    model: Model,
+    model: String,
     data_dir: PathBuf,
     assistant_mac: String,
 }
@@ -83,7 +82,7 @@ impl Interactor {
         interface: String,
         voices: Vec<String>,
         sensitivity: f32,
-        model: Model,
+        model: String,
         data_dir: PathBuf,
         assistant_mac: String,
     ) -> Result<Interactor, Error> {
