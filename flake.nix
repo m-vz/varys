@@ -30,6 +30,8 @@
             libclang
             libpcap
             libopus
+            # package for tts on linux
+            piper-tts
           ];
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
           RUST_SRC_PATH = "${rust.packages.stable.rustPlatform.rustLibSrc}";
