@@ -61,7 +61,7 @@ impl VoiceAssistant for Siri {
             "Hey Siri. Play some music.",
         ] {
             loop {
-                speaker.say(sentence, true)?;
+                speaker.say(sentence)?;
                 if interact::user_choice(
                     "Confirm that Siri recognised the sentence or repeat it",
                     &[KeyType::Enter, KeyType::Key('r')],
@@ -87,7 +87,7 @@ impl VoiceAssistant for Siri {
     fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error> {
         info!("Telling Siri to stop...");
 
-        interactor.speaker.say("Hey Siri, stop.", true)?;
+        interactor.speaker.say("Hey Siri, stop.")?;
         interactor.listener.wait_until_silent(
             self.silence_between_interactions(),
             interactor.sensitivity,
@@ -108,15 +108,11 @@ impl VoiceAssistant for Siri {
             )
         };
 
-        interactor.speaker.say("Hey Siri, stop.", true)?;
+        interactor.speaker.say("Hey Siri, stop.")?;
         wait()?;
-        interactor
-            .speaker
-            .say("Hey Siri, turn off the music.", true)?;
+        interactor.speaker.say("Hey Siri, turn off the music.")?;
         wait()?;
-        interactor
-            .speaker
-            .say("Hey Siri, disable all alarms.", true)?;
+        interactor.speaker.say("Hey Siri, disable all alarms.")?;
         wait()?;
 
         info!("Siri has been told to stop everything");
@@ -132,7 +128,7 @@ impl VoiceAssistant for Siri {
         for voice in voices {
             interact::user_confirmation(&format!("Test {}", voice))?;
             speaker.set_voice(&voice).unwrap();
-            speaker.say("Hey Siri, what is my name?", true).unwrap();
+            speaker.say("Hey Siri, what is my name?").unwrap();
         }
 
         Ok(())

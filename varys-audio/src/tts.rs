@@ -238,9 +238,9 @@ impl Speaker {
     /// ```
     /// # use varys_audio::tts::Speaker;
     /// let speaker = Speaker::new().unwrap();
-    /// let speaking_duration = speaker.say("", false).unwrap();
+    /// let speaking_duration = speaker.say("").unwrap();
     /// ```
-    pub fn say(&self, text: &str, interrupt: bool) -> Result<i32, Error> {
+    pub fn say(&self, text: &str) -> Result<i32, Error> {
         info!("Saying \"{text}\"");
 
         let start = Instant::now();
@@ -251,7 +251,7 @@ impl Speaker {
                 let _ = sender.send(());
             })))?;
 
-            self.tts.clone().speak(text, interrupt)?;
+            self.tts.clone().speak(text, true)?;
 
             unsafe {
                 let run_loop: id = NSRunLoop::currentRunLoop();

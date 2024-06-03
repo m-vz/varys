@@ -120,7 +120,7 @@ fn listen<P: AsRef<Path>>(
 
         info!("Speaking...");
         let speaker = Speaker::with_voice(voice)?;
-        speaker.say(&text, false)?;
+        speaker.say(&text)?;
     }
 
     Ok(())

@@ -284,7 +284,7 @@ impl Interactor {
         let query_instance = self.listener.start()?;
 
         // say the query
-        interaction.query_duration = Some(self.speaker.say(&query.text, true)?);
+        interaction.query_duration = Some(self.speaker.say(&query.text)?);
 
         // stop recording the query
         let query_audio = query_instance.stop()?;

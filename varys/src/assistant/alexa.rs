@@ -60,7 +60,7 @@ impl VoiceAssistant for Alexa {
             "Alexa. Add milk to my shopping list.",
         ] {
             loop {
-                speaker.say(sentence, true)?;
+                speaker.say(sentence)?;
                 if interact::user_choice(
                     "Confirm that Alexa recognised the sentence or repeat it",
                     &[KeyType::Enter, KeyType::Key('r')],
@@ -86,7 +86,7 @@ impl VoiceAssistant for Alexa {
     fn stop_assistant(&self, interactor: &Interactor) -> Result<(), Error> {
         info!("Telling Alexa to stop...");
 
-        interactor.speaker.say("Alexa, stop.", true)?;
+        interactor.speaker.say("Alexa, stop.")?;
         interactor.listener.wait_until_silent(
             self.silence_between_interactions(),
             interactor.sensitivity,
@@ -107,11 +107,11 @@ impl VoiceAssistant for Alexa {
             )
         };
 
-        interactor.speaker.say("Alexa, stop.", true)?;
+        interactor.speaker.say("Alexa, stop.")?;
         wait()?;
-        interactor.speaker.say("Alexa, turn off the music.", true)?;
+        interactor.speaker.say("Alexa, turn off the music.")?;
         wait()?;
-        interactor.speaker.say("Alexa, disable all alarms.", true)?;
+        interactor.speaker.say("Alexa, disable all alarms.")?;
         wait()?;
 
         info!("Alexa has been told to stop everything");
@@ -127,7 +127,7 @@ impl VoiceAssistant for Alexa {
         for voice in voices {
             interact::user_confirmation(&format!("Test {}", voice))?;
             speaker.set_voice(&voice).unwrap();
-            speaker.say("Alexa, what is my name?", true).unwrap();
+            speaker.say("Alexa, what is my name?").unwrap();
         }
 
         Ok(())
