@@ -29,5 +29,6 @@ Icon
 /data/models
 /data/varys.stderr
 /data/varys.stdout
+/data/voices/output.wav
 /*.pcap
 /*.pcap.gz

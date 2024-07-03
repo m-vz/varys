@@ -6,8 +6,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("Value is out of range")]
     OutOfRange,
-    #[error("Audio input device not found")]
-    AudioInputDeviceNotFound,
+    #[error("Audio device not found")]
+    AudioDeviceNotFound,
     #[error("Audio device does not support required configuration")]
     ConfigurationNotSupported,
     #[error("Tried to access audio data while recording still running")]
@@ -69,7 +69,7 @@ impl From<tts::Error> for Error {
 impl From<cpal::BuildStreamError> for Error {
     fn from(value: cpal::BuildStreamError) -> Self {
         match value {
-            cpal::BuildStreamError::DeviceNotAvailable => Error::AudioInputDeviceNotFound,
+            cpal::BuildStreamError::DeviceNotAvailable => Error::AudioDeviceNotFound,
             cpal::BuildStreamError::StreamConfigNotSupported => Error::ConfigurationNotSupported,
             _ => Error::Cpal(value.to_string()),
         }
@@ -79,9 +79,7 @@ impl From<cpal::BuildStreamError> for Error {
 impl From<cpal::SupportedStreamConfigsError> for Error {
     fn from(value: cpal::SupportedStreamConfigsError) -> Self {
         match value {
-            cpal::SupportedStreamConfigsError::DeviceNotAvailable => {
-                Error::AudioInputDeviceNotFound
-            }
+            cpal::SupportedStreamConfigsError::DeviceNotAvailable => Error::AudioDeviceNotFound,
             _ => Error::Cpal(value.to_string()),
         }
     }
@@ -104,7 +102,7 @@ impl From<audiopus::Error> for Error {
 impl From<cpal::PlayStreamError> for Error {
     fn from(value: cpal::PlayStreamError) -> Self {
         match value {
-            cpal::PlayStreamError::DeviceNotAvailable => Error::AudioInputDeviceNotFound,
+            cpal::PlayStreamError::DeviceNotAvailable => Error::AudioDeviceNotFound,
             _ => Error::Cpal(value.to_string()),
         }
     }

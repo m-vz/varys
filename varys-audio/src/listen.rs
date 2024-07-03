@@ -49,7 +49,7 @@ impl Listener {
     pub fn new() -> Result<Self, Error> {
         let device = cpal::default_host()
             .default_input_device()
-            .ok_or(Error::AudioInputDeviceNotFound)?;
+            .ok_or(Error::AudioDeviceNotFound)?;
         if let Ok(name) = device.name() {
             debug!("Using audio device {}", name);
         }

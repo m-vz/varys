@@ -32,6 +32,7 @@
             libopus
             # package for tts on linux
             piper-tts
+            alsa-utils
           ];
           LD_LIBRARY_PATH = lib.makeLibraryPath buildInputs;
           RUST_SRC_PATH = "${rust.packages.stable.rustPlatform.rustLibSrc}";
