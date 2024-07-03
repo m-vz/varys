@@ -273,7 +273,7 @@ impl Speaker {
 }
 
 #[cfg(not(target_os = "macos"))]
-const VOICE_MODEL_PATH: &str = "data/voices/en_US-libritts-high.onnx";
+const VOICE_MODEL_PATH: &str = "data/voices/en_US-libritts_r-medium.onnx";
 
 #[cfg(not(target_os = "macos"))]
 const VOICE_OUTPUT_PATH: &str = "data/voices/output.wav";
