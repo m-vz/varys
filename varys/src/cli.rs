@@ -247,12 +247,6 @@ async fn export<P: AsRef<Path>>(data_dir: P, dataset_size: &DatasetSize) -> Resu
             })
             .enumerate()
         {
-            let interaction_path = query_dir.join(format!(
-                "{}_??_varys_{}_.csv",
-                query.replace(' ', "_"),
-                index
-            ));
-            let mut csv = File::create(&interaction_path)?;
             let mac_address =
                 MacAddress::from_str(&interaction.assistant_mac).expect("Cannot load MAC");
             let capture_path = interaction
@@ -260,12 +254,16 @@ async fn export<P: AsRef<Path>>(data_dir: P, dataset_size: &DatasetSize) -> Resu
                 .clone()
                 .map(|path| file::session_path(&data_dir, interaction.session_id).join(path))
                 .expect("Cannot load capture path");
-            let traffic_trace = packet::load_packets(capture_path)
-                .ok()
-                .map(TrafficTrace::try_from)
-                .transpose()?
+            let packets = packet::load_packets(capture_path).expect("Could not load packets");
+            let traffic_trace = TrafficTrace::try_from(packets)
                 .map(|trace| trace.as_wang_traffic_trace(&mac_address))
-                .ok_or(varys_analysis::error::Error::CannotLoadTrace)?;
+                .map_err(|err| varys_analysis::error::Error::CannotLoadTrace)?;
+            let interaction_path = query_dir.join(format!(
+                "{}_??_varys_{}_.csv",
+                query.replace(' ', "_"),
+                index
+            ));
+            let mut csv = File::create(&interaction_path)?;
 
             writeln!(csv, "time,size,direction")?;
             for (timestamp, size, direction) in traffic_trace.0 {
