@@ -144,4 +144,9 @@ pub enum AnalyseSubcommand {
         /// The directory in which data files are stored
         data_dir: PathBuf,
     },
+    /// Export data captured with varys
+    Export {
+        /// The directory in which data files are stored
+        data_dir: PathBuf,
+    },
 }

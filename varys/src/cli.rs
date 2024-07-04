@@ -1,21 +1,23 @@
-use std::path::Path;
+use clap::Parser;
+use log::{debug, error, info, trace};
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::{thread, time};
-
-use clap::Parser;
-use log::{debug, error, info};
-
+use tokio::fs;
 use varys_analysis::ml::data::NumericTraceDataset;
+use varys_analysis::trace::TrafficTrace;
 use varys_analysis::{ml, plot};
 use varys_audio::listen::Listener;
 use varys_audio::stt::transcriber::Transcriber;
 use varys_audio::stt::Recogniser;
 use varys_audio::tts::Speaker;
-use varys_database::database;
 use varys_database::database::interaction::Interaction;
+use varys_database::{database, file};
 use varys_network::address::MacAddress;
-use varys_network::sniff;
 use varys_network::sniff::{ConnectionStatus, Sniffer};
+use varys_network::{packet, sniff};
 
 use crate::assistant;
 use crate::assistant::interactor::Interactor;
@@ -196,6 +198,7 @@ async fn analyse_command(
 
             plot::plot_queries(&data_dir, dataset_size.queries(), &dataset);
         }
+        AnalyseSubcommand::Export { data_dir } => export(data_dir, &dataset_size).await?,
     }
 
     Ok(())
@@ -216,6 +219,62 @@ fn demo<P: AsRef<Path>>(data_dir: P, interface: &str, address: String) -> Result
     let _ = sniffer.stop()?;
     let output = ml::test_single(&data_dir, &capture_path, &MacAddress::from_str(&address)?)?;
     println!("{output:?}");
+
+    Ok(())
+}
+
+async fn export<P: AsRef<Path>>(data_dir: P, dataset_size: &DatasetSize) -> Result<(), Error> {
+    let output_dir = PathBuf::from("data/ml/export/").join(dataset_size.to_string());
+    let interactions = get_filtered_interactions(dataset_size).await?;
+
+    info!("Number of interactions: {:?}", interactions.len());
+
+    for (label, query) in dataset_size
+        .queries()
+        .iter()
+        .enumerate()
+        .map(|(index, query)| (index + 1, query))
+    {
+        let query_dir = output_dir.join(label.to_string());
+        fs::create_dir_all(&query_dir).await?;
+
+        info!("Exporting interactions for \"{query}\" to {query_dir:?}");
+
+        for (index, interaction) in interactions
+            .iter()
+            .filter(|interaction| {
+                **query == interaction.query && interaction.capture_file.is_some()
+            })
+            .enumerate()
+        {
+            let interaction_path = query_dir.join(format!(
+                "{}_??_varys_{}_.csv",
+                query.replace(' ', "_"),
+                index
+            ));
+            let mut csv = File::create(&interaction_path)?;
+            let mac_address =
+                MacAddress::from_str(&interaction.assistant_mac).expect("Cannot load MAC");
+            let capture_path = interaction
+                .capture_file
+                .clone()
+                .map(|path| file::session_path(&data_dir, interaction.session_id).join(path))
+                .expect("Cannot load capture path");
+            let traffic_trace = packet::load_packets(capture_path)
+                .ok()
+                .map(TrafficTrace::try_from)
+                .transpose()?
+                .map(|trace| trace.as_wang_traffic_trace(&mac_address))
+                .ok_or(varys_analysis::error::Error::CannotLoadTrace)?;
+
+            writeln!(csv, "time,size,direction")?;
+            for (timestamp, size, direction) in traffic_trace.0 {
+                writeln!(csv, "{timestamp:?},{size:.1},{direction:.1}")?;
+            }
+
+            trace!("Exported {interaction_path:?}");
+        }
+    }
 
     Ok(())
 }

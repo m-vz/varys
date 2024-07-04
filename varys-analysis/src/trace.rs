@@ -41,6 +41,31 @@ impl TrafficTrace {
                 .collect(),
         )
     }
+
+    pub fn as_wang_traffic_trace(&self, relative_to: &MacAddress) -> WangTrafficTrace {
+        let start_time = self
+            .packets
+            .iter()
+            .reduce(|a, b| if a.timestamp < b.timestamp { a } else { b })
+            .expect("Traffic trace was empty")
+            .timestamp;
+
+        WangTrafficTrace(
+            self.packets
+                .iter()
+                .filter_map(|packet| {
+                    packet.direction(relative_to).map(|direction| {
+                        (
+                            (packet.timestamp - start_time).num_nanoseconds().unwrap() as f32
+                                / 1000000000.,
+                            packet.len as f32,
+                            f32::from(direction),
+                        )
+                    })
+                })
+                .collect(),
+        )
+    }
 }
 
 impl TryFrom<Vec<Packet>> for TrafficTrace {
@@ -179,6 +204,27 @@ impl Display for NumericTrafficTrace {
                 .iter()
                 .take(6)
                 .map(|packet| packet.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        )
+    }
+}
+
+/// Traffic trace for the Wang et al. method, contains (timestamp, size, direction) for each packet.
+/// See section 4.2 in their paper for details.
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct WangTrafficTrace(pub Vec<(f32, f32, f32)>);
+
+impl Display for WangTrafficTrace {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Wang et al. numeric trace of {} packets ({}, ...)",
+            self.0.len(),
+            self.0
+                .iter()
+                .take(6)
+                .map(|packet| format!("{packet:?}"))
                 .collect::<Vec<_>>()
                 .join(",")
         )

@@ -1,4 +1,5 @@
 use clap::ValueEnum;
+use std::fmt::{Display, Formatter};
 
 use varys_database::database::interaction::Interaction;
 
@@ -32,7 +33,7 @@ impl DatasetSize {
     pub fn queries(&self) -> Vec<&str> {
         match self {
             DatasetSize::Full => vec![
-                // the 13 queries from the small dataset are excluded sice their higher number of
+                // the 13 queries from the small dataset are excluded since their higher number of
                 // samples may skew the training results:
                 // "Hey Siri. What’s 2330 dollars in euros?",
                 // "Hey Siri. What is the factorial of 6?",
@@ -292,5 +293,19 @@ impl DatasetSize {
             ],
             DatasetSize::Binary => vec!["Hey Siri. Call John Doe", "Hey Siri. Call Mary Poppins"],
         }
+    }
+}
+
+impl Display for DatasetSize {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                DatasetSize::Full => "full",
+                DatasetSize::Small => "small",
+                DatasetSize::Binary => "binary",
+            }
+        )
     }
 }

@@ -354,7 +354,7 @@ impl NumericTraceDataset {
             .ok()
             .map(TrafficTrace::try_from)
             .transpose()?
-            .map(|trace| trace.as_numeric_trace(&address))
+            .map(|trace| trace.as_numeric_trace(address))
             .ok_or(Error::CannotLoadTrace)
     }
 
