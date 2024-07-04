@@ -14,10 +14,6 @@ use cocoa_foundation::{
     foundation::{NSDefaultRunLoopMode, NSRunLoop},
 };
 #[cfg(target_os = "macos")]
-use lerp::Lerp;
-#[cfg(target_os = "macos")]
-use log::debug;
-#[cfg(target_os = "macos")]
 use objc::{class, msg_send, sel, sel_impl};
 #[cfg(target_os = "macos")]
 use std::sync::mpsc::{channel, TryRecvError};
