@@ -7,12 +7,12 @@ use std::time::{Duration, Instant};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    Device, SampleFormat, Stream, StreamConfig,
+    Device, SampleFormat, SampleRate, Stream, StreamConfig,
 };
 use log::{debug, error, info, trace, warn};
 use simple_moving_average::{NoSumSMA, SMA};
 
-use crate::audio::AudioData;
+use crate::audio::{AudioData, OPUS_SAMPLE_RATE};
 use crate::error::Error;
 use crate::stt::Recogniser;
 
@@ -58,10 +58,11 @@ impl Listener {
             .supported_input_configs()?
             .find(|config| {
                 config.sample_format() == SampleFormat::F32
-                    && config.max_sample_rate().0 % Recogniser::SAMPLE_RATE == 0
+                    && config.max_sample_rate().0 >= Recogniser::SAMPLE_RATE
+                    && config.max_sample_rate().0 >= OPUS_SAMPLE_RATE as u32
             })
             .ok_or(Error::ConfigurationNotSupported)?
-            .with_max_sample_rate()
+            .with_sample_rate(SampleRate(OPUS_SAMPLE_RATE as u32))
             .into();
         debug!("Using audio input config {:?}", device_config);
 
