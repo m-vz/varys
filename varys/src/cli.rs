@@ -257,7 +257,7 @@ async fn export<P: AsRef<Path>>(data_dir: P, dataset_size: &DatasetSize) -> Resu
             let packets = packet::load_packets(capture_path).expect("Could not load packets");
             let traffic_trace = TrafficTrace::try_from(packets)
                 .map(|trace| trace.as_wang_traffic_trace(&mac_address))
-                .map_err(|err| varys_analysis::error::Error::CannotLoadTrace)?;
+                .map_err(|_err| varys_analysis::error::Error::CannotLoadTrace)?;
             let interaction_path = query_dir.join(format!(
                 "{}_??_varys_{}_.csv",
                 query.replace(' ', "_"),

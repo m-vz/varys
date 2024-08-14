@@ -66,6 +66,14 @@ If you're deploying varys and need the best performance, run:
 cargo build --release
 ```
 
+### 5. Calibration
+To calibrate the ambient noise before an experiment, place the microphone where the experiment will run and use
+```sh
+cargo run -- listen --calibrate
+```
+
+The resulting sensitivity can then be passed to varys using the `--sensitivity` parameter.
+
 ## macOS Launch Agent
 To run varys as a daemon, move `local.varys.plist` to `~/Library/LaunchAgents` with permissions `644`.
 In the file, replace `/path/to/varys` with the path to the varys executable, `/path/to/working/dir` with the path to where the data folder sits and `https://monitoring-url` with the url to the monitoring service.
