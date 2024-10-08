@@ -23,6 +23,10 @@ impl VoiceAssistant for Alexa {
         "Alexa".to_string()
     }
 
+    fn wake_word(&self) -> String {
+        "Alexa".to_string()
+    }
+
     fn setup(&self) -> Result<(), Error> {
         info!("Starting Alexa setup...");
 

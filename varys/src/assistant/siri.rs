@@ -23,6 +23,10 @@ impl VoiceAssistant for Siri {
         "Siri".to_string()
     }
 
+    fn wake_word(&self) -> String {
+        "Hey Siri".to_string()
+    }
+
     fn setup(&self) -> Result<(), Error> {
         info!("Starting Siri setup...");
 

@@ -25,6 +25,17 @@ pub trait VoiceAssistant {
     /// ```
     fn name(&self) -> String;
 
+    /// The wake word to use to talk to the voice assistant.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use varys::assistant::{from, VoiceAssistant};
+    /// # use varys::assistant::siri::Siri;
+    /// assert_eq!(Siri {}.wake_word().as_str(), "Hey Siri");
+    /// ```
+    fn wake_word(&self) -> String;
+
     /// Set up voice recognition for a voice assistant.
     ///
     /// # Examples
