@@ -61,7 +61,11 @@ pub async fn run() -> Result<(), Error> {
         Command::Export(export_command) => {
             export_command
                 .format
-                .export(export_command.data_dir, &export_command.dataset)
+                .export(
+                    export_command.data_dir,
+                    &export_command.dataset,
+                    assistant::from(&export_command.assistant),
+                )
                 .await
         }
     }

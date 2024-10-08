@@ -5,12 +5,15 @@ use std::{
     str::FromStr,
 };
 
+use chrono::{DateTime, Utc};
 use clap::ValueEnum;
+use regex::Regex;
+use serde::Serialize;
 use varys_analysis::trace::TrafficTrace;
-use varys_database::file;
+use varys_database::{database::interaction::Interaction, file};
 use varys_network::{address::MacAddress, packet};
 
-use crate::{cli, dataset::DatasetSize, error::Error};
+use crate::{assistant::VoiceAssistant, cli, dataset::DatasetSize, error::Error};
 
 #[derive(ValueEnum, Clone, Debug)]
 pub enum ExportType {
@@ -18,11 +21,29 @@ pub enum ExportType {
     Ahmed,
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct AhmedInteraction {
+    va: String,
+    invoke_phrase: String,
+    wake_word: String,
+    #[serde(default)]
+    audio_fp: String,
+    label: String,
+    start_time: f64,
+    end_time: f64,
+    #[serde(default)]
+    validate_record: String,
+    #[serde(default)]
+    va_activity_data: String,
+    complete: bool,
+}
+
 impl ExportType {
     pub async fn export<P: AsRef<Path>>(
         &self,
         data_dir: P,
         dataset_size: &DatasetSize,
+        voice_assistant: Box<dyn VoiceAssistant>,
     ) -> Result<(), Error> {
         let export_dir = data_dir
             .as_ref()
@@ -37,8 +58,69 @@ impl ExportType {
             ExportType::Wang => {
                 Self::export_wang(data_dir.as_ref(), &export_dir, dataset_size).await
             }
-            ExportType::Ahmed => todo!(),
+            ExportType::Ahmed => {
+                Self::export_ahmed(&export_dir, dataset_size, voice_assistant).await
+            }
         }
+    }
+
+    async fn export_ahmed<P: AsRef<Path>>(
+        export_dir: P,
+        dataset_size: &DatasetSize,
+        voice_assistant: Box<dyn VoiceAssistant>,
+    ) -> Result<(), Error> {
+        let interactions = Self::get_interactions(dataset_size).await?;
+        let interactions_dir = export_dir
+            .as_ref()
+            .join("invoke_records")
+            .join(voice_assistant.name());
+
+        for query in dataset_size.queries().iter() {
+            let label = query.replace(' ', "-");
+            let label = Regex::new(r"[^a-zA-Z0-9\-]")
+                .expect("Invalid label regex")
+                .replace_all(&label, "")
+                .into_owned();
+            let query_dir = interactions_dir.join(&label);
+            fs::create_dir_all(&query_dir)?;
+
+            log::info!("Exporting interactions for \"{query}\" to {query_dir:?}");
+
+            for interaction in interactions.iter().filter(|interaction| {
+                **query == interaction.query && interaction.capture_file.is_some()
+            }) {
+                if let Some(ended) = interaction.ended {
+                    let interaction_path = query_dir.join(format!(
+                        "ir_V_{}.json",
+                        interaction.started.format("%Y-%m-%dT%H:%M:%S%.6f")
+                    ));
+                    let ahmed_interaction = AhmedInteraction {
+                        va: voice_assistant.name(),
+                        invoke_phrase: interaction.query.clone(),
+                        wake_word: voice_assistant.wake_word(),
+                        audio_fp: String::default(),
+                        label: label.clone(),
+                        start_time: Self::datetime_to_timestamp(interaction.started),
+                        end_time: Self::datetime_to_timestamp(ended),
+                        validate_record: String::default(),
+                        va_activity_data: String::default(),
+                        complete: true,
+                    };
+
+                    if let Err(error) = File::create(&interaction_path)
+                        .map(|file| serde_json::to_writer_pretty(file, &ahmed_interaction))?
+                    {
+                        log::error!(
+                            "Could not write interaction file at {interaction_path:?}: {error}"
+                        );
+                    }
+
+                    log::trace!("Exported {interaction_path:?}");
+                }
+            }
+        }
+
+        Ok(())
     }
 
     async fn export_wang<P: AsRef<Path>>(
@@ -46,9 +128,7 @@ impl ExportType {
         export_dir: P,
         dataset_size: &DatasetSize,
     ) -> Result<(), Error> {
-        let interactions = cli::get_filtered_interactions(dataset_size).await?;
-
-        log::info!("Number of interactions: {:?}", interactions.len());
+        let interactions = Self::get_interactions(dataset_size).await?;
 
         for (label, query) in dataset_size
             .queries()
@@ -96,5 +176,17 @@ impl ExportType {
         }
 
         Ok(())
+    }
+
+    fn datetime_to_timestamp(datetime: DateTime<Utc>) -> f64 {
+        datetime.timestamp() as f64 + datetime.timestamp_subsec_nanos() as f64 * 1e-9
+    }
+
+    async fn get_interactions(dataset_size: &DatasetSize) -> Result<Vec<Interaction>, Error> {
+        let interactions = cli::get_filtered_interactions(dataset_size).await?;
+
+        log::info!("Number of interactions: {:?}", interactions.len());
+
+        Ok(interactions)
     }
 }

@@ -159,4 +159,6 @@ pub struct ExportCommand {
     pub format: ExportType,
     /// The directory in which data files are stored
     pub data_dir: PathBuf,
+    /// Which voice assistant to export data for
+    pub assistant: String,
 }
