@@ -76,7 +76,10 @@ impl ExportType {
             .join(voice_assistant.name());
 
         for query in dataset_size.queries().iter() {
-            let label = query.replace(' ', "-");
+            let query_stripped = query
+                .strip_prefix(&format!("{}. ", voice_assistant.wake_word()))
+                .unwrap_or(query);
+            let label = query_stripped.to_lowercase().replace(' ', "-");
             let label = Regex::new(r"[^a-zA-Z0-9\-]")
                 .expect("Invalid label regex")
                 .replace_all(&label, "")
@@ -87,7 +90,7 @@ impl ExportType {
             log::info!("Exporting interactions for \"{query}\" to {query_dir:?}");
 
             for interaction in interactions.iter().filter(|interaction| {
-                **query == interaction.query && interaction.capture_file.is_some()
+                *query == interaction.query && interaction.capture_file.is_some()
             }) {
                 if let Some(ended) = interaction.ended {
                     let interaction_path = query_dir.join(format!(
@@ -96,7 +99,7 @@ impl ExportType {
                     ));
                     let ahmed_interaction = AhmedInteraction {
                         va: voice_assistant.name(),
-                        invoke_phrase: interaction.query.clone(),
+                        invoke_phrase: query_stripped.to_string(),
                         wake_word: voice_assistant.wake_word(),
                         audio_fp: String::default(),
                         label: label.clone(),
