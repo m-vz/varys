@@ -4,6 +4,8 @@ use clap::{Args, Parser, Subcommand};
 
 use crate::dataset::DatasetSize;
 
+use super::export::ExportType;
+
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 pub struct Arguments {
@@ -40,6 +42,8 @@ pub enum Command {
     Run(RunCommand),
     /// Analyse data captured with varys
     Analyse(AnalyseCommand),
+    /// Export data captured with varys in different formats
+    Export(ExportCommand),
 }
 
 #[derive(Debug, Args)]
@@ -144,9 +148,15 @@ pub enum AnalyseSubcommand {
         /// The directory in which data files are stored
         data_dir: PathBuf,
     },
-    /// Export data captured with varys
-    Export {
-        /// The directory in which data files are stored
-        data_dir: PathBuf,
-    },
+}
+
+#[derive(Debug, Args)]
+pub struct ExportCommand {
+    /// The dataset to use
+    #[arg(short, long, value_enum, default_value_t)]
+    pub dataset: DatasetSize,
+    /// The format in which to export the data
+    pub format: ExportType,
+    /// The directory in which data files are stored
+    pub data_dir: PathBuf,
 }
