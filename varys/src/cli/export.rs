@@ -59,12 +59,19 @@ impl ExportType {
                 Self::export_wang(data_dir.as_ref(), &export_dir, dataset_size).await
             }
             ExportType::Ahmed => {
-                Self::export_ahmed(&export_dir, dataset_size, voice_assistant).await
+                Self::export_ahmed(
+                    data_dir.as_ref(),
+                    &export_dir,
+                    dataset_size,
+                    voice_assistant,
+                )
+                .await
             }
         }
     }
 
     async fn export_ahmed<P: AsRef<Path>>(
+        data_dir: P,
         export_dir: P,
         dataset_size: &DatasetSize,
         voice_assistant: Box<dyn VoiceAssistant>,
@@ -74,6 +81,8 @@ impl ExportType {
             .as_ref()
             .join("invoke_records")
             .join(voice_assistant.name());
+        let captures_dir = export_dir.as_ref().join("captures");
+        fs::create_dir_all(&captures_dir)?;
 
         for query in dataset_size.queries().iter() {
             let query_stripped = query
@@ -93,6 +102,21 @@ impl ExportType {
                 *query == interaction.query && interaction.capture_file.is_some()
             }) {
                 if let Some(ended) = interaction.ended {
+                    if let Some(capture_file) = &interaction.capture_file {
+                        let original_capture_path =
+                            file::session_path(&data_dir, interaction.session_id)
+                                .join(capture_file);
+                        let capture_path = captures_dir.join(
+                            original_capture_path
+                                .file_name()
+                                .unwrap_or_else(|| panic!("Invalid capture file: {capture_file}")),
+                        );
+
+                        log::trace!("Copying from {original_capture_path:?} to {capture_path:?}");
+                        fs::copy(&original_capture_path, &capture_path)?;
+                    } else {
+                        panic!("Interaction without capture file: {}", interaction.id);
+                    }
                     let interaction_path = query_dir.join(format!(
                         "ir_V_{}.json",
                         interaction.started.format("%Y-%m-%dT%H:%M:%S%.6f")
@@ -113,9 +137,7 @@ impl ExportType {
                     if let Err(error) = File::create(&interaction_path)
                         .map(|file| serde_json::to_writer_pretty(file, &ahmed_interaction))?
                     {
-                        log::error!(
-                            "Could not write interaction file at {interaction_path:?}: {error}"
-                        );
+                        panic!("Could not write interaction file at {interaction_path:?}: {error}");
                     }
 
                     log::trace!("Exported {interaction_path:?}");
