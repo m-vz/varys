@@ -164,16 +164,18 @@ impl ExportType {
         }
 
         Ok(())
-    }
 
+    }
     async fn export_wang<P: AsRef<Path>>(
         data_dir: P,
         export_dir: P,
         dataset_size: &DatasetSize,
     ) -> Result<(), Error> {
         let interactions = Self::get_interactions(dataset_size).await?;
+        let valid_greetings = vec!["Hey Siri. ", "Alexa. "];
+    
         log::info!("Loaded interactions: {}", interactions.len());
-
+    
         for (label, query) in dataset_size
             .queries()
             .iter()
@@ -182,13 +184,17 @@ impl ExportType {
         {
             let query_dir = export_dir.as_ref().join(label.to_string());
             fs::create_dir_all(&query_dir)?;
-
+    
             log::info!("Exporting interactions for \"{}\" to {:?}", query, query_dir);
-
+    
+            let valid_queries: Vec<String> = valid_greetings.iter()
+                .map(|greeting| format!("{}{}", greeting, query))
+                .collect();
+    
             for (index, interaction) in interactions
                 .iter()
                 .filter(|interaction| {
-                    **query == interaction.query && interaction.capture_file.is_some()
+                    valid_queries.iter().any(|valid_query| interaction.query == *valid_query) && interaction.capture_file.is_some()
                 })
                 .enumerate()
             {
@@ -200,30 +206,49 @@ impl ExportType {
                     .clone()
                     .map(|path| file::session_path(&data_dir, interaction.session_id).join(path))
                     .expect("Cannot load capture path");
-
+    
                 log::info!("Loading packets from capture file: {:?}", capture_path);
-                let packets = packet::load_packets(capture_path).expect("Could not load packets");
-
-                let traffic_trace = TrafficTrace::try_from(packets)
-                    .map(|trace| trace.as_wang_traffic_trace(&mac_address))
-                    .map_err(|_err| varys_analysis::error::Error::CannotLoadTrace)?;
-
-                let interaction_path = query_dir.join(format!(
-                    "{}_??_varys_{}_.csv",
-                    query.replace(' ', "_"),
-                    index
-                ));
-                let mut csv = File::create(&interaction_path)?;
-
-                writeln!(csv, "time,size,direction")?;
-                for (timestamp, size, direction) in traffic_trace.0 {
-                    writeln!(csv, "{:?},{:.1},{:.1}", timestamp, size, direction)?;
+                if !capture_path.exists() {
+                    log::error!("Capture file does not exist: {:?}", capture_path);
+                    continue;
                 }
-
-                log::trace!("Exported {:?}", interaction_path);
+    
+                let packets = match packet::load_packets(&capture_path) {
+                    Ok(packets) => packets,
+                    Err(e) => {
+                        log::error!("Could not load packets from capture file: {:?}", e);
+                        continue;
+                    }
+                };
+    
+                let traffic_trace = match TrafficTrace::try_from(packets) {
+                    Ok(trace) => trace.as_wang_traffic_trace(&mac_address),
+                    Err(e) => {
+                        log::error!("Cannot load traffic trace: {:?}", e);
+                        continue;
+                    }
+                };
+    
+                for valid_query in &valid_queries {
+                    if interaction.query == *valid_query {
+                        let interaction_path = query_dir.join(format!(
+                            "{}_??_varys_{}_.csv",
+                            valid_query.replace(' ', "_"),
+                            index
+                        ));
+                        let mut csv = File::create(&interaction_path)?;
+    
+                        writeln!(csv, "time,size,direction")?;
+                        for (timestamp, size, direction) in &traffic_trace.0 {
+                            writeln!(csv, "{:?},{:.1},{:.1}", timestamp, size, direction)?;
+                        }
+    
+                        log::trace!("Exported {:?}", interaction_path);
+                    }
+                }
             }
         }
-
+    
         Ok(())
     }
 
