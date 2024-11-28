@@ -230,5 +230,8 @@ fn demo<P: AsRef<Path>>(data_dir: P, interface: &str, address: String) -> Result
 }
 
 async fn get_filtered_interactions(dataset_size: &DatasetSize) -> Result<Vec<Interaction>, Error> {
-    Ok(dataset_size.filter(Interaction::get_all(&database::connect().await?).await?))
+    let connection = database::connect().await?;
+    let all_interactions = Interaction::get_all(&connection).await?;
+    log::info!("Fetched all interactions: {}", all_interactions.len()); // Debugging
+    Ok(dataset_size.filter(all_interactions))
 }
