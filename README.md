@@ -2,6 +2,8 @@
 
 Traffic traces for *"Hey Siri, any missed calls?"*, each horizontal line is one interaction.
 
+View the [thesis](https://git.milan.wtf/m-vz/varys-thesis) and [presentation](https://git.milan.wtf/m-vz/varys-presentation).
+
 # varys
 A testbed to collect network captures, audio recordings, timestamps and a transcript of interactions with smart speakers. This data is used for large scale traffic fingerprinting on voice assistants. The ultimate goal hereby is to gain insight into security and privacy practices.
 
