@@ -1,3 +1,7 @@
+![](data/plots/plot-missed-calls.png)
+
+Traffic traces for *"Hey Siri, any missed calls?"*, each horizontal line is one interaction.
+
 # varys
 A testbed to collect network captures, audio recordings, timestamps and a transcript of interactions with smart speakers. This data is used for large scale traffic fingerprinting on voice assistants. The ultimate goal hereby is to gain insight into security and privacy practices.
 

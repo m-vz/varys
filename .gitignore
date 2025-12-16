@@ -23,6 +23,7 @@ Icon
 /data/captures/*.pcap
 /data/captures/*.pcap.gz
 /data/plots/*.png
+!/data/plots/plot-missed-calls.png
 /data/db
 /data/sessions*
 /data/ml
